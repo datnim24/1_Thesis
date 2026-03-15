@@ -83,3 +83,53 @@ R3 SPECIAL RULES
 COST PRIORITY HIERARCHY
 -----------------------
 stockout ($1500/event) > tardiness ($1000/min) > idle ($200/min/roaster) > overflow-idle ($50/min/roaster)
+
+HOW TO USE
+----------
+Run these commands from:
+  C:\1_Local_Folder\Code\1_Thesis\MILP_Test_v2
+
+1. Validate the CSV pack and derived sets
+   python data.py
+
+2. Run the deterministic baseline with default settings
+   python main.py
+
+3. Run a longer solve
+   python main.py --time-limit 300
+
+4. Run with a tighter gap target
+   python main.py --time-limit 300 --gap 0.005
+
+5. Show full CBC or HiGHS solver output
+   python main.py --time-limit 300 --verbose
+
+6. Save the results dictionary to JSON
+   python main.py --time-limit 300 --output-json results.json
+
+7. Run without printing the schedule/profit table
+   python main.py --time-limit 300 --no-report --output-json results.json
+
+8. Show detailed logging during build
+   python main.py --log-level DEBUG --time-limit 300
+
+CLI FLAGS
+---------
+--input-dir PATH    Override the input folder. Default: ./Input_data
+--solver            Choose CBC or HiGHS
+--time-limit        Solver time limit in seconds
+--gap               Relative MIP gap target as a fraction
+--r3-flex           Override R3 routing mode: 0=fixed, 1=flexible
+--disruptions       Override disruption loading: 0=off, 1=on
+--verbose           Show raw solver output
+--log-level         Set Python logging level
+--output-json PATH  Write results to JSON
+--no-report         Suppress the printed report
+
+PRACTICAL NOTE
+--------------
+The current full MILP instance is large, so total wall-clock time is:
+  data load time + model build time + solver time
+
+The --time-limit flag applies only to the solver phase. Model building can
+still take significant time before the solver starts.
