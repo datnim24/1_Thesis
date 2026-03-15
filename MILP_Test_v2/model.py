@@ -105,13 +105,13 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
         "rc": {},
         "low": {},
         "full": {},
-        "c_complete": {},
+        "n_completed": {},
+        "y_early": {},
     }
 
     # Local auxiliary variables required by the build prompt but not exposed in vars.
     z_window: dict[tuple, pulp.LpVariable] = {}
-    r3_complete_l1: dict[tuple, pulp.LpVariable] = {}
-    r3_complete_l2: dict[tuple, pulp.LpVariable] = {}
+    r3_early_l1: dict[tuple, pulp.LpVariable] = {}
 
     var_counts: dict[str, int] = {}
     constraint_counts = {
@@ -156,9 +156,8 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
         for line_id in lines
     }
 
-    possible_completion_times = list(range(process_time, d["shift_length"] + 1))
     rc_times = {
-        line_id: sorted(set(all_consumption_times) | set(possible_completion_times))
+        line_id: list(all_consumption_times)
         for line_id in lines
     }
     for line_id in lines:
@@ -190,6 +189,15 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
         ]
         for line_id in lines
     }
+    legacy_rc_times = {
+        line_id: sorted(set(all_consumption_times) | set(range(process_time, d["shift_length"] + 1)))
+        for line_id in lines
+    }
+    old_c_complete_count = sum(
+        len(_relevant_rc_times_for_roaster(r, legacy_rc_times, roaster_can_output))
+        for b in psc_pool
+        for r in batch_eligible[b]
+    )
 
     # Variable creation.
     phase_start = time.perf_counter()
@@ -254,36 +262,72 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
     logger.debug("Created rc variables: %d", var_counts["rc"])
 
     for line_id in lines:
+        vars["n_completed"][line_id] = {}
         vars["low"][line_id] = {}
         vars["full"][line_id] = {}
+        for k, _ in enumerate(rc_times[line_id]):
+            # Cumulative completed PSC batches can exceed max_rc because inventory is
+            # replenished and consumed repeatedly throughout the shift.
+            vars["n_completed"][line_id][k] = pulp.LpVariable(
+                f"n_completed_{line_id}_{k}",
+                lowBound=0,
+                upBound=len(psc_pool),
+                cat="Continuous",
+            )
         for t in d["consumption_events"][line_id]:
             vars["low"][line_id][t] = pulp.LpVariable(f"low_{line_id}_{t}", cat="Binary")
         for t in full_indicator_times[line_id]:
             vars["full"][line_id][t] = pulp.LpVariable(f"full_{line_id}_{t}", cat="Binary")
+    var_counts["n_completed"] = _count_nested_vars(vars["n_completed"])
+    logger.debug("n_completed vars: %d", var_counts["n_completed"])
     var_counts["low"] = _count_nested_vars(vars["low"])
     var_counts["full"] = _count_nested_vars(vars["full"])
     logger.debug("Created low variables: %d", var_counts["low"])
     logger.debug("Created full variables: %d", var_counts["full"])
 
-    c_complete_count = 0
+    y_early_count = 0
+    y_early_l1_count = 0
+    y_early_l2_count = 0
     for b in psc_pool:
         for r in batch_eligible[b]:
-            relevant_times = _relevant_rc_times_for_roaster(r, rc_times, roaster_can_output)
-            for tau in relevant_times:
-                key = (b, r, tau)
-                vars["c_complete"][key] = pulp.LpVariable(
-                    f"c_complete_{safe_id(b)}_{r}_{tau}",
+            line_id = roaster_line[r]
+            for k, tau in enumerate(rc_times[line_id]):
+                if tau < process_time:
+                    continue
+                vars["y_early"][(b, r, k)] = pulp.LpVariable(
+                    f"y_early_{safe_id(b)}_{r}_{k}",
                     cat="Binary",
                 )
-                c_complete_count += 1
-    var_counts["c_complete"] = c_complete_count
-    logger.debug("Created c_complete variables: %d", var_counts["c_complete"])
+                y_early_count += 1
+                if line_id == "L1":
+                    y_early_l1_count += 1
+                else:
+                    y_early_l2_count += 1
+    var_counts["y_early"] = y_early_count
+    var_counts["c_complete"] = 0
+    logger.debug(
+        "y_early vars created: %d (L1=%d, L2=%d)",
+        y_early_count,
+        y_early_l1_count,
+        y_early_l2_count,
+    )
+    logger.info(
+        "C10/C11 reformulation: %d y_early + %d n_completed vars replace %d c_complete vars.",
+        y_early_count,
+        var_counts["n_completed"],
+        old_c_complete_count,
+    )
     logger.info("Variable creation complete in %.2fs", time.perf_counter() - phase_start)
 
-    if var_counts["c_complete"] > 100000:
+    logger.warning(
+        "Count-based inventory reformulation active. c_complete removed. "
+        "n_completed tracks cumulative PSC completions per tracked inventory time. "
+        "This is exact at tracked consumption-event times."
+    )
+    if var_counts["y_early"] > 100000:
         logger.warning(
-            "RC linking var count %d - model may be slow to build and solve.",
-            var_counts["c_complete"],
+            "y_early var count %d - model may still be slow to build and solve.",
+            var_counts["y_early"],
         )
 
     # Objective function.
@@ -493,101 +537,140 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
 
     # C10/C11
     phase_start = time.perf_counter()
+    c10_early_count = 0
+    c10_ncomp_count = 0
+    c10_rc_count = 0
+
     for b in psc_pool:
         for r in batch_eligible[b]:
+            line_id = roaster_line[r]
             support_var = vars["x"][b][r]
-            for tau in _relevant_rc_times_for_roaster(r, rc_times, roaster_can_output):
-                c_var = vars["c_complete"][(b, r, tau)]
+            for k, tau in enumerate(rc_times[line_id]):
+                if tau < process_time:
+                    continue
+                early_var = vars["y_early"][(b, r, k)]
                 prob += (
-                    c_var <= support_var,
-                    f"C10_c_ub_{safe_id(b)}_{r}_{tau}",
+                    early_var <= support_var,
+                    f"C10_ye_assign_{safe_id(b)}_{r}_{k}",
                 )
                 prob += (
-                    vars["s"][b] + process_time <= tau + BIG_M * (1 - c_var),
-                    f"C10_c_timeub_{safe_id(b)}_{r}_{tau}",
+                    vars["s"][b] + process_time <= tau + BIG_M * (1 - early_var),
+                    f"C10_ye_tA_{safe_id(b)}_{r}_{k}",
                 )
                 prob += (
                     vars["s"][b] + process_time
                     >= (tau + 1)
-                    - BIG_M * c_var
-                    - BIG_M * (1 - support_var),
-                    f"C10_c_timelb_{safe_id(b)}_{r}_{tau}",
+                    - BIG_M * (1 - support_var)
+                    - BIG_M * early_var,
+                    f"C10_ye_tB_{safe_id(b)}_{r}_{k}",
                 )
-                constraint_counts["C10"] += 3
+                c10_early_count += 3
 
     if d["allow_r3_flex"]:
         for b in r3_routable_batches:
-            for tau in rc_times["L1"]:
-                key = (b, tau)
-                r3_complete_l1[key] = pulp.LpVariable(
-                    f"c_r3_l1_{safe_id(b)}_{tau}",
+            for k, tau in enumerate(rc_times["L2"]):
+                if tau < process_time:
+                    continue
+                r3_early_l1[(b, k)] = pulp.LpVariable(
+                    f"r3_early_l1_{safe_id(b)}_{k}",
                     cat="Binary",
                 )
                 prob += (
-                    r3_complete_l1[key] <= vars["w"][b],
-                    f"C10_r3l1_ub_{safe_id(b)}_{tau}",
+                    r3_early_l1[(b, k)] <= vars["y_early"][(b, "R3", k)],
+                    f"C10_r3ye_ub_early_{safe_id(b)}_{k}",
                 )
                 prob += (
-                    vars["s"][b] + process_time <= tau + BIG_M * (1 - r3_complete_l1[key]),
-                    f"C10_r3l1_timeub_{safe_id(b)}_{tau}",
+                    r3_early_l1[(b, k)] <= vars["y"][b],
+                    f"C10_r3ye_ub_y_{safe_id(b)}_{k}",
                 )
                 prob += (
-                    vars["s"][b] + process_time
-                    >= (tau + 1)
-                    - BIG_M * r3_complete_l1[key]
-                    - BIG_M * (1 - vars["w"][b]),
-                    f"C10_r3l1_timelb_{safe_id(b)}_{tau}",
+                    r3_early_l1[(b, k)] >= vars["y_early"][(b, "R3", k)] + vars["y"][b] - 1,
+                    f"C10_r3ye_lb_{safe_id(b)}_{k}",
                 )
-                constraint_counts["C10"] += 3
-
-            r3_l2_support = vars["x"][b]["R3"] - vars["w"][b]
-            for tau in rc_times["L2"]:
-                key = (b, tau)
-                r3_complete_l2[key] = pulp.LpVariable(
-                    f"c_r3_l2_{safe_id(b)}_{tau}",
-                    cat="Binary",
-                )
-                prob += (
-                    r3_complete_l2[key] <= r3_l2_support,
-                    f"C10_r3l2_ub_{safe_id(b)}_{tau}",
-                )
-                prob += (
-                    vars["s"][b] + process_time <= tau + BIG_M * (1 - r3_complete_l2[key]),
-                    f"C10_r3l2_timeub_{safe_id(b)}_{tau}",
-                )
-                prob += (
-                    vars["s"][b] + process_time
-                    >= (tau + 1)
-                    - BIG_M * r3_complete_l2[key]
-                    - BIG_M * (1 - r3_l2_support),
-                    f"C10_r3l2_timelb_{safe_id(b)}_{tau}",
-                )
-                constraint_counts["C10"] += 3
+                c10_early_count += 3
 
     for line_id in lines:
-        for tau in rc_times[line_id]:
-            completed_terms = []
-            for b, r in fixed_output_pairs[line_id]:
-                completed_terms.append(vars["c_complete"][(b, r, tau)])
+        if line_id == "L1":
+            total_assigned_to_l = (
+                pulp.lpSum(vars["x"][b][r] for b, r in fixed_output_pairs["L1"])
+                + (
+                    pulp.lpSum(vars["w"][b] for b in r3_routable_batches)
+                    if d["allow_r3_flex"]
+                    else 0
+                )
+            )
+        else:
+            total_assigned_to_l = (
+                pulp.lpSum(vars["x"][b][r] for b, r in fixed_output_pairs["L2"])
+                + (
+                    pulp.lpSum(vars["x"][b]["R3"] - vars["w"][b] for b in r3_routable_batches)
+                    if d["allow_r3_flex"]
+                    else pulp.lpSum(
+                        vars["x"][b]["R3"] for b in psc_pool if "R3" in batch_eligible[b]
+                    )
+                )
+            )
 
-            if line_id == "L2":
-                for b in psc_pool:
-                    if "R3" not in batch_eligible[b]:
-                        continue
-                    if d["allow_r3_flex"] and b in vars["w"]:
-                        completed_terms.append(r3_complete_l2[(b, tau)])
-                    else:
-                        completed_terms.append(vars["c_complete"][(b, "R3", tau)])
-            elif d["allow_r3_flex"]:
-                for b in r3_routable_batches:
-                    completed_terms.append(r3_complete_l1[(b, tau)])
+        for k, tau in enumerate(rc_times[line_id]):
+            if line_id == "L1":
+                early_terms = [
+                    vars["y_early"][(b, r, k)]
+                    for b, r in fixed_output_pairs["L1"]
+                    if (b, r, k) in vars["y_early"]
+                ]
+                if d["allow_r3_flex"]:
+                    early_terms.extend(
+                        r3_early_l1[(b, k)]
+                        for b in r3_routable_batches
+                        if (b, k) in r3_early_l1
+                    )
+            else:
+                early_terms = [
+                    vars["y_early"][(b, r, k)]
+                    for b, r in fixed_output_pairs["L2"]
+                    if (b, r, k) in vars["y_early"]
+                ]
+                if d["allow_r3_flex"]:
+                    early_terms.extend(
+                        vars["y_early"][(b, "R3", k)] - r3_early_l1[(b, k)]
+                        for b in r3_routable_batches
+                        if (b, "R3", k) in vars["y_early"] and (b, k) in r3_early_l1
+                    )
+                else:
+                    early_terms.extend(
+                        vars["y_early"][(b, "R3", k)]
+                        for b in psc_pool
+                        if (b, "R3", k) in vars["y_early"]
+                    )
+
+            early_sum = pulp.lpSum(early_terms)
+            prob += (
+                vars["n_completed"][line_id][k] >= early_sum,
+                f"C10_ncomp_lb_{line_id}_{k}",
+            )
+            prob += (
+                vars["n_completed"][line_id][k] <= early_sum,
+                f"C10_ncomp_sumub_{line_id}_{k}",
+            )
+            prob += (
+                vars["n_completed"][line_id][k] <= total_assigned_to_l,
+                f"C10_ncomp_ub_{line_id}_{k}",
+            )
+            c10_ncomp_count += 3
+
+            if k >= 1:
+                prob += (
+                    vars["n_completed"][line_id][k] >= vars["n_completed"][line_id][k - 1],
+                    f"C10_ncomp_mono_{line_id}_{k}",
+                )
+                c10_ncomp_count += 1
 
             prob += (
                 vars["rc"][line_id][tau]
                 == d["rc_init"][line_id]
-                + pulp.lpSum(completed_terms)
+                + vars["n_completed"][line_id][k]
                 - consumption_prefix_counts[line_id][tau],
-                f"C10_balance_{line_id}_{tau}",
+                f"C10_rc_balance_{line_id}_{k}",
             )
             prob += (
                 vars["rc"][line_id][tau] >= 0,
@@ -597,9 +680,13 @@ def build(d: dict) -> tuple[pulp.LpProblem, dict]:
                 vars["rc"][line_id][tau] <= d["max_rc"],
                 f"C11_ub_{line_id}_{tau}",
             )
-            constraint_counts["C10"] += 2
+            c10_rc_count += 2
             constraint_counts["C11"] += 1
 
+    constraint_counts["C10"] += c10_early_count + c10_ncomp_count + c10_rc_count
+    logger.debug("Constraint count C10_early: %d", c10_early_count)
+    logger.debug("Constraint count C10_ncomp: %d", c10_ncomp_count)
+    logger.debug("Constraint count C10_rc: %d", c10_rc_count)
     logger.debug("Constraint count C10: %d", constraint_counts["C10"])
     logger.debug("Constraint count C11: %d", constraint_counts["C11"])
     logger.info("C10/C11 complete in %.2fs", time.perf_counter() - phase_start)
@@ -704,11 +791,13 @@ def _print_build_report(prob: pulp.LpProblem, vars: dict) -> None:
     print(f"  idle                       : {var_counts.get('idle', 0)}")
     print(f"  over                       : {var_counts.get('over', 0)}")
     print(f"  rc                         : {var_counts.get('rc', 0)}")
+    print(f"  n_completed                : {var_counts.get('n_completed', 0)}")
+    print(f"  y_early                    : {var_counts.get('y_early', 0)}")
     print(
         "  low / full indicators      : "
         f"{var_counts.get('low', 0) + var_counts.get('full', 0)}"
     )
-    print(f"  c_complete linking         : {var_counts.get('c_complete', 0)}")
+    print(f"  c_complete (removed)       : {var_counts.get('c_complete', 0)}")
     print(f"  Total variables            : {meta.get('total_vars', len(prob.variables()))}")
     print("Constraints:")
     print(f"  C2  PSC activation         : {constraint_counts.get('C2', 0)}")

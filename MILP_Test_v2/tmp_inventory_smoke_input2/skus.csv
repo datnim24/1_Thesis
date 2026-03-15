@@ -1,0 +1,4 @@
+sku,is_mto,credits_rc_stock,revenue_per_batch_usd,default_due_time_min,batch_size_kg
+PSC,0,1,4000,,500
+NDG,1,0,7000,240,500
+BUSTA,1,0,7000,240,500

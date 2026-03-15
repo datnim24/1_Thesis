@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import pulp
 logger = logging.getLogger("solver")
 
 _verbose = False
+_heartbeat_interval_sec = 300.0
 
 
 def set_verbose(flag: bool):
@@ -177,6 +179,25 @@ def _safe_var_value(var) -> float:
     return float(value)
 
 
+def _solver_heartbeat(
+    stop_event: threading.Event,
+    start_time: float,
+    time_limit: float | int | None,
+):
+    while not stop_event.wait(_heartbeat_interval_sec):
+        elapsed = time.time() - start_time
+        if time_limit is None:
+            logger.info("Solve still running - elapsed: %.0fs", elapsed)
+            continue
+
+        remaining = max(0.0, float(time_limit) - elapsed)
+        logger.info(
+            "Solve still running - elapsed: %.0fs, remaining solver time: %.0fs",
+            elapsed,
+            remaining,
+        )
+
+
 def solve(
     d: dict,
     prob: pulp.LpProblem,
@@ -193,10 +214,24 @@ def solve(
         temp_log.close()
 
     solver, solver_name = _make_solver(selected_name, d, log_path)
+    heartbeat_stop = threading.Event()
+    heartbeat_thread = threading.Thread(
+        target=_solver_heartbeat,
+        args=(heartbeat_stop, t_start, d.get("time_limit")),
+        daemon=True,
+        name="solver-heartbeat",
+    )
+    heartbeat_thread.start()
+    logger.info(
+        "Solve started - heartbeat will report every %.0f minutes",
+        _heartbeat_interval_sec / 60.0,
+    )
 
     try:
         status = prob.solve(solver)
     except pulp.PulpSolverError as exc:
+        heartbeat_stop.set()
+        heartbeat_thread.join(timeout=1.0)
         if solver_name == "HiGHS":
             logger.warning("HiGHS unavailable (%s), falling back to CBC", exc)
             if log_path is None:
@@ -204,9 +239,23 @@ def solve(
                 log_path = temp_log.name
                 temp_log.close()
             solver, solver_name = _make_solver("CBC", d, log_path if not _verbose else None)
+            heartbeat_stop = threading.Event()
+            heartbeat_thread = threading.Thread(
+                target=_solver_heartbeat,
+                args=(heartbeat_stop, t_start, d.get("time_limit")),
+                daemon=True,
+                name="solver-heartbeat",
+            )
+            heartbeat_thread.start()
+            logger.info(
+                "Solve restarted with CBC fallback - heartbeat will report every %.0f minutes",
+                _heartbeat_interval_sec / 60.0,
+            )
             try:
                 status = prob.solve(solver)
             except pulp.PulpSolverError as fallback_exc:
+                heartbeat_stop.set()
+                heartbeat_thread.join(timeout=1.0)
                 logger.error("CBC solve failed: %s", fallback_exc)
                 if log_path and os.path.exists(log_path):
                     os.remove(log_path)
@@ -216,6 +265,9 @@ def solve(
             if log_path and os.path.exists(log_path):
                 os.remove(log_path)
             return None
+    finally:
+        heartbeat_stop.set()
+        heartbeat_thread.join(timeout=1.0)
 
     solve_time = time.time() - t_start
 
