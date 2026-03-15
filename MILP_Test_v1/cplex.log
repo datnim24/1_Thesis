@@ -1,0 +1,29 @@
+
+Log started (V22.1.2.0) Sat Mar 14 17:08:39 2026
+
+
+Problem 'debug.lp' read.
+Read time = 0.00 sec. (0.05 ticks)
+Version identifier: 22.1.2.0 | 2024-12-09 | 8bd2200c8
+Tried aggregator 1 time.
+MIP Presolve eliminated 532 rows and 251 columns.
+Reduced MIP has 14 rows, 30 columns, and 58 nonzeros.
+Reduced MIP has 30 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (0.48 ticks)
+
+Root node processing (before b&c):
+  Real time             =    0.02 sec. (0.64 ticks)
+Parallel b&c, 12 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.02 sec. (0.64 ticks)
+
+
+MIP - Integer infeasible.
+Current MIP best bound is infinite.
+Solution time =    0.03 sec.  Iterations = 0  Nodes = 0 (1)
+Deterministic time = 0.64 ticks  (20.02 ticks/sec)
+
+No conflict exists.

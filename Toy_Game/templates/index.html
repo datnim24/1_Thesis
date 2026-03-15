@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Roasting Simulation — Digital Twin</title>
+    <meta name="description" content="Interactive coffee roasting production line scheduling simulation for thesis evaluation">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <h1>☕ Coffee Roasting Scheduler</h1>
+            <span class="subtitle">Digital Twin — 8-Hour Shift Simulation</span>
+        </div>
+        <div class="header-center">
+            <div class="clock-display" id="clock-display">
+                <span class="clock-label">Shift Time</span>
+                <span class="clock-value" id="clock-value">00:00</span>
+                <span class="clock-sub" id="clock-minutes">0 / 480 min</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="shift-progress" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="mto-tracker">
+                <div class="mto-item">
+                    <span class="mto-label">NDG</span>
+                    <span class="mto-value" id="mto-ndg">0/3</span>
+                </div>
+                <div class="mto-item">
+                    <span class="mto-label">Busta</span>
+                    <span class="mto-value" id="mto-busta">0/1</span>
+                </div>
+                <div class="mto-due" id="mto-due">Due: 240 min</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Controls Bar -->
+    <section id="controls-bar">
+        <div class="control-group">
+            <button id="btn-init" class="btn btn-primary" onclick="initSimulation()">⟳ Reset</button>
+            <button id="btn-play" class="btn btn-success" onclick="togglePlay()">▶ Play</button>
+            <button id="btn-step" class="btn btn-secondary" onclick="stepOnce()">⏭ Step</button>
+        </div>
+        <div class="control-group">
+            <label class="speed-label">Speed:</label>
+            <button class="btn btn-speed" data-speed="0.1" onclick="setSpeed(0.1)">0.1×</button>
+            <button class="btn btn-speed" data-speed="0.2" onclick="setSpeed(0.2)">0.2×</button>
+            <button class="btn btn-speed" data-speed="0.5" onclick="setSpeed(0.5)">0.5×</button>
+            <button class="btn btn-speed active" data-speed="1" onclick="setSpeed(1)">1×</button>
+            <button class="btn btn-speed" data-speed="5" onclick="setSpeed(5)">5×</button>
+            <button class="btn btn-speed" data-speed="10" onclick="setSpeed(10)">10×</button>
+            <button class="btn btn-speed" data-speed="50" onclick="setSpeed(50)">50×</button>
+        </div>
+        <div class="control-group">
+            <button id="btn-auto" class="btn btn-auto" onclick="toggleAuto()">🤖 Auto Mode</button>
+            <button id="btn-report" class="btn btn-accent" onclick="generateReport()">📊 Report</button>
+        </div>
+        <div class="control-group">
+            <label class="speed-label">MTO:</label>
+            <label class="speed-label">NDG</label>
+            <input type="number" id="input-mto-ndg" value="3" min="0" max="20"
+                   style="width:42px; padding:4px 6px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-family:var(--font); font-size:0.8rem; text-align:center;">
+            <label class="speed-label">Busta</label>
+            <input type="number" id="input-mto-busta" value="1" min="0" max="20"
+                   style="width:42px; padding:4px 6px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-family:var(--font); font-size:0.8rem; text-align:center;">
+        </div>
+    </section>
+
+    <!-- Main Layout -->
+    <main id="main-layout">
+        <!-- Left Panel: Roasters + SKU Palette -->
+        <section id="left-panel">
+            <h2 class="section-title">Production Lines</h2>
+
+            <!-- SKU Palette (drag source) -->
+            <div id="sku-palette">
+                <span class="palette-label">Drag SKU →</span>
+                <div class="sku-badge" draggable="true" data-sku="PSC" id="drag-psc">PSC</div>
+                <div class="sku-badge sku-ndg" draggable="true" data-sku="NDG" id="drag-ndg">NDG</div>
+                <div class="sku-badge sku-busta" draggable="true" data-sku="Busta" id="drag-busta">Busta</div>
+            </div>
+
+            <!-- Line 1 -->
+            <div class="line-group">
+                <h3 class="line-title">Line 1 <span class="line-badge">R1, R2</span></h3>
+                <div class="roaster-row">
+                    <div class="roaster-card" id="roaster-R1" data-roaster="R1"></div>
+                    <div class="roaster-card" id="roaster-R2" data-roaster="R2"></div>
+                </div>
+                <div class="pipeline-indicator" id="pipeline-L1">
+                    <span class="pipe-label">Pipeline L1</span>
+                    <span class="pipe-status">Free</span>
+                </div>
+            </div>
+
+            <!-- Line 2 -->
+            <div class="line-group">
+                <h3 class="line-title">Line 2 <span class="line-badge">R3, R4, R5</span></h3>
+                <div class="roaster-row">
+                    <div class="roaster-card" id="roaster-R3" data-roaster="R3"></div>
+                    <div class="roaster-card" id="roaster-R4" data-roaster="R4"></div>
+                    <div class="roaster-card" id="roaster-R5" data-roaster="R5"></div>
+                </div>
+                <div class="pipeline-indicator" id="pipeline-L2">
+                    <span class="pipe-label">Pipeline L2</span>
+                    <span class="pipe-status">Free</span>
+                </div>
+            </div>
+
+            <!-- Disruption Controls -->
+            <div id="disruption-panel">
+                <h3 class="section-title">⚡ Disruptions</h3>
+                <div class="disruption-buttons">
+                    <button class="btn btn-danger btn-sm" onclick="triggerDisruption('R1')">Break R1</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerDisruption('R2')">Break R2</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerDisruption('R3')">Break R3</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerDisruption('R4')">Break R4</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerDisruption('R5')">Break R5</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Center Panel: Silos + Gantt -->
+        <section id="center-panel">
+            <!-- RC Silos -->
+            <div id="silo-section">
+                <h2 class="section-title">RC Silo Stock</h2>
+                <div class="silo-row">
+                    <div class="silo-container" id="silo-L1">
+                        <div class="silo-label">Line 1</div>
+                        <div class="silo-tank">
+                            <div class="silo-fill" id="silo-fill-L1" style="height: 50%"></div>
+                            <div class="silo-level" id="silo-level-L1">20</div>
+                        </div>
+                        <div class="silo-stats">
+                            <span id="silo-rate-L1">ρ = 5.1</span>
+                            <span id="silo-max-L1">/ 40</span>
+                        </div>
+                    </div>
+                    <div class="silo-container" id="silo-L2">
+                        <div class="silo-label">Line 2</div>
+                        <div class="silo-tank">
+                            <div class="silo-fill" id="silo-fill-L2" style="height: 50%"></div>
+                            <div class="silo-level" id="silo-level-L2">20</div>
+                        </div>
+                        <div class="silo-stats">
+                            <span id="silo-rate-L2">ρ = 4.8</span>
+                            <span id="silo-max-L2">/ 40</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Consumption Rate Sliders -->
+                <div class="slider-group">
+                    <label>L1 Consumption Rate: <span id="rate-val-L1">5.1</span> min/batch</label>
+                    <input type="range" id="rate-slider-L1" min="1" max="15" step="0.1" value="5.1"
+                           oninput="updateConsumptionRate('L1', this.value)">
+                </div>
+                <div class="slider-group">
+                    <label>L2 Consumption Rate: <span id="rate-val-L2">4.8</span> min/batch</label>
+                    <input type="range" id="rate-slider-L2" min="1" max="15" step="0.1" value="4.8"
+                           oninput="updateConsumptionRate('L2', this.value)">
+                </div>
+            </div>
+
+            <!-- Gantt Chart -->
+            <div id="gantt-section">
+                <h2 class="section-title">Schedule (Gantt Chart)</h2>
+                <div id="gantt-chart"></div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Charts -->
+        <section id="right-panel">
+            <div class="chart-container">
+                <h3 class="section-title">RC Stock Over Time</h3>
+                <canvas id="chart-rc-stock"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3 class="section-title">Roaster Utilization</h3>
+                <canvas id="chart-utilization"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3 class="section-title">Completed Batches</h3>
+                <canvas id="chart-batches"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <!-- Event Log -->
+    <section id="event-log-section">
+        <h3 class="section-title">📋 Event Log</h3>
+        <div id="event-log"></div>
+    </section>
+
+    <!-- AI Decision Log -->
+    <section id="decision-log-section">
+        <h3 class="section-title">🧠 AI Decision Log</h3>
+        <div id="decision-log"></div>
+    </section>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 End-of-Shift Report</h2>
+                <button class="btn-close" onclick="closeReport()">✕</button>
+            </div>
+            <div class="modal-body" id="report-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-accent" onclick="downloadCSV()">📥 Download CSV</button>
+                <button class="btn btn-secondary" onclick="closeReport()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

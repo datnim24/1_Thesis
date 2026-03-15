@@ -1,0 +1,2 @@
+shift_length_min,time_step_min,max_rc_batches_per_line,safety_stock_batches,setup_time_diff_sku_min,stockout_cost_per_min_per_line,tardiness_cost_per_min,idle_cost_per_min_per_roaster,overflow_idle_cost_per_min_per_roaster,initial_rc_l1,initial_rc_l2,psc_consume_rate_l1_min_per_batch,psc_consume_rate_l2_min_per_batch
+480,1,40,20,5,1500,1000,200,50,12,15,5.1,4.8

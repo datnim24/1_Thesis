@@ -1,0 +1,7 @@
+parameter,value
+solver_name,cplex
+time_limit_sec,30
+mip_gap_target,0.01
+enable_gui,1
+enable_disruptions,1
+allow_r3_flexible_output,1
