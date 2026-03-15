@@ -1,0 +1,85 @@
+{
+  "status": "Optimal",
+  "solve_time": 0.899,
+  "solver_name": "CBC",
+  "obj_value": 28000.0,
+  "lp_bound": 28000.0,
+  "gap_pct": 0.0,
+  "net_profit": 28000.0,
+  "total_revenue": 28000.0,
+  "total_costs": 0.0,
+  "psc_count": 0,
+  "ndg_count": 3,
+  "busta_count": 1,
+  "revenue_psc": 0.0,
+  "revenue_ndg": 21000.0,
+  "revenue_busta": 7000.0,
+  "tardiness_min": {
+    "J1": 0.0,
+    "J2": 0.0
+  },
+  "tard_cost": 0.0,
+  "idle_min": 0,
+  "idle_cost": 0.0,
+  "over_min": 0,
+  "over_cost": 0.0,
+  "allow_r3_flex": true,
+  "schedule": [
+    {
+      "batch_id": "('J2', 0)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 5,
+      "end": 20,
+      "pipeline": "L1[5..7]",
+      "output_line": null,
+      "is_mto": true,
+      "setup": "Yes(5m)"
+    },
+    {
+      "batch_id": "('J1', 2)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 8,
+      "end": 23,
+      "pipeline": "L1[8..10]",
+      "output_line": null,
+      "is_mto": true,
+      "setup": "Yes(5m)"
+    },
+    {
+      "batch_id": "('J1', 1)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 23,
+      "end": 38,
+      "pipeline": "L1[23..25]",
+      "output_line": null,
+      "is_mto": true,
+      "setup": "No"
+    },
+    {
+      "batch_id": "('J1', 0)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 38,
+      "end": 53,
+      "pipeline": "L1[38..40]",
+      "output_line": null,
+      "is_mto": true,
+      "setup": "No"
+    }
+  ],
+  "sku_revenue": {
+    "PSC": 4000.0,
+    "NDG": 7000.0,
+    "BUSTA": 7000.0
+  },
+  "cost_tardiness": 1000.0,
+  "cost_idle": 200.0,
+  "cost_overflow": 50.0
+}

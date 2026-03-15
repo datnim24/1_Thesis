@@ -11,7 +11,7 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 
 1. **Every term has the same unit ($)** — no arbitrary weight calibration needed
 2. **RL reward function maps directly to profit** — the agent optimizes what we care about
-3. **Costs reflect factory priorities naturally** — stockout ($1,500/min) is much worse than tardiness ($1,000/min) because it stops the packaging line
+3. **Costs reflect factory priorities naturally** — stockout ($1,500/event) is much worse than tardiness ($1,000/min) because it stops the packaging line
 4. **Easy to interpret and validate** — "this schedule earns $280,000 per shift" is meaningful to factory management
 
 ---
@@ -57,20 +57,30 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 
 | Symbol | Value | Unit | Trigger |
 |--------|-------|------|---------|
-| $c^{stock}$ | **$1,500** | per minute per line | $B_l(t) \leq 0$ at a consumption event time $\tau \in \mathcal{E}_l$ |
+| $c^{stock}$ | **$1,500** | **per consumption event with deficit** | A consumption event at $\tau \in \mathcal{E}_l$ occurs and $B_l(\tau) < 0$ after decrement (strictly negative — demand unmet) |
 
-**Applies to:** Each line independently. Tracked at consumption event times.
+**Applies to:** Each line independently. Penalized **only at consumption event times** — not every time slot. Between events, negative stock has no additional penalty (the packaging line was already stopped at the event).
 
-**Rationale:** Stockout stops the PSC packaging line entirely. Cost includes: idle packaging labor, energy waste, production plan disruption, potential downstream supply chain penalties. At $1,500/min, stockout is the **most expensive penalty** — reflecting the factory's top priority (PSC continuity).
+**Precise definition:** At each consumption event $\tau$, RC stock is decremented by 1. If $B_l(\tau) < 0$ after the decrement (strictly negative — the consumption event could not be fully served), one stockout event is recorded and penalized at $c^{stock}$. If $B_l(\tau) = 0$, the last batch was served but stock is now empty — this is **not** a stockout event (demand was met), but the packaging line is at risk. The penalty is **per event**, not per minute of duration.
 
-**Relationship to consumption rate:** With $\rho_l = 5.1$ min/batch, a 5-minute stockout spans approximately 1 consumption event → cost = $1,500 × 5 = $7,500. This is nearly 2× the revenue of one PSC batch ($4,000), making it always worth preventing.
+**Boundary clarification:** $B_l = 0$ means "stock depleted but last demand served." $B_l < 0$ means "demand arrived and could not be served." Only the latter is penalized. This is consistent with C10 ($B_l \geq 0$ hard constraint in deterministic mode) — a feasible deterministic solution has $\text{SO}_l = 0$ always.
 
-**In deterministic mode:** Stockout is a **hard constraint** ($B_l(t) \geq 0$). The penalty is effectively infinite — the solver must find a schedule with zero stockout.
+**Rationale:** Stockout stops the PSC packaging line. Each failed consumption event = one batch of demand unmet. At $1,500 per event, stockout is the **most expensive penalty** — reflecting the factory's top priority (PSC continuity). With ~94 events per shift per line, a sustained stockout of 10 consecutive events costs $15,000.
 
-**In reactive mode (post-UPS):** Stockout becomes **soft** with penalty $c^{stock}$. The solver minimizes total stockout cost rather than declaring infeasibility.
+**In deterministic mode:** Stockout is a **hard constraint** ($B_l(\tau) \geq 0$ at all $\tau \in \mathcal{E}_l$). The penalty is effectively infinite — solver must find a schedule with zero stockout.
+
+**In reactive mode (post-UPS):** Stockout becomes **soft** with penalty $c^{stock}$ per event. The solver minimizes total number of stockout events.
+
+**Distinction: penalty vs. KPI:**
+- **Penalty (in objective/reward):** $c^{stock}$ × number of consumption events where $B_l < 0$ (strictly negative). This is what the solver/agent optimizes.
+- **KPI (reported, not optimized):** "Stockout duration" = total minutes where $B_l \leq 0$ (includes zero — line stalled waiting for recovery). This is an operational metric for analysis.
 
 **Example:**
-- Line 1 RC stock drops to 0 at t=220, stays at 0 until t=232 (12 minutes) → cost = $1,500 × 12 = $18,000
+- Line 1 RC hits 0 at t=220. Consumption events at t=225, 230 find $B_l < 0$ (stock was already 0, decrement makes it negative).
+- Stock recovers at t=232. Event at t=235 finds $B_l > 0$.
+- Stockout penalty = 2 events × $1,500 = **$3,000**
+- Note: the event at t=220 brought $B_l$ from 1 to 0 — demand was served, so this is **not** a stockout event.
+- Stockout duration (KPI) = 12 minutes (t=220 to t=232, includes time at zero)
 
 ### 3.3 RC Overstock Penalty (Overflow Idle)
 
@@ -120,28 +130,29 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 
 ### 4.1 Deterministic Mode (Initial Schedule)
 
-$$\boxed{\text{Maximize Profit} = \underbrace{\sum_{b \in \mathcal{B}: a_b=1} R_{\text{sku}(b)}}_{\text{Total Revenue}} - \underbrace{c^{tard} \sum_{j} \text{tard}_j}_{\text{Tardiness Cost}} - \underbrace{c^{idle} \sum_{r} \sum_{t: B_{\ell(r)}(t) < \theta^{SS}} \text{idle}_{r,t}}_{\text{Safety-Idle Cost}}}$$
+$$\boxed{\text{Maximize Profit} = \underbrace{\sum_{b: a_b=1} R_{\text{sku}(b)}}_{\text{Revenue}} - \underbrace{c^{tard} \sum_j \text{tard}_j}_{\text{Tardiness}} - \underbrace{c^{idle} \sum_{r,t} \text{idle}_{r,t}}_{\text{Safety-Idle}} - \underbrace{c^{over} \sum_{r,t} \text{over}_{r,t}}_{\text{Overflow-Idle}}}$$
 
 Where:
 - $R_{\text{sku}(b)} \in \{R^{PSC}, R^{NDG}, R^{BUS}\} = \{4000, 7000, 7000\}$
 - $\text{tard}_j = \max(0, \max_{b \in \mathcal{B}_j} e_b - 240)$
 - $\text{idle}_{r,t} = 1$ if roaster $r$ is not RUNNING at time $t$ AND not in planned downtime AND $B_{\ell(r)}(t) < 20$
+- $\text{over}_{r,t} = 1$ if roaster $r$ is idle because RC on its output line = 40 (see §3.3)
 
 **Notes on deterministic mode:**
-- No stockout penalty ($c^{stock}$) — stockout is a **hard constraint** ($B_l(t) \geq 0$), so the solver never encounters it
-- No overstock penalty ($c^{over}$) — overflow is a **hard constraint** ($B_l(t) \leq 40$), enforced by not allowing batch starts that would overflow. The resulting idle time falls under safety-idle if RC is also below threshold (unlikely — overflow and understock don't coexist), otherwise it's just unpenalized idle
-- MTO revenue ($R^{NDG}$, $R^{BUS}$) is a constant since all MTO batches are always active — but included for completeness and for the RL reward decomposition
+- **No stockout penalty** ($c^{stock}$) — stockout is a **hard constraint** ($B_l(\tau) \geq 0$ at all consumption events), so stockout events never occur in a feasible deterministic solution
+- **Overflow-idle IS included** — the solver can prevent overflow by pacing batch starts. The $c^{over}$ penalty gives it incentive to avoid scheduling patterns that fill RC to capacity. Without this penalty, the solver might front-load production and create overflow-idle gaps later
+- MTO revenue ($R^{NDG}$, $R^{BUS}$) is a constant since all MTO batches are always active — included for completeness and RL reward decomposition
 
 ### 4.2 Reactive Mode (Post-UPS Re-solve)
 
-$$\boxed{\text{Max Profit}_{rem} = \sum_{b \in \mathcal{B}_{rem}: a_b=1} R_{\text{sku}(b)} - c^{tard} \sum_j \text{tard}_j - c^{stock} \sum_{l,t} \text{stockout}_{l,t} - c^{over} \sum_{r,t} \text{over}_{r,t} - c^{idle} \sum_{r,t} \text{idle}_{r,t}}$$
+$$\boxed{\text{Max Profit}_{rem} = \sum_{b \in \mathcal{B}_{rem}} R_{\text{sku}(b)} \cdot a_b - c^{tard}\sum_j \text{tard}_j - c^{stock}\sum_{l} \text{SO}_l - c^{over}\sum_{r,t} \text{over}_{r,t} - c^{idle}\sum_{r,t} \text{idle}_{r,t}}$$
 
-Where additionally:
-- $\text{stockout}_{l,t} = \max(0, -B_l(t))$ — deficit at consumption events (soft)
-- $\text{over}_{r,t} = 1$ if roaster $r$ is idle **because** RC on its output line = 40 (forced idle, distinct from safety-idle)
+Where:
+- $\text{SO}_l = \left|\{\tau \in \mathcal{E}_l^{rem} : B_l(\tau) < 0\}\right|$ — **count** of consumption events on line $l$ where stock is strictly negative (demand unmet). Event-based, not duration-based.
+- $\text{over}_{r,t}$ and $\text{idle}_{r,t}$ as in deterministic mode
 - $\mathcal{B}_{rem}$ = remaining unstarted batches only; completed batches frozen
 
-**All five terms are now active** because UPS can make both stockout and overflow-idle unavoidable.
+**All four cost terms are active** because UPS can make both stockout and overflow-idle unavoidable.
 
 ### 4.3 DRL Reward Function (Per-Step Decomposition)
 
@@ -160,50 +171,60 @@ def compute_reward(prev_state, action, new_state, t):
     new_tard = new_state.total_tardiness - prev_state.total_tardiness
     reward -= 1000 * new_tard
     
-    # Stockout cost: -c_stock for each stockout minute this step
+    # Stockout cost: -c_stock per CONSUMPTION EVENT where stock < 0 (strictly negative)
+    # B_l = 0 means last demand served but empty; B_l < 0 means demand unmet
     for l in [L1, L2]:
-        if new_state.rc_stock[l] < 0 and t in E[l]:
-            reward -= 1500
+        if t in E[l] and new_state.rc_stock[l] < 0:
+            reward -= 1500   # one event penalty
     
-    # Overstock-idle cost: -c_over for each roaster blocked by overflow
+    # Overflow-idle cost: -c_over for each roaster blocked by full RC
     for r in roasters:
-        if new_state.status[r] == IDLE and new_state.rc_stock[output_line(r)] >= 40:
-            reward -= 50
+        if new_state.status[r] == IDLE and r not in downtime_at(t):
+            out_l = output_line(r)
+            if r == R3:
+                # R3 special: overflow-idle only if BOTH lines full
+                if new_state.rc_stock[L1] >= 40 and new_state.rc_stock[L2] >= 40:
+                    reward -= 50
+            else:
+                if new_state.rc_stock[out_l] >= 40:
+                    reward -= 50
     
     # Safety-idle cost: -c_idle for each idle roaster when RC < safety
     for r in roasters:
-        if new_state.status[r] in [IDLE, SETUP]:
+        if new_state.status[r] in [IDLE, SETUP] and r not in downtime_at(t):
             if new_state.rc_stock[line_of(r)] < 20:
-                if r not in planned_downtime_at(t) and new_state.status[r] != DOWN:
-                    reward -= 200
+                reward -= 200
     
     return reward
 ```
 
-**Key property:** The cumulative reward across all 480 time steps equals the shift profit from the objective function. No arbitrary normalization needed.
+**Key properties:**
+- Stockout penalty fires **only at consumption event times** (~94 per line per shift), not every slot
+- Overflow-idle for R3 uses the **both-lines-full** rule (R3 can route to either line)
+- Cumulative reward across all 480 time steps ≈ shift profit from the objective function
 
 ---
 
 ## 5. Cost Ratio Analysis
 
-| Cost Item | $/min | $/batch-equivalent | Priority Rank |
-|-----------|-------|-------------------|---------------|
-| **Stockout** | $1,500/min | 1 min ≈ 0.38 PSC batches lost | **1st (highest)** |
+| Cost Item | Rate | Impact | Priority Rank |
+|-----------|------|--------|---------------|
+| **Stockout** | $1,500/event | 3 events ≈ 1 NDG batch revenue wiped | **1st (highest)** |
 | **Tardiness** | $1,000/min | 7 min late = 1 NDG batch revenue wiped | **2nd** |
-| **Safety-idle** | $200/min | 20 min idle = 1 PSC batch revenue wiped | **3rd** |
-| **Overstock-idle** | $50/min | 80 min idle = 1 PSC batch revenue wiped | **4th (lowest)** |
+| **Safety-idle** | $200/min per roaster | 20 min idle = 1 PSC batch revenue wiped | **3rd** |
+| **Overflow-idle** | $50/min per roaster | 80 min idle = 1 PSC batch revenue wiped | **4th (lowest)** |
 
 **Breakeven analysis:**
 - Is it worth a 5-min setup to switch from PSC to NDG?
   - Revenue gain: $7,000 (NDG) − $4,000 (PSC would have produced) = $3,000
   - Setup cost: 5 min × $200 (if RC < 20) = $1,000
   - **Net: +$2,000 → YES** (even under low stock, NDG is worth switching to)
-  - But: if RC is at 5 batches (critical), 5 min setup → 1 consumption event during setup → potential stockout at $1,500/min → **reconsider**
+  - But: if RC is at 5 batches (critical), 5 min setup → 1 consumption event during setup → potential stockout event at $1,500 → **reconsider**
 
 - Is it worth routing R3 to Line 1 (rescuing low stock)?
-  - Benefit: avoid ~5 min of potential stockout on L1 = $7,500 saved
+  - Benefit: avoid ~1 stockout event on L1 (consumption event arrives with $B_l < 0$) = $1,500 saved. If L1 stock is critically low, multiple consumption events could stockout → avoiding 3 events = $4,500 saved.
   - Cost: L2 gets no R3 output for 15 min → L2 stock drops by 1 extra batch
-  - **Net: strongly positive** whenever L1 is at risk of stockout
+  - **Net: strongly positive** whenever L1 is at risk of stockout events
 
 ---
 
@@ -234,7 +255,7 @@ These cost values are **starting points**, not final. The thesis should acknowle
 ║                                                        ║
 ║  PENALTIES                                             ║
 ║    MTO tardiness:          −$1,000 / min late          ║
-║    RC stockout:            −$1,500 / min (per line)    ║
+║    RC stockout:            −$1,500 / event (per line)  ║
 ║    Overflow-idle:          −$50 / min (per roaster)    ║
 ║    Safety-idle:            −$200 / min (per roaster)   ║
 ║       (when RC < 20 batches on roaster's line)         ║

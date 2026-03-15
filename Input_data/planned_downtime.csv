@@ -1,0 +1,2 @@
+roaster_id,start_min,end_min,end_min_convention,duration_min,reason,note
+R3,200,229,inclusive,30,planned_cleaning,Roaster R3 is unavailable during slots 200 to 229 (inclusive). Slot 230 is free. Last valid batch start that avoids this window: slot 184 (batch runs [184..198] — ends at 199 before downtime). Slot 185 start yields batch end at 199 — also valid. Slot 186 start yields batch end at 200 — INVALID (overlaps slot 200? No — D_R3 starts at 200 and batch [186..200] contains 200). Correct last valid start = 185 (batch [185..199] does not contain any slot in {200..229}).

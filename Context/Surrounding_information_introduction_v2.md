@@ -91,9 +91,9 @@ All values below are **rough estimates from on-site observation, interviews, and
 
 ### Primary claim ✅
 
-> **A systematic comparative study of three reactive scheduling strategies (dispatching heuristic, CP-SAT re-optimization, and DRL policy) for batch roasting with shared pipeline constraints under unplanned stoppages, evaluated on a factorial experimental design across disruption intensities, and grounded in the physical system of Nestlé Trị An.**
+> **A systematic comparative study of three reactive scheduling strategies (dispatching heuristic, CP-SAT re-optimization, and DRL policy) for batch roasting with shared pipeline constraints under unplanned stoppages, evaluated on a factorial experimental design across disruption intensities, with MILP as a deterministic solution quality benchmark, and grounded in the physical system of Nestlé Trị An. The objective is to maximize shift profit (revenue minus penalties for tardiness, stockout, and idle time).**
 
-Novelty is in the *systematic comparison of fundamentally different reactive approaches* on a *real industrial constraint structure* with *controlled stochastic disruptions*. Not in algorithmic invention.
+Novelty is in the *systematic comparison of fundamentally different reactive approaches* on a *real industrial constraint structure* with *controlled stochastic disruptions*. Not in algorithmic invention. MILP validates CP-SAT's optimality on the deterministic problem; the three reactive strategies are compared under UPS.
 
 ### Supporting differentiating elements
 
@@ -115,13 +115,14 @@ Novelty is in the *systematic comparison of fundamentally different reactive app
 
 ## 6. Methodology Architecture (for Sections 3.1 and 3.2)
 
-### Three-strategy comparative approach
+### Four-method architecture (3 reactive + 1 benchmark)
 
-| Strategy | Type | Implementation | Role in thesis |
+| Method | Type | Implementation | Role in thesis |
 |---|---|---|---|
-| Dispatching heuristic | Rule-based | Priority rules (EDD for MTO, fill-PSC for stock) | Baseline — represents current operator practice |
-| CP-SAT re-solve | Optimization-based | Google OR-Tools CP-SAT (Python API) | Optimization-based reactive strategy |
-| DRL policy (PPO) | Learning-based | Stable-Baselines3 MaskablePPO (Python) | Learning-based reactive strategy |
+| **MILP** (benchmark) | Exact optimization | OR-Tools MILP or CPLEX/Gurobi | Deterministic benchmark — same model as CP-SAT, provides LP relaxation lower bound to verify CP-SAT solution quality. Does NOT participate in reactive experiments. |
+| Dispatching heuristic | Rule-based | Priority rules: urgency-threshold MTO scheduling (>70% time pressure), most-remaining-batches job priority, lowest-stock R3 routing, overflow/downtime checks | Baseline — represents current operator practice |
+| CP-SAT re-solve | Optimization-based | Google OR-Tools CP-SAT (Python API) | Primary optimization solver — deterministic schedule + event-triggered reactive re-solve on UPS |
+| DRL policy (PPO) | Learning-based | Stable-Baselines3 MaskablePPO (Python), 17 actions (R3 routing baked in), 21-dim observation | Learning-based reactive strategy |
 
 ### Why these three (academic justification)
 
@@ -137,11 +138,14 @@ The research question: **under what disruption conditions does each strategy dom
 
 | Metric | Definition | Unit |
 |---|---|---|
-| **Total throughput** | PSC batches completed per shift | batches |
-| **Stockout count** | Consumption events where $B_l \leq 0$ | events |
-| **Stockout duration** | Total minutes with $B_l \leq 0$ | minutes |
-| **MTO tardiness** | $\sum_j \text{tard}_j$ | minutes |
+| **Total profit** | Revenue ($4k/PSC, $7k/MTO per batch) minus all costs (primary metric) | $ |
+| **PSC throughput** | PSC batches completed per shift | batches |
+| **Stockout count** | Consumption events where $B_l < 0$ (strictly negative, demand unmet). Penalized at $1,500/event in objective. | events |
+| **Stockout duration** | Total minutes with $B_l \leq 0$ (includes zero — line stalled). KPI only — not in objective. | minutes |
+| **MTO tardiness** | $\sum_j \text{tard}_j$ (penalized at $1,000/min in objective) | minutes |
 | **Computation time** | Wall-clock time per re-solve / per RL inference | seconds |
+
+> **Important:** Objective/reward optimizes stockout **event count**, not duration. Duration is a separate operational KPI. See `cost.md` for full cost structure.
 
 ### Baseline
 
@@ -188,7 +192,8 @@ The 21 historical shift instances from Nestlé Trị An are used for **determini
 | Planning horizon | Single 8-hour shift (480 min slots) | Multi-shift, weekly, rolling horizon |
 | Shift types | Normal production and PSC↔MTO SKU switch | 4-hour changeover, PSC-PSC switch |
 | Lines | Both L1 and L2 with R3 cross-line | — |
-| Methods compared | Dispatching + CP-SAT re-solve + DRL (PPO) | MILP, metaheuristics (ALNS documented as future work) |
+| Methods compared | Dispatching + CP-SAT re-solve + DRL (PPO) for reactive; **MILP as deterministic benchmark** | Metaheuristics (ALNS documented as future work) |
+| Objective | **Maximize profit** (revenue − tardiness − stockout − idle costs). All terms in $. See `cost.md`. | Multi-objective Pareto |
 | Uncertainty | Unplanned stoppages (UPS) — stochastic | Stochastic demand, yield uncertainty |
 | Deliverable | Methodology comparison + simulation framework | Deployed production tool, dashboard |
 | Data | Real parameters for model calibration; simulated UPS for experiments | Real-time sensor integration |
@@ -212,6 +217,9 @@ The 21 historical shift instances from Nestlé Trị An are used for **determini
 | L10 | No shelf life / FIFO constraints | Acceptable within 8-hour horizon |
 | L11 | Observational figures (18% throughput gap, 300 min stoppage) from limited samples | Used as motivation only; not statistically representative |
 | L12 | DRL agent trained on synthetic UPS — transferability to real plant unknown | Would require retraining with real MTBF/MTTR data for deployment |
+| L13 | Initial last_sku = PSC for all roasters at shift start | Consistent with factory default; cross-shift carryover not modeled |
+| L14 | Cost values ($4k, $7k, $1k, $1.5k, $200, $50) are proxy costs | Relative ratios drive scheduling decisions; absolute values not audited |
+| L15 | MILP used for deterministic benchmark only, not reactive re-solve | MILP too slow for real-time re-solve; CP-SAT preferred for disjunctive scheduling |
 
 ---
 
@@ -253,46 +261,91 @@ The system must satisfy all of the following:
 
 ## 11. Literature Framework (for Section 2.2)
 
-### Four pillars
+### Five pillars
 
-**Pillar 1 — Parallel Machine Scheduling with Shared Resources**
-- Theoretical grounding for the pipeline mutex constraint
-- Key reference: Bektur & Saraç (2019) — common-server parallel machine scheduling with sequence-dependent setup times and machine eligibility
+**Pillar 1 — Parallel Machine Scheduling with Shared Resources / Hybrid Flow Shop with Limited Buffers**
+- Theoretical grounding for the pipeline mutex constraint and buffer-coupled scheduling
+- Key references:
+  - Bektur & Saraç (2019) — common-server parallel machine scheduling with SDST and machine eligibility
+  - Hakimzadeh & Zandieh (2012) — bi-objective HFS with SDST and limited buffers (MILP + metaheuristic). Core structural match: parallel machines + setup + finite buffer. Clean MILP template.
+  - Lin et al. (2020) — reentrant HFS with limited buffers and stockers. Useful for centralized buffer (RC silo) modeling.
+  - Zheng et al. (2024) — cooperative adaptive GA for reentrant HFS with SDST and limited buffers. Closest match to "multiple parallel roasters + setup + finite buffer."
+  - Klanke et al. (2021) — make-and-pack short-term scheduling with finite intermediate buffer and SDST. Discrete-time MILP + decomposition for tractability.
 - Broader: SDST surveys (Allahverdi 2015), unrelated parallel machines
-- Target: papers modeling shared transfer/pipeline resources in batch scheduling
 
 **Pillar 2 — Scheduling Under Uncertainty / Reactive Rescheduling**
 - Central pillar — the core methodological question of the thesis
-- Surveys: Vieira et al. (2003) — rescheduling literature review; Herroelen & Leus (2005) — robust/reactive project scheduling; Ouelhadj & Petrovic (2009) — dynamic scheduling in manufacturing
+- Surveys: Vieira et al. (2003), Herroelen & Leus (2005), Ouelhadj & Petrovic (2009) — rescheduling taxonomy
+- Key references:
+  - Vin & Ierapetritou (2000) — reactive rescheduling of batch plants under breakdowns and rush orders. **Direct template for the CP-SAT re-solve layer.**
+  - Aurich et al. (2017) — simulation-based optimization of 4-stage HFS with SDST and breakdowns. Template for simulation-optimization integration.
+  - Gholami et al. (2009) — HFS with SDST + random breakdowns. Bridges setup sequencing and stochastic downtime.
+  - Raissi et al. (2019) — stochastic flexible flow shop with PM and buffer holding costs. Shows buffer-cost + stochastic integration.
+  - Rooeinfar et al. (2019) — stochastic flexible flow shop with limited buffers and PM downtime. High relevance for combining LB with uncertainty.
 - Reactive strategies taxonomy: complete rescheduling, match-up scheduling, right-shift rescheduling
-- Event-triggered vs. periodic re-planning
-- Target 2020–2025: reactive scheduling in manufacturing using CP or RL
 
 **Pillar 3 — Reinforcement Learning for Production Scheduling**
 - One of two primary methods in the thesis
-- Foundational: Zhang et al. (2020) — RL for job shop scheduling; Park et al. (2021) — RL with graph neural networks for scheduling
+- Foundational: Zhang et al. (2020) — RL for job shop scheduling; Park et al. (2021) — RL with GNN for scheduling
 - Action masking: Huang & Ontañón (2022) — invalid action masking for RL
 - Target 2020–2025: RL applied to parallel machine or batch scheduling, especially with stochastic disruptions
-- MaskablePPO: Stable-Baselines3 documentation + any papers using it for constrained scheduling
+- MaskablePPO: Stable-Baselines3 documentation + papers using it for constrained scheduling
 
-**Pillar 4 — CP-SAT for Industrial Scheduling**
-- One of two primary methods in the thesis
-- Laborie et al. (2018) — CP Optimizer interval variables and NoOverlap
-- Naderi et al. (2023) — CP vs. MIP for scheduling (empirical evidence of CP advantage on disjunctive structures)
-- Target: CP-SAT or OR-Tools applied to reactive/online scheduling contexts
+**Pillar 4 — CP-SAT / MILP for Industrial Scheduling**
+- Both primary methods in the thesis (CP-SAT for reactive, MILP for deterministic benchmark)
+- Key references:
+  - Laborie et al. (2018) — CP Optimizer interval variables and NoOverlap
+  - Naderi et al. (2023) — CP vs. MIP for scheduling (empirical evidence of CP advantage on disjunctive structures)
+  - Maravelias & Grossmann (2003) — continuous-time STN MILP for multipurpose batch plants. **Strongest "inventory-coupled batch MILP" backbone.** 279 Scopus citations.
+  - Wallrath et al. (2023) — batch plant lot-sizing + scheduling with time-bucket MILP. Template for shift-horizon + inventory balances.
+
+**Pillar 5 — Process Systems / Batch Plant Scheduling with Inventory Coupling**
+- Conceptual bridge between flow shop literature and process engineering
+- Key references:
+  - Maravelias & Grossmann (2003) — STN formulation with storage policies and inventory coupling (also in Pillar 4)
+  - Nguyen et al. (2025) — HFS with heterogeneous parallel machines and integrated WIP inventory
+  - Beldar et al. (2022) — non-identical parallel batch machines with maintenance (MILP + SA + VNS)
+
+### Reference summary table
+
+| Ref | Year | Problem | Method | Disruptions? | Buffers? | Parallel Machines? | Relevance |
+|-----|------|---------|--------|-------------|----------|-------------------|-----------|
+| Bektur & Saraç | 2019 | Common-server parallel machines, SDST | Exact | — | Server constraint | ✅ | Pipeline mutex |
+| Hakimzadeh & Zandieh | 2012 | HFS + SDST + limited buffers | MILP + metaheuristic | — | ✅ | ✅ | Core structural match |
+| Zheng et al. | 2024 | Reentrant HFS + SDST + LB | CAGA metaheuristic | — | ✅ | ✅ | Closest to roasting |
+| Klanke et al. | 2021 | Make-and-pack + buffer + SDST | Discrete-time MILP + decomposition | — | ✅ | ✅ | MILP tractability template |
+| Lin et al. | 2020 | Reentrant HFS + stockers + LB | HHSGA metaheuristic | — | ✅ | ✅ | Central buffer concept |
+| Maravelias & Grossmann | 2003 | STN batch plant scheduling | Continuous-time MILP | — | ✅ (storage policies) | ✅ | Inventory-coupled MILP backbone |
+| Vin & Ierapetritou | 2000 | Reactive rescheduling batch plants | MILP rescheduling | ✅ (breakdowns, rush) | ✅ (material coupling) | ✅ | **Direct re-solve template** |
+| Aurich et al. | 2017 | 4-stage HFS + SDST + breakdowns | Simulation + SA/TS/DE | ✅ (stochastic) | implicit | ✅ | Simulation-optimization loop |
+| Raissi et al. | 2019 | Stochastic FFS + PM + buffer costs | Stochastic MILP + metaheuristics | ✅ (PM + stochastic) | ✅ (holding costs) | ✅ | Buffer cost + stochastic |
+| Gholami et al. | 2009 | HFS + SDST + breakdowns | GA-based | ✅ (random breakdowns) | — | ✅ | Setup + disruption bridge |
+| Rooeinfar et al. | 2019 | Stochastic FFS + LB + PM | Simulation + GA/SA/PSO | ✅ (PM + stochastic) | ✅ | ✅ | LB + uncertainty |
+| Nguyen et al. | 2025 | HFS + WIP inventory coupling | Multi-objective model | — | ✅ (WIP) | ✅ | Inventory KPI integration |
+| Zhang et al. | 2020 | Job shop scheduling with RL | DQN/PPO | — | — | — | RL for scheduling |
+| Huang & Ontañón | 2022 | Action masking for RL | MaskablePPO | — | — | — | Action masking reference |
+| Naderi et al. | 2023 | CP vs. MIP for scheduling | CP-SAT, MILP | — | — | ✅ | CP-SAT solver choice justification |
+| Laborie et al. | 2018 | CP Optimizer intervals | CP | — | — | ✅ | NoOverlap constraint modeling |
 
 ### Checklist
 
-- [ ] ≥ 10 references total
-- [ ] ≥ 50% published 2020–2025
-- [ ] ≥ 1–2 reactive/dynamic scheduling surveys
-- [ ] ≥ 1–2 RL for scheduling papers (ideally with action masking or stochastic disruptions)
-- [ ] ≥ 1 paper using CP-SAT or OR-Tools for scheduling
-- [ ] ≥ 1 SDST scheduling survey or key reference
-- [ ] ≥ 1 paper on scheduling under equipment failures/breakdowns
-- [ ] ≥ 1 food/beverage manufacturing scheduling paper (optional but nice)
+- [x] ≥ 10 references total (16+ identified)
+- [x] ≥ 50% published 2019+ (10/16)
+- [x] ≥ 2 reactive/dynamic scheduling surveys (Vieira 2003, Ouelhadj 2009, Vin & Ierapetritou 2000)
+- [x] ≥ 2 RL for scheduling papers (Zhang 2020, Huang & Ontañón 2022)
+- [x] ≥ 1 paper using CP-SAT/OR-Tools (Naderi 2023, Laborie 2018)
+- [x] ≥ 1 SDST scheduling reference (Bektur & Saraç 2019, Hakimzadeh & Zandieh 2012)
+- [x] ≥ 1 paper on scheduling under breakdowns (Vin & Ierapetritou 2000, Aurich 2017, Gholami 2009)
+- [x] ≥ 1 buffer/inventory-coupled scheduling paper (Maravelias & Grossmann 2003, Nguyen 2025)
+- [ ] ≥ 1 food/beverage manufacturing scheduling paper (optional — not yet found)
 
-> ⚠️ **Literature search needs to be conducted.** Current confirmed reference: Bektur & Saraç (2019) for pipeline/server constraint. Reactive scheduling and RL references need to be found and evaluated.
+> **Key methodological references:**
+> - **Maravelias & Grossmann (2003):** STN MILP backbone for inventory-coupled batch scheduling — strongest formulation template
+> - **Vin & Ierapetritou (2000):** Direct template for reactive MILP rescheduling under breakdowns
+> - **Hakimzadeh & Zandieh (2012):** Core HFS + SDST + limited buffers structural match
+> - **Naderi et al. (2023):** Justifies CP-SAT over MILP for disjunctive scheduling
+>
+> Full reference details and comparison tables: see `keyref_GPT.md` and `keyref_Perplexity.md` in project files.
 
 ---
 
@@ -301,20 +354,35 @@ The system must satisfy all of the following:
 | Decision | Detail | Status |
 |---|---|---|
 | Physical model | GC unlimited, RC aggregate batch counter, pipeline consume-only (3 min), fixed 15 min roast | ✅ |
+| RC buffer capacity | $\overline{B}_l = 40$ batches per line (20,000 kg / 500 kg per batch) | ✅ |
+| RC safety threshold | $\theta^{SS} = 20$ batches (half of max_buffer). Idle penalty active below this. | ✅ |
 | Pipeline consume timing | Concurrent with roast start (3 min pipeline busy during first 3 of 15 min roasting) | ✅ |
+| Initial SKU state | $\text{last\_sku} = k^{PSC}$ for all roasters at shift start. Setup needed for first MTO batch. | ✅ |
+| End-of-shift | $s_b \leq 465$ — batch must complete within 480-slot shift | ✅ |
 | Planned downtime | No mid-batch pause. Batch must complete before downtime. No start if cannot finish. | ✅ |
 | UPS behavior | Batch cancelled entirely. GC lost. Must restart (new consume + full roast). Scheduler decides whether to restart. | ✅ |
 | UPS on IDLE/SETUP roaster | Roaster goes DOWN. If SETUP, timer resets — must re-setup after UPS ends. | ✅ |
 | NDG/Busta RC output | Delivered directly — does NOT enter RC stock | ✅ |
 | RC SKU mixing | Not an issue — only 1 PSC SKU per shift, no PSC-PSC switch | ✅ |
-| R3 routing | Decision variable per batch; also experimental factor (fixed vs. flexible) | ✅ |
-| Objective | Maximize PSC throughput − tardiness penalty | ✅ |
-| Stockout handling | Hard constraint in deterministic mode; soft penalty in reactive mode | ✅ |
+| R3 routing | Decision variable per batch; baked into DRL action space (17 actions); also experimental factor (fixed vs. flexible) | ✅ |
+| **Objective** | **Maximize profit ($)** — revenue minus costs. See `cost.md` for full structure. | ✅ |
+| Revenue | PSC $4,000/batch, NDG $7,000/batch, Busta $7,000/batch | ✅ |
+| Tardiness penalty | $c^{tard} = \$1{,}000$/min late (MTO jobs past slot 240) | ✅ |
+| Stockout penalty | $c^{stock} = \$1{,}500$/event (per consumption event with $B_l < 0$, strictly negative). $B_l = 0$ is NOT stockout. **Event-based, not per-minute.** | ✅ |
+| Safety-idle penalty | $c^{idle} = \$200$/min/roaster (idle when $B_l < 20$, not DOWN) | ✅ |
+| Overflow-idle penalty | $c^{over} = \$50$/min/roaster (forced idle at $B_l = 40$). **R3: only when both lines = 40.** | ✅ |
+| Overflow-idle in det. mode | Included in deterministic objective (solver paces production to avoid overflow) | ✅ |
+| Stockout handling | Hard constraint in deterministic mode; soft penalty ($1,500/event) in reactive mode | ✅ |
 | Overflow handling | Hard constraint in all modes (physical impossibility) | ✅ |
 | UPS parameters | Synthetic (literature MTBF/MTTR); not calibrated to plant | ✅ |
 | Setup time | 5 min between ANY different SKU pair, uniform | ✅ |
 | Experimental grid | 5 λ × 3 μ × 3 strategies × 2 R3 modes = 90 cells × 100 reps = 9,000 runs | ✅ |
-| Strategies | Dispatching (baseline) / CP-SAT re-solve / DRL (PPO with MaskablePPO) | ✅ |
+| MILP benchmark | Same model as CP-SAT, deterministic only, LP bound verification. ~200 runs. | ✅ |
+| Strategies (reactive) | Dispatching (baseline) / CP-SAT re-solve / DRL (PPO with MaskablePPO) | ✅ |
+| Dispatching spec | Urgency threshold 0.7, most-remaining MTO priority, Busta tie-break, lowest-stock R3 routing | ✅ |
+| DRL action space | 17 actions (R3 split into →L1 and →L2). Per-roaster decision. Action masking for feasibility. | ✅ |
+| CP-SAT re-solve trigger | UPS-only (explicit design choice — not periodic) | ✅ |
+| Constraint groups | 15 (C1–C15): activation, eligibility, NoOverlap, setup, initial SKU, downtime, pipeline, end-of-shift, RC bounds, tardiness, R3 routing, idle detection | ✅ |
 | Future work candidates | ALNS metaheuristic, rolling horizon decomposition | ✅ |
 | Data granularity | Batch-level confirmed — used for deterministic validation | ✅ |
 | University / level | Undergraduate, IU-VNU | ✅ |
@@ -339,9 +407,9 @@ Adapt freely — do not copy verbatim.
 
 ### Section 1.3 — Objectives
 
-> "The primary objective is to develop and evaluate a reactive scheduling framework for within-shift batch roasting at Nestlé Trị An that systematically responds to unplanned equipment stoppages. The framework is evaluated through three competing strategies — dispatching heuristic, CP-SAT re-optimization, and DRL policy — compared across a factorial experimental design varying disruption frequency and duration."
+> "The primary objective is to develop and evaluate a reactive scheduling framework for within-shift batch roasting at Nestlé Trị An that systematically responds to unplanned equipment stoppages. The objective function maximizes shift profit — total revenue from completed batches minus penalties for MTO tardiness, RC stockout events, and roaster idle time under low inventory — all expressed in a common monetary unit to enable direct comparison across strategies and to serve as the reward signal for the DRL agent."
 
-> "The expected contribution is a systematic identification of the conditions under which each reactive strategy dominates: specifically, whether the DRL policy's ability to learn disruption patterns provides a measurable advantage over CP-SAT's instance-optimal re-solving under high disruption intensity, and whether either approach justifies the implementation complexity over simple dispatching rules."
+> "The framework is evaluated through three competing reactive strategies — dispatching heuristic, CP-SAT re-optimization, and DRL policy — compared across a factorial experimental design varying disruption frequency and duration. Additionally, MILP is used as a deterministic benchmark to verify CP-SAT's solution quality through LP relaxation bounds. The expected contribution is a systematic identification of the conditions under which each reactive strategy dominates: specifically, whether the DRL policy's ability to learn disruption patterns provides a measurable advantage over CP-SAT's instance-optimal re-solving under high disruption intensity, and whether either approach justifies the implementation complexity over simple dispatching rules."
 
 ### Section 1.4 — Scope
 
@@ -361,13 +429,36 @@ Adapt freely — do not copy verbatim.
 
 | Item | Owner | Status | Blocking? |
 |---|---|---|---|
-| Instructor approval of scope | Student | Memo drafted, needs meeting | ⚠️ **Blocks everything** |
-| Literature search — reactive scheduling + RL references | Student | Not yet started | ⚠️ Blocks Ch 2 writing |
-| RC max_buffer calculation (batch units) | Student | Need to compute from factory kg data | ⚠️ Blocks formulation finalization |
-| UPS MTBF/MTTR literature values | Student | Need to find 2–3 reference values | ⚠️ Blocks experimental design parametrization |
-| Formulation update for downtime/UPS clarifications | Pending | Minor corrections to simplified_formulation_v1.md | Not blocking |
+| Instructor approval of scope | Student | Memo drafted (revised_scope_memo.docx), needs meeting | ⚠️ **Blocks everything** |
+| Literature search — reactive scheduling + RL references | Student | ✅ **16+ references identified** from keyref_GPT.md and keyref_Perplexity.md. Need to read full papers and write Ch 2. | ⚠️ Blocks Ch 2 writing |
+| RC max_buffer calculation | — | ✅ **Resolved: 40 batches** (20,000 kg / 500 kg per batch) | ✅ Done |
+| Initial last_sku at shift start | — | ✅ **Resolved: PSC** for all roasters | ✅ Done |
+| Stockout definition | — | ✅ **Resolved: event-based** ($1,500 per consumption event with $B_l < 0$, strictly negative). $B_l = 0$ is not stockout. Duration ($B_l \leq 0$) is KPI only. | ✅ Done |
+| Overflow-idle in deterministic mode | — | ✅ **Resolved: included** in deterministic objective | ✅ Done |
+| R3 overflow-idle encoding | — | ✅ **Resolved: both lines must be full** for R3 overflow-idle | ✅ Done |
+| Cost structure | — | ✅ **Resolved:** cost.md created. Revenue $4k/$7k, penalties $1.5k/$1k/$200/$50. | ✅ Done |
+| MILP role | — | ✅ **Resolved:** deterministic benchmark, LP bound verification, not reactive | ✅ Done |
+| Dispatching heuristic spec | — | ✅ **Resolved:** urgency threshold 0.7, most-remaining priority, R3 lowest-stock routing | ✅ Done |
+| DRL action space | — | ✅ **Resolved:** 17 actions (R3 split into →L1 and →L2), per-roaster decision | ✅ Done |
+| End-of-shift constraint | — | ✅ **Resolved: $s_b \leq 465$** | ✅ Done |
+| Old weight notation purge | — | ✅ **Resolved:** All $w^{tard}$, $w^{stock}$ replaced with $c^{tard}$, $c^{stock}$ | ✅ Done |
+| UPS MTBF/MTTR literature values | Student | Need to find 2–3 reference values from the identified papers | ⚠️ Blocks experimental parametrization |
 | Implementation: simulation environment | Not started | — | Blocks all experiments |
+
+### Document inventory ✅
+
+| # | Document | Purpose | Status |
+|---|----------|---------|--------|
+| 1 | `revised_scope_memo.docx` | Instructor approval | Ready for meeting |
+| 2 | `Thesis_Problem_Description_v2.md` | Complete problem description (bilingual VN/EN) | ✅ Updated: MILP, profit objective, dispatching, 17-action DRL |
+| 3 | `mathematical_model_complete.md` | Math formulation + I/O | ✅ Updated: 15 constraints, profit objective, MILP benchmark, cost.md refs |
+| 4 | `cost.md` | Cost structure (single source of truth for $) | ✅ NEW: revenue, penalties, DRL reward, breakeven analysis |
+| 5 | `Surrounding_information_introduction_v2.md` | Writing reference for Ch 1–6 | ✅ Updated: MILP, literature, cost references, resolved items |
+| 6 | `event_simulation_logic_complete.md` | Simulation loop spec | ✅ Updated: profit-based reward, 17 actions, decrement-first timing, needs_decision flag |
+| 7 | `audit_resolution.md` | All open items resolved | ✅ Updated |
+| 8 | `keyref_GPT.md` | 10 key references from GPT search | Reference file |
+| 9 | `keyref_Perplexity.md` | 10 key references from Perplexity search | Reference file |
 
 ---
 
-*Next action: student brings scope memo to instructor for approval, then begins implementation (simulation environment → CP-SAT model → dispatching heuristic → UPS simulation → DRL agent → experiments).*
+*Next action: student brings scope memo to instructor for approval, then begins implementation (simulation environment → CP-SAT deterministic model → MILP benchmark → dispatching heuristic → UPS simulation → DRL agent → experiments).*
