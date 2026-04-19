@@ -122,75 +122,74 @@ def _print_kpi(kpi: dict, label: str) -> None:
 # Method 1: Reactive CP-SAT (handles UPS via offline re-optimisation)
 # ============================================================================
 
-def run_cpsat(out_dir: Path, time_budget: int, eval_seed: int = 42) -> dict | None:
+def run_cpsat(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: int = 42) -> dict | None:
     print(f"\n{'='*72}")
-    print(f"  [1/4] REACTIVE CP-SAT  (budget: {_elapsed_str(time_budget)})")
+    print(f"  [1/4] FULL-SHIFT CP-SAT ORACLE  (budget: {_elapsed_str(time_budget)})")
     print(f"{'='*72}")
 
     t0 = time.perf_counter()
     try:
-        from Reactive_CPSAT.runner import run as reactive_run
-        import argparse as _ap
+        from Reactive_CPSAT.data import load as cpsat_load
+        from Reactive_CPSAT.oracle_runner import run_oracle_full_shift
+        from env.data_bridge import get_sim_params
 
-        # Per-solve time limit: generous but adaptive.
-        # global_deadline ensures total CP-SAT time stays within budget.
-        per_solve = min(time_budget, max(120, time_budget // 3))
+        sim_params = get_sim_params()
+        base_params = cpsat_load(input_dir="Input_data")
 
-        args = _ap.Namespace(
-            time=per_solve,
-            name="master",
-            lambda_rate=None,   # read from input data
-            mu_mean=None,       # read from input data
-            seed=eval_seed,
-            r3_flex=None,       # read from input data
-            input_dir="Input_data",
-            log_level="INFO",
-            global_deadline=t0 + time_budget,  # absolute wall-clock deadline
+        # The whole time budget goes into one monolithic full-shift solve.
+        per_solve = max(60, int(time_budget))
+        print(f"  Time limit (single solve): {_elapsed_str(per_solve)}")
+        print(f"  UPS events baked in upfront: {len(eval_ups)}")
+
+        full_result = run_oracle_full_shift(
+            base_params=base_params,
+            sim_params=sim_params,
+            ups_events=list(eval_ups),
+            time_limit_sec=per_solve,
         )
-        full_result = reactive_run(args)
     except Exception as exc:
-        print(f"  Reactive CP-SAT FAILED: {exc}")
+        print(f"  Full-shift CP-SAT FAILED: {exc}")
         import traceback; traceback.print_exc()
         return None
 
     elapsed = time.perf_counter() - t0
 
-    # Save raw result
     _save_json(full_result, out_dir / "cpsat_raw_result.json")
 
-    # Convert baseline to universal schema for HTML report
     from result_schema import create_result
-    from rl_hh.export_result import _normalize_gc_dict
-
-    from env.data_bridge import get_sim_params
-    params = get_sim_params()
 
     bkpi = full_result["baseline_kpi"]
+    oracle_profit = full_result.get("oracle_profit")
+    oracle_profit_str = f"${oracle_profit:,.0f}" if oracle_profit is not None else "N/A"
+    notes = (
+        f"Full-shift deterministic oracle (perfect UPS foresight). "
+        f"CP-SAT upper bound: {oracle_profit_str}, "
+        f"status: {full_result.get('oracle_status', 'Unknown')}, "
+        f"gap: {full_result.get('gap_pct', 'N/A')}%, "
+        f"UPS events: {full_result.get('ups_events_total', 0)}, "
+        f"solve time: {full_result.get('solve_time', 0):.1f}s"
+    )
+
     result = create_result(
         metadata={
             "solver_engine": "simulation",
-            "solver_name": "Reactive CP-SAT Oracle",
+            "solver_name": "Full-Shift CP-SAT Oracle",
             "status": "Completed",
             "solve_time_sec": elapsed,
             "input_dir": str(_ROOT / "Input_data"),
-            "notes": (
-                f"UPS events: {full_result.get('ups_events_total', 0)}, "
-                f"Feasible/Optimal: {full_result.get('aggregate', {}).get('feasible_solves', 0)}"
-                f"/{full_result.get('aggregate', {}).get('optimal_solves', 0)}, "
-                f"Per-solve TL: {full_result.get('time_limit_sec', 0)}s"
-            ),
+            "notes": notes,
         },
         experiment={
-            "lambda_rate": full_result.get("lambda_rate", 0),
-            "mu_mean": full_result.get("mu_mean", 0),
-            "seed": full_result.get("seed", 42),
+            "lambda_rate": float(sim_params.get("ups_lambda", 0)),
+            "mu_mean": float(sim_params.get("ups_mu", 0)),
+            "seed": eval_seed,
         },
         kpi=bkpi,
-        schedule=full_result.get("baseline_schedule", []),
-        cancelled_batches=full_result.get("baseline_cancelled", []),
-        ups_events=full_result.get("baseline_ups", []),
-        restocks=full_result.get("baseline_restocks", []),
-        parameters=_build_export_params(params),
+        schedule=full_result.get("schedule", []),
+        cancelled_batches=full_result.get("cancelled_batches", []),
+        ups_events=full_result.get("ups_events", []),
+        restocks=full_result.get("restocks", []),
+        parameters=_build_export_params(sim_params),
     )
 
     json_path = out_dir / "cpsat_result.json"
@@ -198,20 +197,11 @@ def run_cpsat(out_dir: Path, time_budget: int, eval_seed: int = 42) -> dict | No
     _save_json(result, json_path)
     _generate_html(result, html_path)
 
-    _print_kpi(result["kpi"], f"Reactive CP-SAT ({_elapsed_str(elapsed)})")
-    agg = full_result.get("aggregate", {})
-    if agg.get("mean_oracle_profit") is not None:
-        print(f"  Oracle avg:  ${agg['mean_oracle_profit']:>12,.0f}")
+    _print_kpi(result["kpi"], f"Full-Shift Oracle ({_elapsed_str(elapsed)})")
+    if oracle_profit is not None:
+        print(f"  CP-SAT upper bound (objective): ${oracle_profit:>12,.0f}")
+        print(f"  Status: {full_result.get('oracle_status')}  |  Gap: {full_result.get('gap_pct')}%")
     print(f"  Report: {html_path}")
-
-    # Copy Reactive_CPSAT output folder
-    rcpsat_results = _ROOT / "Reactive_CPSAT" / "results"
-    if rcpsat_results.exists():
-        latest = sorted(rcpsat_results.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-        if latest and latest[0].is_dir():
-            for f in latest[0].iterdir():
-                if f.is_file():
-                    shutil.copy2(f, out_dir / f"cpsat_{f.name}")
 
     return result
 
@@ -365,10 +355,11 @@ def run_ppo(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: int
             "--no-open-report",
             "--progress-print-seconds", "60",
             "--seed", "300",
+            "--learning-rate", "4e-4",
             "--rc-maintenance-bonus", "50",
             "--normalize-reward",
             "--n-epochs", "3",
-            "--target-kl", "0.02",
+            "--target-kl", "0.03",
             "--ent-coef", "0.02",
         ])
     except Exception as exc:
@@ -670,22 +661,52 @@ def main():
     html_reports: list[Path] = []
     global_t0 = time.perf_counter()
 
-    # 1. CP-SAT
-    if "cpsat" not in args.skip:
-        t0 = time.perf_counter()
-        cpsat_result = run_cpsat(out_dir, args.time, args.seed)
-        wall_times["cpsat"] = time.perf_counter() - t0
-        results["cpsat"] = cpsat_result
+    # 1 & 2. CP-SAT and Q-Learning in parallel (Q-L starts 60s after CP-SAT).
+    # Both use minimal CPU individually; running them concurrently cuts wall
+    # time without meaningful contention — CP-SAT's solve is C++ (releases the
+    # GIL) and Q-Learning is Python-only but lightweight.
+    import threading as _threading
+    cpsat_wanted = "cpsat" not in args.skip
+    ql_wanted = "ql" not in args.skip
+    cpsat_box: dict = {}
+    ql_box: dict = {}
+
+    def _cpsat_task() -> None:
+        _t0 = time.perf_counter()
+        cpsat_box["result"] = run_cpsat(out_dir, args.time, eval_ups, args.seed)
+        cpsat_box["elapsed"] = time.perf_counter() - _t0
+
+    def _ql_task() -> None:
+        _t0 = time.perf_counter()
+        best, final = run_qlearning(out_dir, args.time, eval_ups, args.seed)
+        ql_box["best"], ql_box["final"] = best, final
+        ql_box["elapsed"] = time.perf_counter() - _t0
+
+    threads: list[_threading.Thread] = []
+    if cpsat_wanted:
+        t = _threading.Thread(target=_cpsat_task, name="cpsat", daemon=False)
+        t.start()
+        threads.append(t)
+        if ql_wanted:
+            print(f"\n  [Parallel phase] CP-SAT started; Q-Learning will start in 60s ...")
+            time.sleep(60)
+    if ql_wanted:
+        t = _threading.Thread(target=_ql_task, name="qlearning", daemon=False)
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    if cpsat_wanted:
+        wall_times["cpsat"] = cpsat_box.get("elapsed", 0.0)
+        results["cpsat"] = cpsat_box.get("result")
         if (out_dir / "cpsat_report.html").exists():
             html_reports.append(out_dir / "cpsat_report.html")
-
-    # 2. Q-Learning
-    if "ql" not in args.skip:
-        t0 = time.perf_counter()
-        ql_best, ql_final = run_qlearning(out_dir, args.time, eval_ups, args.seed)
-        wall_times["qlearning"] = time.perf_counter() - t0
-        results["ql_best"] = ql_best
-        results["ql_final"] = ql_final
+    if ql_wanted:
+        wall_times["qlearning"] = ql_box.get("elapsed", 0.0)
+        results["ql_best"] = ql_box.get("best")
+        results["ql_final"] = ql_box.get("final")
         for rpt in ["ql_best_report.html", "ql_final_report.html"]:
             if (out_dir / rpt).exists():
                 html_reports.append(out_dir / rpt)

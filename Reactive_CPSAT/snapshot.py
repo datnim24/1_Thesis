@@ -93,6 +93,113 @@ def reconstruct_mto_remaining(
     return remaining
 
 
+def build_oracle_d(
+    base_params: dict,
+    ups_events: list,
+) -> dict[str, Any]:
+    """Build a d-dict for the FULL-SHIFT oracle CP-SAT model.
+
+    Unlike build_reactive_d(), this mode assumes perfect foresight: every UPS
+    event is known at t=0 and encoded as forced-idle intervals on its roaster.
+    The solver produces the theoretical upper bound achievable given the UPS
+    schedule — no online re-solve, no re-planning.
+    """
+    SL = int(base_params["shift_length"])
+
+    d: dict[str, Any] = {}
+
+    d["shift_length"] = SL
+    d["setup_time"] = int(base_params["setup_time"])
+    d["consume_time"] = int(base_params["consume_time"])
+    d["max_rc"] = int(base_params["max_rc"])
+    d["safety_stock"] = int(base_params["safety_stock"])
+    d["restock_duration"] = int(base_params["restock_duration"])
+    d["restock_qty"] = int(base_params["restock_qty"])
+    d["allow_r3_flex"] = bool(base_params["allow_r3_flex"])
+    d["cost_tardiness"] = base_params["cost_tardiness"]
+    d["cost_idle"] = base_params["cost_idle"]
+    d["cost_overflow"] = base_params["cost_overflow"]
+    d["cost_setup"] = base_params["cost_setup"]
+    d["time_limit"] = int(base_params.get("time_limit", 120))
+    d["mip_gap"] = float(base_params.get("mip_gap", 0.0))
+
+    d["lines"] = list(base_params["lines"])
+    d["roasters"] = list(base_params["roasters"])
+    d["roaster_line"] = dict(base_params["roaster_line"])
+    d["roaster_pipeline"] = dict(base_params["roaster_pipeline"])
+    d["roaster_can_output"] = {k: list(v) for k, v in base_params["roaster_can_output"].items()}
+    d["roaster_eligible_skus"] = {k: list(v) for k, v in base_params["roaster_eligible_skus"].items()}
+    d["skus"] = list(base_params["skus"])
+    d["sku_revenue"] = dict(base_params["sku_revenue"])
+    d["sku_credits_rc"] = dict(base_params["sku_credits_rc"])
+    d["roast_time_by_sku"] = dict(base_params["roast_time_by_sku"])
+    d["sku_eligible_roasters"] = {k: list(v) for k, v in base_params["sku_eligible_roasters"].items()}
+
+    d["rc_init"] = dict(base_params["rc_init"])
+    d["gc_init"] = dict(base_params["gc_init"])
+    d["gc_capacity"] = dict(base_params["gc_capacity"])
+    d["feasible_gc_pairs"] = list(base_params["feasible_gc_pairs"])
+    d["roaster_initial_sku"] = dict(base_params["roaster_initial_sku"])
+    d["consumption_events"] = {k: list(v) for k, v in base_params["consumption_events"].items()}
+
+    # Planned downtime + ALL UPS events merged upfront. This is the key oracle
+    # property: the solver sees every disruption before it happens.
+    downtime = {r: set(slots) for r, slots in base_params["downtime_slots"].items()}
+    for ev in ups_events:
+        r = str(ev.roaster_id)
+        t = int(ev.t)
+        dur = int(ev.duration)
+        end = min(t + dur, SL)
+        if r not in downtime:
+            downtime[r] = set()
+        downtime[r].update(range(t, end))
+    d["downtime_slots"] = downtime
+
+    # Oracle mode: solve from t=0, no prior state
+    d["t0"] = 0
+    d["ups_roaster"] = ""    # multiple UPS — not a single event
+    d["ups_duration"] = 0
+    d["fixed_intervals"] = []
+
+    d["jobs"] = list(base_params["jobs"])
+    d["job_sku"] = dict(base_params["job_sku"])
+    d["job_batches"] = dict(base_params["job_batches"])
+    d["job_due"] = dict(base_params["job_due"])
+    d["job_release"] = dict(base_params.get("job_release", {}))
+
+    d["mto_batches"] = list(base_params["mto_batches"])
+    d["psc_pool"] = list(base_params["psc_pool"])
+    d["all_batches"] = list(base_params["all_batches"])
+    d["psc_pool_per_roaster"] = int(base_params["psc_pool_per_roaster"])
+
+    d["batch_sku"] = dict(base_params["batch_sku"])
+    d["batch_is_mto"] = dict(base_params["batch_is_mto"])
+    d["batch_eligible_roasters"] = {k: list(v) for k, v in base_params["batch_eligible_roasters"].items()}
+    d["sched_eligible_roasters"] = {k: list(v) for k, v in base_params["sched_eligible_roasters"].items()}
+    d["MS_by_sku"] = dict(base_params["MS_by_sku"])
+    d["pair_to_roasters"] = dict(base_params.get("pair_to_roasters", {}))
+
+    d["stockout_soft"] = True
+    # Pull penalties from shift_parameters.csv so CP-SAT's objective exactly
+    # mirrors the simulation engine's cost model.
+    d["stockout_penalty"] = int(float(base_params.get("cost_stockout", 1500)))
+    d["c_skip_mto"] = int(float(base_params.get("cost_skip_mto", 100000)))
+    d["mto_soft"] = True
+
+    d["input_dir"] = base_params.get("input_dir", "Input_data")
+
+    logger.info(
+        "Oracle d-dict built: horizon=%d, ups_events=%d, total_downtime_slots=%d, "
+        "mto_batches=%d, psc_pool=%d, rc_init=%s, gc_init_sum=%d",
+        SL, len(ups_events),
+        sum(len(v) for v in d["downtime_slots"].values()),
+        len(d["mto_batches"]), len(d["psc_pool"]),
+        d["rc_init"], sum(d["gc_init"].values()),
+    )
+
+    return d
+
+
 def build_reactive_d(
     trace_at_t0: dict,
     ups_event: Any,

@@ -536,14 +536,24 @@ def build_reactive(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]
                             out_line = d["roaster_can_output"][roaster][0]
                             rc_completion_terms[out_line][ct].append(x_var)
 
-    # ── C1'/C2': Mandatory MTO assignment ────────────────────────────────
+    # ── C1'/C2': MTO assignment ──────────────────────────────────────────
+    # Hard-assignment by default; when d["mto_soft"] is true, each batch may
+    # be left unassigned at the price of c_skip_mto (paid in the objective).
+    mto_soft = bool(d.get("mto_soft", False))
+    mto_assigned: dict[Any, Any] = {}
     for batch_id in mto_batches:
         eligible = [r for r in sched_elig[batch_id]
                     if len(start_choice[batch_id].get(r, {})) > 0]
         if eligible:
-            model.Add(sum(lit[batch_id][r] for r in sched_elig[batch_id]) == 1)
+            if mto_soft:
+                a_var = model.NewBoolVar(f"assigned_{safe_id(batch_id)}")
+                model.Add(sum(lit[batch_id][r] for r in sched_elig[batch_id]) == a_var)
+                mto_assigned[batch_id] = a_var
+            else:
+                model.Add(sum(lit[batch_id][r] for r in sched_elig[batch_id]) == 1)
         else:
-            # No feasible start for any roaster — force unassigned (will be infeasible)
+            # No feasible start for any roaster — force unassigned.
+            # In soft mode this simply triggers the skip penalty.
             logger.warning("MTO batch %s has no feasible starts on any roaster", batch_id)
             for r in sched_elig[batch_id]:
                 model.Add(lit[batch_id][r] == 0)
@@ -805,7 +815,11 @@ def build_reactive(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]
             if bid[0] != job_id:
                 continue
             duration = int(roast_time[batch_sku[bid]])
-            model.Add(tard[job_id] >= start[bid] + duration - due)
+            if mto_soft and bid in mto_assigned:
+                # Only enforce tardiness when this batch is actually scheduled.
+                model.Add(tard[job_id] >= start[bid] + duration - due).OnlyEnforceIf(mto_assigned[bid])
+            elif not mto_soft:
+                model.Add(tard[job_id] >= start[bid] + duration - due)
 
     # ── SYM: PSC pool symmetry breaking ──────────────────────────────────
     for roaster in roasters:
@@ -879,15 +893,25 @@ def build_reactive(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]
 
     # ── OBJECTIVE ────────────────────────────────────────────────────────
     revenue_psc = _as_int_coefficient(d["sku_revenue"]["PSC"], "sku_revenue.PSC")
-    mto_revenue = sum(
-        _as_int_coefficient(d["sku_revenue"][batch_sku[bid]], f"sku_revenue.{batch_sku[bid]}")
-        for bid in mto_batches
-    )
+
+    if mto_soft:
+        # Revenue only accrues for batches that actually get scheduled.
+        mto_revenue_expr = sum(
+            _as_int_coefficient(d["sku_revenue"][batch_sku[bid]], f"sku_revenue.{batch_sku[bid]}")
+            * mto_assigned[bid]
+            for bid in mto_batches if bid in mto_assigned
+        )
+    else:
+        mto_revenue_expr = sum(
+            _as_int_coefficient(d["sku_revenue"][batch_sku[bid]], f"sku_revenue.{batch_sku[bid]}")
+            for bid in mto_batches
+        )
     # Add revenue from fixed MTO intervals (they WILL complete)
+    fixed_mto_revenue = 0
     for fi in fixed_intervals:
         if fi.get("is_mto", False):
             fi_sku = fi["sku"]
-            mto_revenue += _as_int_coefficient(d["sku_revenue"][fi_sku], f"sku_revenue.{fi_sku}")
+            fixed_mto_revenue += _as_int_coefficient(d["sku_revenue"][fi_sku], f"sku_revenue.{fi_sku}")
     # Add revenue from fixed PSC intervals
     fixed_psc_revenue = sum(
         revenue_psc for fi in fixed_intervals
@@ -916,7 +940,7 @@ def build_reactive(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]
         over[r][m] for r in roasters for m in range(SL)
     )
 
-    # C10': Stockout penalty
+    # C10': Stockout penalty (per consumption event with RC < 0)
     stockout_penalty_expr = 0
     if stockout_soft:
         all_stockout_vars = [
@@ -925,15 +949,26 @@ def build_reactive(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]
         if all_stockout_vars:
             stockout_penalty_expr = stockout_penalty_cost * sum(all_stockout_vars)
 
+    # MTO skip penalty — per unscheduled MTO batch. Matches env's c_skip_mto.
+    skip_penalty_expr = 0
+    if mto_soft:
+        c_skip = _as_int_coefficient(d.get("c_skip_mto", 100000), "c_skip_mto")
+        num_mto = len(mto_batches)
+        assigned_count_expr = sum(mto_assigned[bid] for bid in mto_batches if bid in mto_assigned)
+        # (num_mto - sum(assigned)) — also charges forced-skipped batches.
+        skip_penalty_expr = c_skip * (num_mto - assigned_count_expr)
+
     model.Maximize(
         psc_revenue_expr
         + fixed_psc_revenue
-        + mto_revenue
+        + mto_revenue_expr
+        + fixed_mto_revenue
         - tard_penalty
         - setup_penalty
         - idle_penalty
         - overflow_penalty
         - stockout_penalty_expr
+        - skip_penalty_expr
     )
 
     elapsed = time.perf_counter() - t_build

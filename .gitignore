@@ -8,6 +8,7 @@ OLDCODE/
 # ──────────────────────────────────────────
 PPOmask/outputs/
 q_learning/ql_results/
+results/
 
 # ──────────────────────────────────────────
 # Model weights & checkpoints

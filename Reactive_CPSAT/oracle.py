@@ -18,7 +18,7 @@ from typing import Any
 from ortools.sat.python import cp_model
 
 from .model import build_reactive
-from .snapshot import build_reactive_d, reconstruct_mto_remaining
+from .snapshot import build_oracle_d, build_reactive_d, reconstruct_mto_remaining
 
 logger = logging.getLogger("reactive_cpsat.oracle")
 
@@ -115,6 +115,187 @@ def _extract_restocks(
                 })
     restocks.sort(key=lambda r: (r["start"], r["line_id"], r["sku"]))
     return restocks
+
+
+class FixedScheduleStrategy:
+    """Replay an oracle-produced schedule through the SimulationEngine.
+
+    Implements the engine's strategy interface (decide, decide_restock) by
+    popping the next pre-computed batch/restock when its planned start is
+    reached. The engine itself handles setup/pipeline/GC/RC mechanics — we
+    only inject the same *intent* the oracle committed to.
+    """
+
+    def __init__(
+        self,
+        params: dict[str, Any],
+        schedule: list[dict[str, Any]],
+        restocks: list[dict[str, Any]],
+    ) -> None:
+        self.params = params
+        self._sigma = int(params.get("sigma", 0))
+
+        self._batch_queue: dict[str, list[dict[str, Any]]] = {
+            rid: [] for rid in params["roasters"]
+        }
+        for entry in schedule:
+            if entry.get("status") != "oracle_scheduled":
+                continue
+            rid = entry.get("roaster")
+            if rid in self._batch_queue:
+                self._batch_queue[rid].append(entry)
+        for rid in self._batch_queue:
+            self._batch_queue[rid].sort(key=lambda e: int(e["start"]))
+        self._next_batch_idx: dict[str, int] = {rid: 0 for rid in params["roasters"]}
+
+        self._restocks = sorted(restocks, key=lambda r: int(r["start"]))
+        self._next_restock_idx = 0
+
+    def decide_restock(self, state) -> tuple:
+        if state.restock_busy > 0:
+            return ("WAIT",)
+        while self._next_restock_idx < len(self._restocks):
+            nxt = self._restocks[self._next_restock_idx]
+            if int(state.t) < int(nxt["start"]):
+                return ("WAIT",)
+            self._next_restock_idx += 1
+            return ("START_RESTOCK", nxt["line_id"], nxt["sku"])
+        return ("WAIT",)
+
+    def decide(self, state, roaster_id: str) -> tuple:
+        if state.status.get(roaster_id) != "IDLE":
+            return ("WAIT",)
+        queue = self._batch_queue.get(roaster_id, [])
+        idx = self._next_batch_idx[roaster_id]
+        if idx >= len(queue):
+            return ("WAIT",)
+
+        nxt = queue[idx]
+        sku = nxt["sku"]
+        planned_start = int(nxt["start"])
+        setup_needed = state.last_sku.get(roaster_id) != sku
+        earliest_trigger = planned_start - (self._sigma if setup_needed else 0)
+        if int(state.t) < earliest_trigger:
+            return ("WAIT",)
+
+        self._next_batch_idx[roaster_id] += 1
+        if sku == "PSC":
+            output_line = nxt.get("output_line")
+            if not output_line:
+                output_line = self.params["R_out"][roaster_id][0]
+            return ("PSC", output_line)
+        return (sku,)
+
+
+class FullShiftOracleCPSAT:
+    """Offline full-shift CP-SAT oracle with perfect UPS foresight.
+
+    Unlike ReactiveCPSATOracle (which re-solves at each UPS event), this solves
+    ONE model covering the whole shift with every UPS event encoded upfront as
+    forced-idle slots on the affected roaster. The resulting objective is the
+    theoretical upper bound for this disruption scenario.
+    """
+
+    def __init__(self, base_params: dict[str, Any], time_limit_sec: int = 300):
+        self.base_params = base_params
+        self.time_limit_sec = time_limit_sec
+
+    def solve(self, ups_events: list) -> dict[str, Any]:
+        """Build and solve the full-shift oracle model. Returns result dict."""
+        import os
+
+        d = build_oracle_d(self.base_params, ups_events)
+        d["time_limit"] = self.time_limit_sec
+
+        logger.info(
+            "FullShiftOracle solve START: horizon=%d, ups_events=%d, time_limit=%ds",
+            d["shift_length"], len(ups_events), self.time_limit_sec,
+        )
+
+        model, cp_vars = build_reactive(d)
+
+        if cp_vars.get("trivial", False):
+            logger.info("FullShiftOracle trivial — empty horizon")
+            return {
+                "oracle_profit": 0.0,
+                "oracle_status": "Trivial",
+                "solve_time": 0.0,
+                "gap_pct": None,
+                "schedule": [],
+                "restocks": [],
+                "ups_events": [
+                    {"t": int(e.t), "roaster_id": str(e.roaster_id), "duration": int(e.duration)}
+                    for e in ups_events
+                ],
+            }
+
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = self.time_limit_sec
+        solver.parameters.num_search_workers = min(8, os.cpu_count() or 4)
+        solver.parameters.log_search_progress = False
+        solver.parameters.hint_conflict_limit = 100_000
+        solver.parameters.search_branching = cp_model.HINT_SEARCH
+        # Early-stop when MIP gap falls below 1% — even if we have hours left,
+        # once the bound is this tight further search is diminishing returns.
+        solver.parameters.relative_gap_limit = 0.01
+
+        t_start = time.perf_counter()
+        status = solver.Solve(model)
+        solve_time = time.perf_counter() - t_start
+
+        feasible = status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+        if not feasible:
+            status_name = solver.StatusName(status)
+            logger.warning(
+                "FullShiftOracle INFEASIBLE: status=%s, time=%.1fs",
+                status_name, solve_time,
+            )
+            return {
+                "oracle_profit": None,
+                "oracle_status": status_name,
+                "solve_time": round(solve_time, 2),
+                "gap_pct": None,
+                "schedule": [],
+                "restocks": [],
+                "ups_events": [
+                    {"t": int(e.t), "roaster_id": str(e.roaster_id), "duration": int(e.duration)}
+                    for e in ups_events
+                ],
+            }
+
+        obj_value = solver.ObjectiveValue()
+        best_bound = solver.BestObjectiveBound()
+        gap_pct = None
+        if abs(obj_value) > 1e-9:
+            gap_pct = round(100.0 * abs(best_bound - obj_value) / abs(obj_value), 2)
+
+        if status == cp_model.OPTIMAL:
+            oracle_status = "Optimal"
+        elif gap_pct is not None and gap_pct <= 1.0:
+            oracle_status = "Feasible(gap<=1%)"
+        else:
+            oracle_status = "Feasible(TL)"
+        schedule = _extract_schedule(solver, d, cp_vars)
+        restocks = _extract_restocks(solver, d, cp_vars)
+
+        logger.info(
+            "FullShiftOracle solve END: status=%s, profit=$%s, gap=%.2f%%, time=%.1fs, batches=%d",
+            oracle_status, f"{obj_value:,.0f}", gap_pct or 0.0, solve_time, len(schedule),
+        )
+
+        return {
+            "oracle_profit": round(float(obj_value), 2),
+            "oracle_status": oracle_status,
+            "best_bound": round(float(best_bound), 2),
+            "solve_time": round(solve_time, 2),
+            "gap_pct": gap_pct,
+            "schedule": schedule,
+            "restocks": restocks,
+            "ups_events": [
+                {"t": int(e.t), "roaster_id": str(e.roaster_id), "duration": int(e.duration)}
+                for e in ups_events
+            ],
+        }
 
 
 class ReactiveCPSATOracle:

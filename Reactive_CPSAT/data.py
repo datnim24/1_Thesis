@@ -273,6 +273,16 @@ def load(input_dir: str = "Input_data", overrides: dict | None = None) -> dict[s
         "overflow_idle_cost_per_min_per_roaster",
     )
     cost_setup = _parse_float(shift_params["setup_cost_per_event"], "setup_cost_per_event")
+    # Same penalties the simulation engine uses — read from the same CSV so
+    # CP-SAT's objective is directly comparable to env net_profit.
+    cost_stockout = _parse_float(
+        shift_params.get("stockout_cost_per_event_per_line", "1500"),
+        "stockout_cost_per_event_per_line",
+    )
+    cost_skip_mto = _parse_float(
+        shift_params.get("mto_skip_penalty_per_batch", "100000"),
+        "mto_skip_penalty_per_batch",
+    )
 
     time_limit = _parse_int(solver_params["time_limit_sec"], "time_limit_sec")
     mip_gap = _parse_float(solver_params["mip_gap_target"], "mip_gap_target")
@@ -360,6 +370,8 @@ def load(input_dir: str = "Input_data", overrides: dict | None = None) -> dict[s
         "cost_idle": cost_idle,
         "cost_overflow": cost_overflow,
         "cost_setup": cost_setup,
+        "cost_stockout": cost_stockout,
+        "cost_skip_mto": cost_skip_mto,
         "time_limit": time_limit,
         "mip_gap": mip_gap,
         "allow_r3_flex": allow_r3_flex,
