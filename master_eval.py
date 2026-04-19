@@ -124,57 +124,89 @@ def _print_kpi(kpi: dict, label: str) -> None:
 
 def run_cpsat(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: int = 42) -> dict | None:
     print(f"\n{'='*72}")
-    print(f"  [1/4] FULL-SHIFT CP-SAT ORACLE  (budget: {_elapsed_str(time_budget)})")
+    print(f"  [1/4] PURE CP-SAT  (budget: {_elapsed_str(time_budget)})")
     print(f"{'='*72}")
 
     t0 = time.perf_counter()
     try:
-        from Reactive_CPSAT.data import load as cpsat_load
-        from Reactive_CPSAT.oracle_runner import run_oracle_full_shift
+        import logging as _logging
+        for _name in ("cpsat_solver_v2", "cpsat_model_v2", "cpsat_pure_runner"):
+            _lg = _logging.getLogger(_name)
+            _lg.setLevel(_logging.INFO)
+            if not _lg.handlers:
+                _h = _logging.StreamHandler()
+                _h.setFormatter(_logging.Formatter("  [CPSAT] %(message)s"))
+                _lg.addHandler(_h)
+                _lg.propagate = False
+
+        from CPSAT_Pure import run_pure_cpsat
         from env.data_bridge import get_sim_params
 
         sim_params = get_sim_params()
-        base_params = cpsat_load(input_dir="Input_data")
 
-        # The whole time budget goes into one monolithic full-shift solve.
         per_solve = max(60, int(time_budget))
-        print(f"  Time limit (single solve): {_elapsed_str(per_solve)}")
-        print(f"  UPS events baked in upfront: {len(eval_ups)}")
+        print(f"  Time limit: {_elapsed_str(per_solve)}")
+        print(f"  UPS events (injected as planned downtime): {len(eval_ups)}")
 
-        full_result = run_oracle_full_shift(
-            base_params=base_params,
-            sim_params=sim_params,
-            ups_events=list(eval_ups),
+        raw = run_pure_cpsat(
             time_limit_sec=per_solve,
+            ups_events=list(eval_ups),
+            input_dir="Input_data",
+            num_workers=8,
         )
     except Exception as exc:
-        print(f"  Full-shift CP-SAT FAILED: {exc}")
+        print(f"  Pure CP-SAT FAILED: {exc}")
         import traceback; traceback.print_exc()
         return None
 
     elapsed = time.perf_counter() - t0
 
-    _save_json(full_result, out_dir / "cpsat_raw_result.json")
+    _save_json(raw, out_dir / "cpsat_raw_result.json")
 
     from result_schema import create_result
 
-    bkpi = full_result["baseline_kpi"]
-    oracle_profit = full_result.get("oracle_profit")
-    oracle_profit_str = f"${oracle_profit:,.0f}" if oracle_profit is not None else "N/A"
+    kpi_dict = {
+        "net_profit": raw.get("net_profit", 0.0),
+        "total_revenue": raw.get("total_revenue", 0.0),
+        "total_costs": raw.get("total_costs", 0.0),
+        "psc_count": raw.get("psc_count", 0),
+        "ndg_count": raw.get("ndg_count", 0),
+        "busta_count": raw.get("busta_count", 0),
+        "total_batches": raw.get("total_batches", 0),
+        "revenue_psc": raw.get("revenue_psc", 0.0),
+        "revenue_ndg": raw.get("revenue_ndg", 0.0),
+        "revenue_busta": raw.get("revenue_busta", 0.0),
+        "tardiness_min": raw.get("tardiness_min", {}),
+        "tard_cost": raw.get("tard_cost", 0.0),
+        "setup_events": raw.get("setup_events", 0),
+        "setup_cost": raw.get("setup_cost", 0.0),
+        "stockout_events": {},
+        "stockout_duration": {},
+        "stockout_cost": 0.0,
+        "idle_min": raw.get("idle_min", 0.0),
+        "idle_cost": raw.get("idle_cost", 0.0),
+        "over_min": raw.get("over_min", 0.0),
+        "over_cost": raw.get("over_cost", 0.0),
+        "restock_count": raw.get("restock_count", 0),
+    }
+
+    gap_pct = raw.get("gap_pct")
+    status = raw.get("status", "?")
     notes = (
-        f"Full-shift deterministic oracle (perfect UPS foresight). "
-        f"CP-SAT upper bound: {oracle_profit_str}, "
-        f"status: {full_result.get('oracle_status', 'Unknown')}, "
-        f"gap: {full_result.get('gap_pct', 'N/A')}%, "
-        f"UPS events: {full_result.get('ups_events_total', 0)}, "
-        f"solve time: {full_result.get('solve_time', 0):.1f}s"
+        f"Pure deterministic CP-SAT (UPS events baked in as planned downtime). "
+        f"Status: {status}, "
+        f"obj: ${raw.get('obj_value', 0):,.0f}, "
+        f"bound: ${raw.get('best_bound', 0):,.0f}, "
+        f"gap: {gap_pct}%, "
+        f"UPS applied: {raw.get('ups_events_applied', 0)}, "
+        f"solve time: {raw.get('solve_time', 0):.1f}s"
     )
 
     result = create_result(
         metadata={
-            "solver_engine": "simulation",
-            "solver_name": "Full-Shift CP-SAT Oracle",
-            "status": "Completed",
+            "solver_engine": "cpsat",
+            "solver_name": "Pure CP-SAT v3 (OR-Tools, UPS-as-downtime)",
+            "status": status,
             "solve_time_sec": elapsed,
             "input_dir": str(_ROOT / "Input_data"),
             "notes": notes,
@@ -184,11 +216,15 @@ def run_cpsat(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: i
             "mu_mean": float(sim_params.get("ups_mu", 0)),
             "seed": eval_seed,
         },
-        kpi=bkpi,
-        schedule=full_result.get("schedule", []),
-        cancelled_batches=full_result.get("cancelled_batches", []),
-        ups_events=full_result.get("ups_events", []),
-        restocks=full_result.get("restocks", []),
+        kpi=kpi_dict,
+        schedule=raw.get("schedule", []),
+        cancelled_batches=[],
+        ups_events=[
+            {"t": getattr(e, "t", None), "roaster_id": getattr(e, "roaster_id", None),
+             "duration": getattr(e, "duration", None)}
+            for e in (eval_ups or [])
+        ],
+        restocks=raw.get("restocks", []),
         parameters=_build_export_params(sim_params),
     )
 
@@ -197,10 +233,9 @@ def run_cpsat(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: i
     _save_json(result, json_path)
     _generate_html(result, html_path)
 
-    _print_kpi(result["kpi"], f"Full-Shift Oracle ({_elapsed_str(elapsed)})")
-    if oracle_profit is not None:
-        print(f"  CP-SAT upper bound (objective): ${oracle_profit:>12,.0f}")
-        print(f"  Status: {full_result.get('oracle_status')}  |  Gap: {full_result.get('gap_pct')}%")
+    _print_kpi(result["kpi"], f"Pure CP-SAT ({_elapsed_str(elapsed)})")
+    print(f"  Objective: ${raw.get('obj_value', 0):>12,.0f}  |  Bound: ${raw.get('best_bound', 0):>12,.0f}")
+    print(f"  Status: {status}  |  Gap: {gap_pct}%")
     print(f"  Report: {html_path}")
 
     return result
