@@ -56,7 +56,7 @@ The current time slot. Advances by 1 each iteration of the main loop.
 | Variable | Type | Values | Math model reference |
 |----------|------|--------|---------------------|
 | `status[r]` | enum | IDLE, RUNNING, SETUP, DOWN | State vector (§9.1 reactive framework) |
-| `remaining[r]` | int | $[0, P]$ or $[0, \sigma]$ or $[0, d]$ | Derived from $s_b$, $e_b$ |
+| `remaining[r]` | int | $[0, p_{k_{max}}]$ or $[0, \sigma]$ or $[0, d]$ | Derived from $s_b$, $e_b$ |
 | `current_batch[r]` | batch or None | Active batch on roaster | $r_b$ (§4.2) — the inverse mapping |
 | `last_sku[r]` | SKU or None | Last SKU processed | Determines setup need (C5, §6.4) |
 
@@ -79,8 +79,8 @@ The current time slot. Advances by 1 each iteration of the main loop.
 
 **IDLE:** Roaster has no batch, no setup, not down. Ready to accept a new batch assignment. This is a **decision point** — the strategy must decide what to do next.
 
-**RUNNING(remaining):** Roaster is actively processing a batch. `remaining` initializes to $P = 15$ and decrements by 1 at the **start** of each slot. When `remaining` reaches 0, the batch completes: RC stock increases (if PSC), roaster transitions to IDLE. A batch starting at slot $s_b$ completes at slot $s_b + P$.
-- Math model: batch interval $[s_b, s_b + 15)$ is active. Corresponds to roaster NoOverlap constraint (C4).
+**RUNNING(remaining):** Roaster is actively processing a batch. `remaining` initializes to $p_k$ (SKU-dependent: PSC=15, NDG=17, Busta=18) and decrements by 1 at the **start** of each slot. When `remaining` reaches 0, the batch completes: RC stock increases (if PSC), roaster transitions to IDLE. A batch of SKU $k$ starting at slot $s_b$ completes at slot $s_b + p_k$.
+- Math model: batch interval $[s_b, s_b + p_k)$ is active. Corresponds to roaster NoOverlap constraint (C4).
 - Pipeline: the first 3 slots of RUNNING also have the pipeline busy (consume interval). After slot $s_b + 2$, pipeline is free but roaster still RUNNING.
 
 **SETUP(remaining):** Roaster is in setup between two different-SKU batches. `remaining` initializes to $\sigma = 5$ and decrements by 1 each slot. When `remaining` reaches 0, transitions to IDLE (another decision point).
@@ -95,12 +95,13 @@ The current time slot. Advances by 1 each iteration of the main loop.
 
 | Variable | Type | Range | Math model reference |
 |----------|------|-------|---------------------|
-| `pipeline_busy[l]` | int | $[0, \delta^{con}]$ = $[0, 3]$ | Consume interval $\text{con}(b)$ (§5.2) |
-| `pipeline_batch[l]` | batch or None | Which batch is consuming | Links to pipeline NoOverlap (C7) |
+| `pipeline_busy[l]` | int | $[0, \delta^{restock}]$ = $[0, 15]$ | Consume interval $\text{con}(b)$ (§5.2) or restock block (C17) |
+| `pipeline_batch[l]` | batch or None | Which batch is consuming | Links to pipeline NoOverlap (C8) |
+| `pipeline_restock[l]` | bool | Is pipeline blocked by restock? | Links to restock pipeline block (C17) |
 
-`pipeline_busy[l]` counts down from 3 (= $\delta^{con}$) to 0 when a consume is in progress. When it reaches 0, pipeline is free.
+`pipeline_busy[l]` counts down from 3 (= $\delta^{con}$) for a batch consume, or from 15 (= $\delta^{restock}$) for a restock operation. When it reaches 0, pipeline is free.
 
-**Relationship to C7 (Pipeline NoOverlap):** The simulation enforces NoOverlap by construction — a new batch can only start if `pipeline_busy[pipe(r)] == 0`. The math model enforces this via the NoOverlap constraint on consume intervals. Both representations are equivalent.
+**Relationship to C8/C17 (Pipeline NoOverlap):** The simulation enforces NoOverlap by construction — a new batch can only start if `pipeline_busy[pipe(r)] == 0`. Restock intervals also participate in the same NoOverlap. Both batch consumes and restocks set `pipeline_busy` to prevent concurrent access.
 
 ## 2.4 RC Inventory State (per line $l \in \mathcal{L}$)
 
@@ -115,6 +116,31 @@ Integer batch counter. $\overline{B}_l = 40$ batches per line. Increases by 1 wh
 **Relationship to C10/C11:** In deterministic mode, `rc_stock[l] >= 0` is enforced (C10). In reactive mode after UPS, `rc_stock[l]` can go negative — each consumption event where `rc_stock[l] < 0` (strictly negative, demand unmet) is a stockout event penalized at $1,500/event (see `cost.md` §3.2). Note: `rc_stock[l] = 0` means last demand was served but stock is empty — this is **not** a stockout event. Stockout duration (total minutes with $B_l \leq 0$, including zero) is tracked as a separate KPI but is **not** in the objective.
 
 `rc_stock[l] <= 40` is always enforced (C11) — if stock is at max and a batch would complete, the batch cannot start (blocked by the strategy's feasibility check). Roasters forced idle by full RC incur a $50/min overflow-idle penalty. For R3 with flexible routing, overflow-idle applies only if **both** lines are at 40.
+
+## 2.4a GC Silo State (per silo $(l, k)$)
+
+| Variable | Type | Range | Math model reference |
+|----------|------|-------|---------------------|
+| `gc_stock[l][k]` | int | $[0, \overline{G}_{l,k}]$ | $G_{l,k}(t)$ (§2.3 GC Silo Parameters) |
+
+Integer batch counter per silo. Decreases by 1 when a batch of SKU $k$ **starts** on a roaster fed by line $l$'s pipeline. Increases by 5 when a restock completes on silo $(l, k)$.
+
+**Available silos:** $(L_1, PSC)$ cap=40, $(L_1, NDG)$ cap=10, $(L_1, BUS)$ cap=10, $(L_2, PSC)$ cap=40.
+
+**Hard constraint (C16):** `gc_stock[l][k] >= 0` — cannot roast from empty silo. A batch cannot start if the corresponding silo is empty.
+
+**GC silo mapping:** Roaster $r$ producing SKU $k$ consumes from `gc_stock[pipe(r)][k]`. R3 roasting PSC consumes from `gc_stock[L2][PSC]` regardless of RC output routing.
+
+## 2.4b Restock State
+
+| Variable | Type | Range | Math model reference |
+|----------|------|-------|---------------------|
+| `restock_station_busy` | bool | {False, True} | Shared restock station mutex (C18) |
+| `restock_active_line` | line or None | Which line is restocking | C17 — restock blocks pipeline |
+| `restock_active_sku` | SKU or None | Which SKU silo is being restocked | C16 — silo to credit on completion |
+| `restock_timer` | int | $[0, \delta^{restock}]$ = $[0, 15]$ | Duration of restock blocking |
+
+Only one restock can be active at a time globally (C18). When a restock starts, `pipeline_busy[l]` is set to $\delta^{restock} = 15$ and `restock_station_busy = True`. When it completes, `gc_stock[l][k] += 5` (C16) and `restock_station_busy = False`.
 
 ## 2.5 MTO Tracking
 
@@ -156,9 +182,10 @@ Pre-generated before the simulation starts. Sorted by time. Same list used for a
 | `stockout_event_count` | int | Consumption events where $B_l < 0$ (strictly negative, demand unmet) — **penalized in objective at $1,500/event** |
 | `stockout_duration` | int | Total minutes with $B_l \leq 0$ — **KPI only, not in objective** |
 | `mto_tardiness` | float | $\sum_j \text{tard}_j$ — penalized at $1,000/min (§6, C12) |
+| `setup_count` | int | Number of setup events (SKU transitions) — penalized at $800/event (§6, `cost.md` §3.4) |
 | `safety_idle_minutes` | int | Σ (roaster idle or SETUP minutes when $B_{\ell(r)} < 20$ and not DOWN) — penalized at $200/min |
 | `overflow_idle_minutes` | int | Σ (roaster idle minutes when output line RC = 40; R3: both lines = 40) — penalized at $50/min |
-| `total_cost` | float | $c^{tard} \cdot \text{tard} + c^{stock} \cdot \text{SO} + c^{idle} \cdot \text{idle} + c^{over} \cdot \text{over}$ |
+| `total_cost` | float | $c^{tard} \cdot \text{tard} + c^{stock} \cdot \text{SO} + c^{setup} \cdot \text{setup\_count} + c^{idle} \cdot \text{idle} + c^{over} \cdot \text{over}$ |
 | `total_profit` | float | `total_revenue - total_cost` — **primary metric** |
 | `resolves_count` | int | KPI — CP-SAT only |
 | `total_compute_time` | float | KPI — wall-clock seconds |
@@ -224,6 +251,24 @@ rc_stock[L2] = B0_L2    # e.g., 15
 MAX_BUFFER = 40          # hard overflow limit per line (= 20,000 kg / 500 kg)
 SAFETY_THRESHOLD = 20    # safety-idle penalty active below this
 
+# GC silo inventory
+gc_stock[L1][PSC] = 20   # initial GC silo levels (from shift_parameters.csv)
+gc_stock[L1][NDG] = 5
+gc_stock[L1][BUS] = 5
+gc_stock[L2][PSC] = 20
+GC_CAPACITY = {(L1,PSC): 40, (L1,NDG): 10, (L1,BUS): 10, (L2,PSC): 40}
+RESTOCK_QTY = 5          # batches per restock
+RESTOCK_DURATION = 15    # minutes pipeline blocked per restock
+
+# Restock state
+restock_station_busy = False
+restock_active_line = None
+restock_active_sku = None
+restock_timer = 0
+
+# Processing times (SKU-dependent)
+PROCESSING_TIME = {PSC: 15, NDG: 17, BUS: 18}
+
 # KPI accumulators
 total_revenue = 0
 total_psc_completed = 0
@@ -231,6 +276,7 @@ total_mto_completed = 0
 stockout_event_count = 0  # consumption events with B_l < 0 (strictly negative, penalized)
 stockout_duration = 0     # minutes with B_l <= 0 (KPI only)
 mto_tardiness = 0
+setup_count = 0           # number of SKU transitions (penalized at $800/event)
 safety_idle_minutes = 0
 overflow_idle_minutes = 0
 total_cost = 0
@@ -275,6 +321,7 @@ schedule = solve_cpsat_deterministic(
     # Cost parameters (from cost.md):
     revenue={PSC: 4000, NDG: 7000, BUS: 7000},
     c_tard=1000,                     # $/min MTO tardiness
+    c_setup=800,                     # $/event setup (SKU transition)
     c_idle=200,                      # $/min safety-idle
     c_over=50,                       # $/min overflow-idle
     # Stockout: HARD in deterministic (no c_stock needed)
@@ -411,13 +458,17 @@ def process_ups_events(t):
 
 ## 4.3 Phase 2: Advance Roaster States
 
-**Convention:** `remaining` initializes to the full duration ($P$, $\sigma$, or $d$). Each slot, decrement **first**, then check for zero. Batch starting at $s_b$ with `remaining = P = 15` reaches `remaining == 0` at slot $s_b + P$, matching the math model's $e_b = s_b + P$.
+**Convention:** `remaining` initializes to the full duration ($p_k$, $\sigma$, or $d$). Each slot, decrement **first**, then check for zero. Batch of SKU $k$ starting at $s_b$ with `remaining = p_k` reaches `remaining == 0` at slot $s_b + p_k$, matching the math model's $e_b = s_b + p_k$.
 
 ```python
 def start_batch(r, b, t):
     status[r] = RUNNING
-    remaining[r] = P              # 15 (not P-1)
+    remaining[r] = PROCESSING_TIME[b.sku]  # p_k: PSC=15, NDG=17, Busta=18
     current_batch[r] = b
+    
+    # Consume GC from the appropriate silo
+    l_pipe = pipe(r)
+    gc_stock[l_pipe][b.sku] -= 1           # GC consumed at batch START (C16)
 
 def advance_roaster_states(t):
     for r in roasters:
@@ -470,13 +521,13 @@ def advance_roaster_states(t):
 ```
 
 **Math model cross-references:**
-- Batch completes at $e_b = s_b + P$ → `remaining[r]` decremented to 0 at slot $e_b$. ✓
+- Batch completes at $e_b = s_b + p_k$ → `remaining[r]` decremented to 0 at slot $e_b$. ✓
 - RC stock update → $B_l(t)$ increment by 1 (§4.5). Revenue credited: $4k PSC, $7k MTO.
 - Output line → $\text{out}(b)$ function (§3.5): depends on $r_b$ and $y_b$
 - Setup completes → 5-min gap enforced by C5
 - DOWN completes → roaster returns to available pool
 
-**Why decrement-first:** A batch starting at $t = 0$ has `remaining = 15`. At $t = 0$: decrement → 14, not zero → still RUNNING. At $t = 14$: decrement → 1, not zero → still RUNNING. At $t = 15$: decrement → 0 → batch completes. This matches $e_b = 0 + 15 = 15$. Same logic applies to SETUP ($\sigma = 5$) and DOWN ($d$).
+**Why decrement-first:** A PSC batch starting at $t = 0$ has `remaining = 15`. At $t = 0$: decrement → 14, not zero → still RUNNING. At $t = 14$: decrement → 1, not zero → still RUNNING. At $t = 15$: decrement → 0 → batch completes. This matches $e_b = 0 + 15 = 15$. An NDG batch starting at $t = 0$ has `remaining = 17`, completes at $t = 17$. Same logic applies to SETUP ($\sigma = 5$) and DOWN ($d$).
 
 ## 4.4 Phase 3: Advance Pipeline States
 
@@ -486,9 +537,18 @@ def advance_pipeline_states(t):
         if pipeline_busy[l] > 0:
             pipeline_busy[l] -= 1
             if pipeline_busy[l] == 0:
-                pipeline_batch[l] = None
+                # Check if this was a restock completing
+                if pipeline_restock[l]:
+                    pipeline_restock[l] = False
+                    gc_stock[restock_active_line][restock_active_sku] += RESTOCK_QTY  # +5
+                    restock_station_busy = False
+                    restock_active_line = None
+                    restock_active_sku = None
+                    restock_timer = 0
+                else:
+                    pipeline_batch[l] = None
                 # Pipeline is now free
-                # Math model: consume interval [s_b, s_b + 3) ended at slot s_b + 3
+                # Math model: consume interval [s_b, s_b + 3) or restock interval ended
 ```
 
 **Math model cross-ref:** Consume interval $\text{con}(b) = [s_b, s_b + \delta^{con}) = [s_b, s_b + 3)$. Pipeline is busy for slots $s_b, s_b+1, s_b+2$. Free at slot $s_b + 3$.
@@ -591,10 +651,12 @@ def execute_batch_start(r, b, t):
     
     # ── Pre-conditions (MUST all be true — strategy guarantees this) ──
     assert status[r] == IDLE
-    assert pipeline_busy[l] == 0                    # C7: pipeline free
+    assert pipeline_busy[l] == 0                    # C8: pipeline free
     assert b.sku in eligible_skus[r]                # C3: eligibility
-    assert t + P - 1 not in planned_downtime[r]     # C6: no overlap with downtime
-    # Actually: check all slots [t, t+P-1] ∩ D_r = ∅
+    assert gc_stock[l][b.sku] > 0                   # C16: GC silo not empty
+    p_k = PROCESSING_TIME[b.sku]                    # SKU-dependent processing time
+    assert t + p_k - 1 not in planned_downtime[r]   # C7: no overlap with downtime
+    # Actually: check all slots [t, t+p_k-1] ∩ D_r = ∅
     
     # Check setup requirement
     if last_sku[r] is not None and last_sku[r] != b.sku:
@@ -611,8 +673,11 @@ def execute_batch_start(r, b, t):
     
     # ── Start the batch ──
     status[r] = RUNNING
-    remaining[r] = P                                # 15 slots
+    remaining[r] = PROCESSING_TIME[b.sku]            # p_k: PSC=15, NDG=17, Busta=18
     current_batch[r] = b
+    
+    # ── Consume GC from silo ──
+    gc_stock[l][b.sku] -= 1                          # C16: GC decremented at batch start
     
     # ── Occupy the pipeline ──
     pipeline_busy[l] = delta_con                    # 3 slots
@@ -671,6 +736,8 @@ if b.sku != last_sku[r]:
     status[r] = SETUP
     remaining[r] = sigma          # 5 slots (decrement-first convention)
     setup_target_sku[r] = b.sku   # remember what SKU we're setting up FOR
+    setup_count += 1              # KPI: count setup events
+    total_cost += C_SETUP         # $800 lump-sum at setup start
     # After 5 slots, roaster becomes IDLE
     # Decision point fires again — now check pipeline and start
 
@@ -891,19 +958,25 @@ def drl_decide(r, t, state):
 |-------|---------|-------|--------|
 | 0 | $t / 479$ | [0, 1] | Normalized current time |
 | 1–5 | $\text{status}[R_i]$ encoded | [0, 1] | 0=IDLE, 0.33=SETUP, 0.67=RUNNING, 1.0=DOWN |
-| 6–10 | $\text{remaining}[R_i] / D_{max}$ | [0, 1] | Normalized remaining timer. $D_{max} = 60$ (cap for all timers: RUNNING max $P=15$, SETUP max $\sigma=5$, DOWN max $3\mu_{max} = 90$ capped to 60). Prevents out-of-range observations for long UPS. |
+| 6–10 | $\text{remaining}[R_i] / D_{max}$ | [0, 1] | Normalized remaining timer. $D_{max} = 60$ (cap for all timers: RUNNING max $p_{BUS}=18$, SETUP max $\sigma=5$, DOWN max $3\mu_{max} = 90$ capped to 60). |
 | 11–15 | $\text{last\_sku}[R_i]$ encoded | [0, 1] | 0=PSC, 0.5=NDG, 1.0=Busta |
 | 16 | $\text{rc\_stock}[L_1] / \overline{B}_{L_1}$ | [0, 1] | Normalized L1 RC stock |
 | 17 | $\text{rc\_stock}[L_2] / \overline{B}_{L_2}$ | [0, 1] | Normalized L2 RC stock |
 | 18 | $\text{mto\_remaining\_total} / N^{MTO}$ | [0, 1] | Fraction of MTO batches remaining |
-| 19 | $\text{pipeline\_busy}[L_1] / \delta^{con}$ | [0, 1] | L1 pipeline status |
-| 20 | $\text{pipeline\_busy}[L_2] / \delta^{con}$ | [0, 1] | L2 pipeline status |
+| 19 | $\text{pipeline\_busy}[L_1] / \delta^{restock}$ | [0, 1] | L1 pipeline status (÷15 to cover restock blocking) |
+| 20 | $\text{pipeline\_busy}[L_2] / \delta^{restock}$ | [0, 1] | L2 pipeline status (÷15 to cover restock blocking) |
+| 21 | $\text{gc\_stock}[L_1][PSC] / 40$ | [0, 1] | L1 PSC silo level |
+| 22 | $\text{gc\_stock}[L_1][NDG] / 10$ | [0, 1] | L1 NDG silo level |
+| 23 | $\text{gc\_stock}[L_1][BUS] / 10$ | [0, 1] | L1 Busta silo level |
+| 24 | $\text{gc\_stock}[L_2][PSC] / 40$ | [0, 1] | L2 PSC silo level |
+| 25 | $\text{restock\_station\_busy}$ | {0, 1} | 1 if shared restock station occupied |
+| 26 | $\text{restock\_timer} / \delta^{restock}$ | [0, 1] | Remaining restock time (0 if no active restock) |
 
-**Total observation dimension: 21** (compact — good for PPO).
+**Total observation dimension: 27** (expanded from 21 to include GC silo levels and restock state).
 
 ## 6.3 Action Space and Masking
 
-**17 actions** (R3 routing baked into action space):
+**21 actions** (R3 routing and restock baked into action space):
 
 | Action ID | Meaning |
 |-----------|---------|
@@ -916,18 +989,23 @@ def drl_decide(r, t, state):
 | 6 | Start NDG on R1 |
 | 7 | Start NDG on R2 |
 | 8 | Start Busta on R2 |
-| 9–15 | *(permanently masked — ineligible SKU-roaster combos)* |
-| 16 | WAIT (do nothing this decision point) |
+| 9–12 | *(permanently masked — ineligible SKU-roaster combos)* |
+| 13 | Restock PSC on L1 |
+| 14 | Restock NDG on L1 |
+| 15 | Restock Busta on L1 |
+| 16 | Restock PSC on L2 |
+| 17–19 | *(reserved for future expansion)* |
+| 20 | WAIT (do nothing this decision point) |
 
-**Per-roaster decision:** When roaster $r$ becomes IDLE, agent is called for $r$ only. Actions for other roasters are masked. If 2 roasters IDLE at same slot, called sequentially R1→R2→R3→R4→R5.
+**Per-roaster decision:** When roaster $r$ becomes IDLE, agent is called for $r$ only. Actions for other roasters are masked. If 2 roasters IDLE at same slot, called sequentially R1→R2→R3→R4→R5. Restock actions are valid at any roaster's decision point (the restock occupies the pipeline, not the roaster — the roaster remains IDLE and will be re-evaluated next slot).
 
 **Action mask computation:**
 
 ```python
 def compute_action_mask(r, t, state):
-    mask = [False] * 17
+    mask = [False] * 21
     
-    for action_id in range(16):  # 0-15: batch start actions
+    for action_id in range(9):  # 0-8: batch start actions
         # Decode action → (sku, roaster, output_line)
         if action_id <= 5:   # PSC actions
             sku = PSC
@@ -945,8 +1023,6 @@ def compute_action_mask(r, t, state):
             sku = BUS
             roaster = R2
             out_l = None
-        else:
-            continue  # 9-15: permanently masked
         
         # Only the roaster at this decision point
         if roaster != r:
@@ -960,16 +1036,21 @@ def compute_action_mask(r, t, state):
         if status[r] != IDLE:
             continue
         
-        # C8: Pipeline must be free (or will be free after setup)
+        # C16: GC silo must have stock
         l_pipe = pipe(r)
+        if gc_stock[l_pipe][sku] <= 0:
+            continue
+        
+        # C8: Pipeline must be free (or will be free after setup)
         setup_needed = (last_sku[r] != sku) and (last_sku[r] is not None)
         if not setup_needed:
             if pipeline_busy[l_pipe] > 0:
                 continue
         
         # C11: RC overflow check (PSC only)
+        p_k = PROCESSING_TIME[sku]
         if sku == PSC and out_l is not None:
-            completion_time = t + (sigma if setup_needed else 0) + P
+            completion_time = t + (sigma if setup_needed else 0) + p_k
             future_consumption = consumption_events_between(out_l, t, completion_time)
             future_completions = pending_completions(out_l, t, completion_time)
             projected_rc = rc_stock[out_l] + future_completions - future_consumption + 1
@@ -978,11 +1059,11 @@ def compute_action_mask(r, t, state):
         
         # C7: Downtime check
         start_time = t + (sigma if setup_needed else 0)
-        if any(slot in planned_downtime[r] for slot in range(start_time, start_time + P)):
+        if any(slot in planned_downtime[r] for slot in range(start_time, start_time + p_k)):
             continue
         
-        # C9: End-of-shift check
-        if start_time + P > 480:  # s_b + 15 > 480 → s_b > 465
+        # C9: End-of-shift check (SKU-dependent)
+        if start_time + p_k > 480:  # s_b + p_k > 480
             continue
         
         # MTO availability
@@ -993,7 +1074,21 @@ def compute_action_mask(r, t, state):
         
         mask[action_id] = True
     
-    mask[16] = True  # WAIT is always available
+    # Actions 13-16: Restock actions
+    restock_actions = {13: (L1, PSC, 40), 14: (L1, NDG, 10), 15: (L1, BUS, 10), 16: (L2, PSC, 40)}
+    for action_id, (line, sku, cap) in restock_actions.items():
+        # Restock station must be free (C18)
+        if restock_station_busy:
+            continue
+        # Pipeline on target line must be free (C17)
+        if pipeline_busy[line] > 0:
+            continue
+        # Capacity guard (C19): silo must have room for 5 more
+        if gc_stock[line][sku] + RESTOCK_QTY > cap:
+            continue
+        mask[action_id] = True
+    
+    mask[20] = True  # WAIT is always available
     return mask
 ```
 
@@ -1040,6 +1135,11 @@ def compute_reward(prev_state, action, new_state, t):
     new_tard = new_state.mto_tardiness - prev_state.mto_tardiness
     reward -= 1000 * new_tard
     
+    # Setup cost: -$800 for each roaster that just entered SETUP this step
+    for r in roasters:
+        if new_state.status[r] == SETUP and prev_state.status[r] != SETUP:
+            reward -= 800   # one-time lump-sum per setup event
+    
     # Stockout cost: -$1,500 per CONSUMPTION EVENT where stock < 0 (strictly negative)
     # B_l = 0 → last demand served, not stockout. B_l < 0 → demand unmet.
     for l in [L1, L2]:
@@ -1068,6 +1168,7 @@ def compute_reward(prev_state, action, new_state, t):
 
 **Key properties:**
 - All values in **dollars** — no arbitrary weights
+- Setup cost fires **once** per SETUP transition — not per minute of setup duration
 - Stockout penalty fires **only at consumption event times** (~94/line/shift), not every slot
 - Overflow-idle for R3 uses **both-lines-full** rule
 - Cumulative reward across 480 steps ≈ shift profit from objective function
@@ -1079,28 +1180,34 @@ def compute_reward(prev_state, action, new_state, t):
 
 | Math Model Element | Simulation Implementation | Consistent? |
 |-------------------|--------------------------|-------------|
-| $P = 15$ min processing | `remaining[r] = P`, decrements to 0 | ✓ — batch occupies $[s_b, s_b+P)$ |
+| $p_k$ SKU-dependent processing | `remaining[r] = PROCESSING_TIME[b.sku]`, decrements to 0 | ✓ — batch occupies $[s_b, s_b+p_k)$ |
 | $\delta^{con} = 3$ min consume | `pipeline_busy[l] = 3`, decrements to 0 | ✓ — pipeline busy $[s_b, s_b+3)$ |
-| Consume concurrent with roast start | Batch start sets both `remaining[r]=P` and `pipeline_busy[l]=3` at same $t$ | ✓ |
+| Consume concurrent with roast start | Batch start sets both `remaining[r]=p_k` and `pipeline_busy[l]=3` at same $t$ | ✓ |
 | $\sigma = 5$ min setup | SETUP state with `remaining = 5` | ✓ |
+| Setup cost $c^{setup} = \$800$ | `total_cost += C_SETUP` and `setup_count += 1` at SETUP entry; reward −800 per transition | ✓ — matches `cost.md` §3.4 |
 | Setup does not occupy pipeline | Pipeline not set when entering SETUP | ✓ |
 | Initial SKU = PSC (C6) | `last_sku[r] = PSC` at init. First MTO batch needs setup. | ✓ |
-| End-of-shift (C9) | `start_time + P > 480` → masked in action mask | ✓ |
+| End-of-shift (C9) | `start_time + p_k > 480` → masked in action mask (SKU-dependent) | ✓ |
 | Pipeline NoOverlap (C8) | Batch can only START if `pipeline_busy[pipe(r)] == 0` | ✓ |
 | Roaster NoOverlap (C4) | Batch can only START if `status[r] == IDLE` | ✓ |
-| Planned downtime (C7) | $[s_b, s_b+P-1] \cap \mathcal{D}_r = \emptyset$ checked before start | ✓ |
+| Planned downtime (C7) | $[s_b, s_b+p_k-1] \cap \mathcal{D}_r = \emptyset$ checked before start | ✓ |
 | RC balance (§4.5) | `rc_stock[l] += 1` at completion, `rc_stock[l] -= 1` at consumption | ✓ |
-| $e_b = s_b + P$ timing | Batch RUNNING for $P$ slots, completes at slot $s_b + P$ | ✓ — with corrected remaining = P (not P-1) |
+| $e_b = s_b + p_k$ timing | Batch RUNNING for $p_k$ slots, completes at slot $s_b + p_k$ | ✓ |
 | NDG/Busta not in RC | Only PSC batches credit `rc_stock` | ✓ |
 | $\text{out}(b)$ (§3.5) | `output_line(r, b)` function matches cases | ✓ |
-| R3 routing: 17 actions | Actions 2 (→L1) and 3 (→L2) for R3 | ✓ |
+| R3 routing: 21 actions | Actions 2 (→L1) and 3 (→L2) for R3; restock actions 13–16 | ✓ |
+| GC silo balance (C16) | `gc_stock[l][k] -= 1` at batch start; `>= 0` checked in mask | ✓ |
+| Restock blocks pipeline (C17) | `pipeline_busy[l] = 15` during restock; no consumes possible | ✓ |
+| Shared restock station (C18) | `restock_station_busy` global mutex; checked in mask | ✓ |
+| Restock capacity guard (C19) | `gc_stock + 5 <= cap` checked in mask | ✓ |
+| Restock credits silo | `gc_stock[l][k] += 5` when restock completes (pipeline timer hits 0) | ✓ |
 | UPS cancels batch | RUNNING → batch removed, RC NOT credited | ✓ |
-| UPS: GC lost, restart needed | Re-start = new batch object, new consume, full 15 min | ✓ |
+| UPS: GC lost, restart needed | Re-start = new batch object, new consume, full $p_k$ min. GC silo NOT refunded. | ✓ |
 | UPS: scheduler decides restart | Decision point fires after DOWN ends | ✓ |
 | Stockout: event-based penalty (C10) | Penalized at consumption events only, $1,500/event | ✓ — matches `cost.md` §3.2 |
 | Stockout duration: KPI only | Tracked separately, NOT in objective/reward | ✓ |
 | Hard overflow always (C11) | Overflow checked in action mask, $B_l \leq 40$ | ✓ |
-| R3 overflow-idle: both lines (C15) | Reward checks `rc[L1] >= 40 AND rc[L2] >= 40` for R3 | ✓ — matches math model §4.9/C15 |
+| R3 overflow-idle: both lines (C15) | Reward checks `rc[L1] >= 40 AND rc[L2] >= 40` for R3 | ✓ |
 | Safety-idle (C14) | Reward penalizes idle when $B_l < 20$, $200/min | ✓ |
 | Overflow-idle (C15) | Reward penalizes idle when $B_l = 40$, $50/min | ✓ |
 | Revenue: PSC $4k, MTO $7k | Reward += revenue at batch completion | ✓ — matches `cost.md` §2 |
@@ -1297,26 +1404,33 @@ Math Model (static)              Simulation (dynamic)
 ═══════════════════              ═══════════════════════
 Sets §1                    →     Defined at initialization
 Parameters §2              →     Constants in simulation config (incl. cost.md values)
+                                   p_k = {PSC:15, NDG:17, BUS:18} from §2.1
+                                   GC silo config from §2.3
 Decision vars §3           →     CP-SAT: solver output → schedule queue
-                                 DRL: agent action at decision points (17 actions)
+                                 DRL: agent action at decision points (21 actions)
                                  Dispatching: rule output at decision points
-Constraints §5 (C1-C15)   →     Enforced by:
+Constraints §5 (C1-C19)   →     Enforced by:
                                    C1-C3: activation, eligibility (action mask)
                                    C4-C5: NoOverlap + setup (status[r] + SETUP state)
                                    C6: initial SKU = PSC (init)
                                    C7: downtime check before start
                                    C8: pipeline_busy check before start
-                                   C9: end-of-shift s_b ≤ 465 (action mask)
+                                   C9: end-of-shift s_b ≤ 480-p_k (action mask, SKU-dependent)
                                    C10: RC ≥ 0 hard/soft (stockout event count)
                                    C11: RC ≤ 40 hard (overflow block)
                                    C12: tardiness tracked at completion
                                    C13: R3 routing via action 2/3
                                    C14: safety-idle tracked per slot
                                    C15: overflow-idle tracked per slot (R3: both lines)
+                                   C16: GC silo ≥ 0 (gc_stock check in mask, decremented at start)
+                                   C17: restock blocks pipeline (pipeline_busy = 15)
+                                   C18: shared restock station (restock_station_busy mutex)
+                                   C19: restock capacity guard (gc_stock + 5 ≤ cap in mask)
 Objective §6               →     Profit = revenue − costs (KPI accumulators)
                                    Revenue: $4k/$7k per completed batch
                                    Costs: $1k/min tard, $1.5k/event stockout,
-                                          $200/min idle, $50/min overflow-idle
+                                          $800/event setup, $200/min idle, $50/min overflow-idle
 RC balance §4.5            →     rc_stock[l] incremented/decremented per event
+GC silo balance §2.3       →     gc_stock[l][k] decremented at batch start, +5 at restock complete
 Reactive framework         →     THIS DOCUMENT — the simulation loop itself
 ```

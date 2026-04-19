@@ -1,0 +1,56 @@
+{
+  "net_profit": -85000.0,
+  "total_revenue": 390000.0,
+  "total_costs": 475000.0,
+  "psc_count": 80,
+  "ndg_count": 5,
+  "busta_count": 5,
+  "revenue_psc": 320000.0,
+  "revenue_ndg": 35000.0,
+  "revenue_busta": 35000.0,
+  "tardiness_min": {
+    "J1": 0.0,
+    "J2": 122.0
+  },
+  "tard_cost": 122000.0,
+  "setup_events": 50,
+  "setup_cost": 40000.0,
+  "stockout_events": {
+    "L1": 39,
+    "L2": 25
+  },
+  "stockout_duration": {
+    "L1": 318,
+    "L2": 207
+  },
+  "stockout_cost": 96000.0,
+  "idle_min": 1085.0,
+  "idle_cost": 217000.0,
+  "over_min": 0.0,
+  "over_cost": 0.0,
+  "total_compute_ms": 0.0,
+  "num_resolves": 0,
+  "restock_count": 27,
+  "allow_r3_flex": true,
+  "solver_engine": "simulation",
+  "gc_init": {
+    "L1_PSC": 20,
+    "L1_NDG": 5,
+    "L1_BUSTA": 5,
+    "L2_PSC": 20
+  },
+  "gc_final": {
+    "L1_PSC": 40,
+    "L1_NDG": 10,
+    "L1_BUSTA": 10,
+    "L2_PSC": 35
+  },
+  "gc_capacity": {
+    "L1_PSC": 40,
+    "L1_NDG": 10,
+    "L1_BUSTA": 10,
+    "L2_PSC": 40
+  },
+  "restock_duration": 15,
+  "restock_qty": 5
+}

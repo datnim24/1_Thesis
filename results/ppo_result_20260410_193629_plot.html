@@ -1,0 +1,61 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>PPO Evaluation</title><style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #F6F8FB; color: #22303C; max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 { color: #0D47A1; border-bottom: 2px solid #0D47A1; padding-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; background: white; margin-bottom: 20px; }
+    th { background: #22303C; color: white; padding: 8px 12px; border: 1px solid #D7DCE2; }
+    td { padding: 8px 12px; border: 1px solid #D7DCE2; }
+    .note { background: #E3F2FD; border: 1px solid #BBDEFB; border-radius: 8px; padding: 12px; margin: 12px 0; }
+    .violation { color: #C62828; font-weight: bold; }
+    </style></head><body>
+<h1>MaskablePPO Evaluation Report</h1>
+<div class='note'>Model: E:\CODE\Thesis\1_Thesis\PPOmask\outputs\20260410_173401_PPO_5\checkpoints\best_training_profit_model.zip<br>Generated: 2026-04-10T19:36:22</div>
+<h2>Deterministic Evaluation (10 episodes)</h2>
+<table><tr><th>Mean Profit</th><th>Min</th><th>Max</th><th>Violations</th><th>Inference (ms)</th></tr><tr><td>$60,900</td><td>$60,900</td><td>$60,900</td><tdclass="violation">10</td><td>0.55</td></tr></table>
+<h2>Stochastic Evaluation (10 episodes)</h2>
+<table><tr><th>Mean Profit</th><th>Min</th><th>Max</th><th>Violations</th><th>Inference (ms)</th></tr><tr><td>$121,200</td><td>$32,500</td><td>$206,500</td><tdclass="violation">10</td><td>0.59</td></tr></table>
+<h2>Per-Run Details</h2>
+<table><tr><th>Run</th><th>Mode</th><th>Seed</th><th>Net Profit</th><th>PSC</th><th>Tardiness</th><th>Stockouts</th><th>Setups</th><th>Restocks</th><th>Violation</th></tr>
+<tr><td>deterministic_42</td><td>Det</td><td>42</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_43</td><td>Det</td><td>43</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_44</td><td>Det</td><td>44</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_45</td><td>Det</td><td>45</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_46</td><td>Det</td><td>46</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_47</td><td>Det</td><td>47</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_48</td><td>Det</td><td>48</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_49</td><td>Det</td><td>49</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_50</td><td>Det</td><td>50</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_51</td><td>Det</td><td>51</td><td>$60,900</td><td>35</td><td>0</td><td>1</td><td>1</td><td>0</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10042</td><td>Stoch</td><td>10042</td><td>$136,900</td><td>55</td><td>0</td><td>1</td><td>17</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10043</td><td>Stoch</td><td>10043</td><td>$206,500</td><td>86</td><td>0</td><td>1</td><td>26</td><td>14</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10044</td><td>Stoch</td><td>10044</td><td>$128,500</td><td>52</td><td>0</td><td>1</td><td>35</td><td>9</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>stochastic_10045</td><td>Stoch</td><td>10045</td><td>$84,100</td><td>51</td><td>0</td><td>1</td><td>24</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10046</td><td>Stoch</td><td>10046</td><td>$145,300</td><td>69</td><td>0</td><td>1</td><td>36</td><td>14</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>stochastic_10047</td><td>Stoch</td><td>10047</td><td>$124,700</td><td>47</td><td>0</td><td>1</td><td>26</td><td>8</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>stochastic_10048</td><td>Stoch</td><td>10048</td><td>$32,500</td><td>35</td><td>0</td><td>1</td><td>21</td><td>6</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10049</td><td>Stoch</td><td>10049</td><td>$121,300</td><td>59</td><td>0</td><td>1</td><td>36</td><td>11</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>stochastic_10050</td><td>Stoch</td><td>10050</td><td>$147,900</td><td>76</td><td>0</td><td>1</td><td>31</td><td>12</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>stochastic_10051</td><td>Stoch</td><td>10051</td><td>$84,300</td><td>41</td><td>0</td><td>1</td><td>21</td><td>7</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+</table>
+<h2>Detailed Dashboards</h2>
+<p><a href='plots/deterministic_42_dashboard.html' target='_blank'>deterministic_42 dashboard</a></p>
+<p><a href='plots/deterministic_43_dashboard.html' target='_blank'>deterministic_43 dashboard</a></p>
+<p><a href='plots/deterministic_44_dashboard.html' target='_blank'>deterministic_44 dashboard</a></p>
+<p><a href='plots/deterministic_45_dashboard.html' target='_blank'>deterministic_45 dashboard</a></p>
+<p><a href='plots/deterministic_46_dashboard.html' target='_blank'>deterministic_46 dashboard</a></p>
+<p><a href='plots/deterministic_47_dashboard.html' target='_blank'>deterministic_47 dashboard</a></p>
+<p><a href='plots/deterministic_48_dashboard.html' target='_blank'>deterministic_48 dashboard</a></p>
+<p><a href='plots/deterministic_49_dashboard.html' target='_blank'>deterministic_49 dashboard</a></p>
+<p><a href='plots/deterministic_50_dashboard.html' target='_blank'>deterministic_50 dashboard</a></p>
+<p><a href='plots/deterministic_51_dashboard.html' target='_blank'>deterministic_51 dashboard</a></p>
+<p><a href='plots/stochastic_10042_dashboard.html' target='_blank'>stochastic_10042 dashboard</a></p>
+<p><a href='plots/stochastic_10043_dashboard.html' target='_blank'>stochastic_10043 dashboard</a></p>
+<p><a href='plots/stochastic_10044_dashboard.html' target='_blank'>stochastic_10044 dashboard</a></p>
+<p><a href='plots/stochastic_10045_dashboard.html' target='_blank'>stochastic_10045 dashboard</a></p>
+<p><a href='plots/stochastic_10046_dashboard.html' target='_blank'>stochastic_10046 dashboard</a></p>
+<p><a href='plots/stochastic_10047_dashboard.html' target='_blank'>stochastic_10047 dashboard</a></p>
+<p><a href='plots/stochastic_10048_dashboard.html' target='_blank'>stochastic_10048 dashboard</a></p>
+<p><a href='plots/stochastic_10049_dashboard.html' target='_blank'>stochastic_10049 dashboard</a></p>
+<p><a href='plots/stochastic_10050_dashboard.html' target='_blank'>stochastic_10050 dashboard</a></p>
+<p><a href='plots/stochastic_10051_dashboard.html' target='_blank'>stochastic_10051 dashboard</a></p>
+<div style='margin-top:30px;color:#607D8B;font-size:12px;'>Generated by PPOmask/evaluate_maskedppo.py</div>
+</body></html>

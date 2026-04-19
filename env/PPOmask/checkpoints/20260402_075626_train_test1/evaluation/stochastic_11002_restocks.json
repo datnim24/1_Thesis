@@ -1,0 +1,184 @@
+[
+  {
+    "line_id": "L1",
+    "sku": "BUSTA",
+    "start": 0,
+    "end": 15,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 15,
+    "end": 30,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 30,
+    "end": 45,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 46,
+    "end": 61,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 61,
+    "end": 76,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "NDG",
+    "start": 76,
+    "end": 91,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 92,
+    "end": 107,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 110,
+    "end": 125,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 125,
+    "end": 140,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 140,
+    "end": 155,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 167,
+    "end": 182,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 188,
+    "end": 203,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 203,
+    "end": 218,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 221,
+    "end": 236,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 239,
+    "end": 254,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "NDG",
+    "start": 254,
+    "end": 269,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 272,
+    "end": 287,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 287,
+    "end": 302,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 313,
+    "end": 328,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "BUSTA",
+    "start": 336,
+    "end": 351,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 353,
+    "end": 368,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 368,
+    "end": 383,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 389,
+    "end": 404,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 414,
+    "end": 429,
+    "qty": 5
+  },
+  {
+    "line_id": "L1",
+    "sku": "PSC",
+    "start": 432,
+    "end": 447,
+    "qty": 5
+  },
+  {
+    "line_id": "L2",
+    "sku": "PSC",
+    "start": 455,
+    "end": 470,
+    "qty": 5
+  }
+]

@@ -1,0 +1,121 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>PPO Evaluation</title><style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #F6F8FB; color: #22303C; max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 { color: #0D47A1; border-bottom: 2px solid #0D47A1; padding-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; background: white; margin-bottom: 20px; }
+    th { background: #22303C; color: white; padding: 8px 12px; border: 1px solid #D7DCE2; }
+    td { padding: 8px 12px; border: 1px solid #D7DCE2; }
+    .note { background: #E3F2FD; border: 1px solid #BBDEFB; border-radius: 8px; padding: 12px; margin: 12px 0; }
+    .violation { color: #C62828; font-weight: bold; }
+    </style></head><body>
+<h1>MaskablePPO Evaluation Report</h1>
+<div class='note'>Model: E:\CODE\Thesis\1_Thesis\PPOmask\outputs\20260417_003555_master\checkpoints\final_model.zip<br>Generated: 2026-04-17T00:41:39</div>
+<h2>Deterministic Evaluation (50 episodes)</h2>
+<table><tr><th>Mean Profit</th><th>Min</th><th>Max</th><th>Violations</th><th>Inference (ms)</th></tr><tr><td>$-1,109,976</td><td>$-1,121,700</td><td>$-1,081,700</td><tdclass="violation">50</td><td>0.78</td></tr></table>
+<h2>Stochastic Evaluation (0 episodes)</h2>
+<table><tr><th>Mean Profit</th><th>Min</th><th>Max</th><th>Violations</th><th>Inference (ms)</th></tr><tr><td>$0</td><td>$0</td><td>$0</td><td>0</td><td>0</td></tr></table>
+<h2>Per-Run Details</h2>
+<table><tr><th>Run</th><th>Mode</th><th>Seed</th><th>Net Profit</th><th>PSC</th><th>Tardiness</th><th>Stockouts</th><th>Setups</th><th>Restocks</th><th>Violation</th></tr>
+<tr><td>deterministic_123</td><td>Det</td><td>123</td><td>$-1,093,500</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_124</td><td>Det</td><td>124</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_125</td><td>Det</td><td>125</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_126</td><td>Det</td><td>126</td><td>$-1,098,700</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_127</td><td>Det</td><td>127</td><td>$-1,114,500</td><td>4</td><td>0</td><td>1</td><td>6</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_128</td><td>Det</td><td>128</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_129</td><td>Det</td><td>129</td><td>$-1,081,700</td><td>7</td><td>0</td><td>1</td><td>4</td><td>6</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_130</td><td>Det</td><td>130</td><td>$-1,116,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_131</td><td>Det</td><td>131</td><td>$-1,095,300</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_132</td><td>Det</td><td>132</td><td>$-1,121,700</td><td>3</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_133</td><td>Det</td><td>133</td><td>$-1,114,300</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_134</td><td>Det</td><td>134</td><td>$-1,116,900</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_135</td><td>Det</td><td>135</td><td>$-1,116,300</td><td>4</td><td>0</td><td>1</td><td>8</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_136</td><td>Det</td><td>136</td><td>$-1,107,900</td><td>5</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_137</td><td>Det</td><td>137</td><td>$-1,113,100</td><td>4</td><td>0</td><td>1</td><td>3</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_138</td><td>Det</td><td>138</td><td>$-1,106,300</td><td>1</td><td>0</td><td>1</td><td>4</td><td>5</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>deterministic_139</td><td>Det</td><td>139</td><td>$-1,105,500</td><td>4</td><td>0</td><td>1</td><td>6</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_140</td><td>Det</td><td>140</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_141</td><td>Det</td><td>141</td><td>$-1,099,300</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_142</td><td>Det</td><td>142</td><td>$-1,105,100</td><td>5</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_143</td><td>Det</td><td>143</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_144</td><td>Det</td><td>144</td><td>$-1,120,900</td><td>3</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_145</td><td>Det</td><td>145</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_146</td><td>Det</td><td>146</td><td>$-1,088,500</td><td>7</td><td>0</td><td>1</td><td>4</td><td>6</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_147</td><td>Det</td><td>147</td><td>$-1,117,100</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_148</td><td>Det</td><td>148</td><td>$-1,113,700</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_149</td><td>Det</td><td>149</td><td>$-1,106,300</td><td>5</td><td>0</td><td>1</td><td>3</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_150</td><td>Det</td><td>150</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_151</td><td>Det</td><td>151</td><td>$-1,112,900</td><td>4</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_152</td><td>Det</td><td>152</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_153</td><td>Det</td><td>153</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_154</td><td>Det</td><td>154</td><td>$-1,099,900</td><td>5</td><td>0</td><td>1</td><td>7</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_155</td><td>Det</td><td>155</td><td>$-1,114,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_156</td><td>Det</td><td>156</td><td>$-1,115,900</td><td>2</td><td>0</td><td>1</td><td>4</td><td>6</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>deterministic_157</td><td>Det</td><td>157</td><td>$-1,115,100</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_158</td><td>Det</td><td>158</td><td>$-1,094,700</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_159</td><td>Det</td><td>159</td><td>$-1,115,500</td><td>2</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L1</span></td></tr>
+<tr><td>deterministic_160</td><td>Det</td><td>160</td><td>$-1,115,300</td><td>4</td><td>0</td><td>1</td><td>3</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_161</td><td>Det</td><td>161</td><td>$-1,120,500</td><td>3</td><td>0</td><td>1</td><td>4</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_162</td><td>Det</td><td>162</td><td>$-1,103,900</td><td>4</td><td>0</td><td>1</td><td>1</td><td>6</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_163</td><td>Det</td><td>163</td><td>$-1,105,700</td><td>4</td><td>0</td><td>1</td><td>6</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_164</td><td>Det</td><td>164</td><td>$-1,095,300</td><td>5</td><td>0</td><td>1</td><td>2</td><td>8</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_165</td><td>Det</td><td>165</td><td>$-1,094,900</td><td>4</td><td>0</td><td>1</td><td>3</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_166</td><td>Det</td><td>166</td><td>$-1,109,900</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_167</td><td>Det</td><td>167</td><td>$-1,095,900</td><td>6</td><td>0</td><td>1</td><td>4</td><td>7</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_168</td><td>Det</td><td>168</td><td>$-1,115,700</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_169</td><td>Det</td><td>169</td><td>$-1,110,900</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_170</td><td>Det</td><td>170</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_171</td><td>Det</td><td>171</td><td>$-1,117,500</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+<tr><td>deterministic_172</td><td>Det</td><td>172</td><td>$-1,116,700</td><td>4</td><td>0</td><td>1</td><td>4</td><td>9</td><td><span class='violation'>rc_negative_L2</span></td></tr>
+</table>
+<h2>Detailed Dashboards</h2>
+<p><a href='plots/deterministic_123_dashboard.html' target='_blank'>deterministic_123 dashboard</a></p>
+<p><a href='plots/deterministic_124_dashboard.html' target='_blank'>deterministic_124 dashboard</a></p>
+<p><a href='plots/deterministic_125_dashboard.html' target='_blank'>deterministic_125 dashboard</a></p>
+<p><a href='plots/deterministic_126_dashboard.html' target='_blank'>deterministic_126 dashboard</a></p>
+<p><a href='plots/deterministic_127_dashboard.html' target='_blank'>deterministic_127 dashboard</a></p>
+<p><a href='plots/deterministic_128_dashboard.html' target='_blank'>deterministic_128 dashboard</a></p>
+<p><a href='plots/deterministic_129_dashboard.html' target='_blank'>deterministic_129 dashboard</a></p>
+<p><a href='plots/deterministic_130_dashboard.html' target='_blank'>deterministic_130 dashboard</a></p>
+<p><a href='plots/deterministic_131_dashboard.html' target='_blank'>deterministic_131 dashboard</a></p>
+<p><a href='plots/deterministic_132_dashboard.html' target='_blank'>deterministic_132 dashboard</a></p>
+<p><a href='plots/deterministic_133_dashboard.html' target='_blank'>deterministic_133 dashboard</a></p>
+<p><a href='plots/deterministic_134_dashboard.html' target='_blank'>deterministic_134 dashboard</a></p>
+<p><a href='plots/deterministic_135_dashboard.html' target='_blank'>deterministic_135 dashboard</a></p>
+<p><a href='plots/deterministic_136_dashboard.html' target='_blank'>deterministic_136 dashboard</a></p>
+<p><a href='plots/deterministic_137_dashboard.html' target='_blank'>deterministic_137 dashboard</a></p>
+<p><a href='plots/deterministic_138_dashboard.html' target='_blank'>deterministic_138 dashboard</a></p>
+<p><a href='plots/deterministic_139_dashboard.html' target='_blank'>deterministic_139 dashboard</a></p>
+<p><a href='plots/deterministic_140_dashboard.html' target='_blank'>deterministic_140 dashboard</a></p>
+<p><a href='plots/deterministic_141_dashboard.html' target='_blank'>deterministic_141 dashboard</a></p>
+<p><a href='plots/deterministic_142_dashboard.html' target='_blank'>deterministic_142 dashboard</a></p>
+<p><a href='plots/deterministic_143_dashboard.html' target='_blank'>deterministic_143 dashboard</a></p>
+<p><a href='plots/deterministic_144_dashboard.html' target='_blank'>deterministic_144 dashboard</a></p>
+<p><a href='plots/deterministic_145_dashboard.html' target='_blank'>deterministic_145 dashboard</a></p>
+<p><a href='plots/deterministic_146_dashboard.html' target='_blank'>deterministic_146 dashboard</a></p>
+<p><a href='plots/deterministic_147_dashboard.html' target='_blank'>deterministic_147 dashboard</a></p>
+<p><a href='plots/deterministic_148_dashboard.html' target='_blank'>deterministic_148 dashboard</a></p>
+<p><a href='plots/deterministic_149_dashboard.html' target='_blank'>deterministic_149 dashboard</a></p>
+<p><a href='plots/deterministic_150_dashboard.html' target='_blank'>deterministic_150 dashboard</a></p>
+<p><a href='plots/deterministic_151_dashboard.html' target='_blank'>deterministic_151 dashboard</a></p>
+<p><a href='plots/deterministic_152_dashboard.html' target='_blank'>deterministic_152 dashboard</a></p>
+<p><a href='plots/deterministic_153_dashboard.html' target='_blank'>deterministic_153 dashboard</a></p>
+<p><a href='plots/deterministic_154_dashboard.html' target='_blank'>deterministic_154 dashboard</a></p>
+<p><a href='plots/deterministic_155_dashboard.html' target='_blank'>deterministic_155 dashboard</a></p>
+<p><a href='plots/deterministic_156_dashboard.html' target='_blank'>deterministic_156 dashboard</a></p>
+<p><a href='plots/deterministic_157_dashboard.html' target='_blank'>deterministic_157 dashboard</a></p>
+<p><a href='plots/deterministic_158_dashboard.html' target='_blank'>deterministic_158 dashboard</a></p>
+<p><a href='plots/deterministic_159_dashboard.html' target='_blank'>deterministic_159 dashboard</a></p>
+<p><a href='plots/deterministic_160_dashboard.html' target='_blank'>deterministic_160 dashboard</a></p>
+<p><a href='plots/deterministic_161_dashboard.html' target='_blank'>deterministic_161 dashboard</a></p>
+<p><a href='plots/deterministic_162_dashboard.html' target='_blank'>deterministic_162 dashboard</a></p>
+<p><a href='plots/deterministic_163_dashboard.html' target='_blank'>deterministic_163 dashboard</a></p>
+<p><a href='plots/deterministic_164_dashboard.html' target='_blank'>deterministic_164 dashboard</a></p>
+<p><a href='plots/deterministic_165_dashboard.html' target='_blank'>deterministic_165 dashboard</a></p>
+<p><a href='plots/deterministic_166_dashboard.html' target='_blank'>deterministic_166 dashboard</a></p>
+<p><a href='plots/deterministic_167_dashboard.html' target='_blank'>deterministic_167 dashboard</a></p>
+<p><a href='plots/deterministic_168_dashboard.html' target='_blank'>deterministic_168 dashboard</a></p>
+<p><a href='plots/deterministic_169_dashboard.html' target='_blank'>deterministic_169 dashboard</a></p>
+<p><a href='plots/deterministic_170_dashboard.html' target='_blank'>deterministic_170 dashboard</a></p>
+<p><a href='plots/deterministic_171_dashboard.html' target='_blank'>deterministic_171 dashboard</a></p>
+<p><a href='plots/deterministic_172_dashboard.html' target='_blank'>deterministic_172 dashboard</a></p>
+<div style='margin-top:30px;color:#607D8B;font-size:12px;'>Generated by PPOmask/evaluate_maskedppo.py</div>
+</body></html>

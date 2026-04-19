@@ -1,0 +1,33 @@
+{
+  "net_profit": 586400.0,
+  "total_revenue": 616000.0,
+  "total_costs": 29600.0,
+  "psc_count": 147,
+  "ndg_count": 3,
+  "busta_count": 1,
+  "revenue_psc": 588000.0,
+  "revenue_ndg": 21000.0,
+  "revenue_busta": 7000.0,
+  "tardiness_min": {
+    "J1": 3.0,
+    "J2": 0.0
+  },
+  "tard_cost": 3000.0,
+  "stockout_events": {
+    "L1": 0,
+    "L2": 0
+  },
+  "stockout_duration": {
+    "L1": 0,
+    "L2": 0
+  },
+  "stockout_cost": 0.0,
+  "idle_min": 133.0,
+  "idle_cost": 26600.0,
+  "over_min": 0.0,
+  "over_cost": 0.0,
+  "total_compute_ms": 0.0,
+  "num_resolves": 0,
+  "allow_r3_flex": true,
+  "solver_engine": "simulation"
+}

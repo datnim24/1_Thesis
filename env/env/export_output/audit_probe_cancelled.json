@@ -1,0 +1,11 @@
+[
+  {
+    "batch_id": "('R1', 15)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 304,
+    "end": 319,
+    "output_line": "L1",
+    "is_mto": false
+  }
+]

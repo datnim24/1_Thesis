@@ -1,6 +1,0 @@
-roaster_id,line_id,pipeline_line,can_process_psc,can_process_ndg,can_process_busta,can_output_l1,can_output_l2,process_time_min,consume_time_min,initial_last_sku,is_active
-R1,L1,L1,1,1,0,1,0,15,3,PSC,1
-R2,L1,L1,1,1,1,1,0,15,3,PSC,1
-R3,L2,L2,1,0,0,1,1,15,3,PSC,1
-R4,L2,L2,1,0,0,0,1,15,3,PSC,1
-R5,L2,L2,1,0,0,0,1,15,3,PSC,1

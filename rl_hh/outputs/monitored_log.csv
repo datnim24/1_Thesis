@@ -1,0 +1,3 @@
+cycle,episode,wall_sec,eval_profit,epsilon,tool_dist,healthy,reason
+1,100622,3600.0,74265.0,0.5448,"{""PSC_THROUGHPUT"": 0.285, ""GC_RESTOCK"": 0.1031, ""MTO_DEADLINE"": 0.1135, ""SETUP_AVOID"": 0.269, ""WAIT"": 0.2294}",True,OK
+1,172362,7200.1,-836630.0,0.2203,"{""PSC_THROUGHPUT"": 0.159, ""GC_RESTOCK"": 0.0855, ""MTO_DEADLINE"": 0.0678, ""SETUP_AVOID"": 0.3313, ""WAIT"": 0.3565}",False,Profit -836630 below threshold -500000

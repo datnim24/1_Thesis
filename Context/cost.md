@@ -28,12 +28,13 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 - MTO batches (NDG, Busta) are worth **1.75× more** than PSC per batch — reflects higher value-added for specialty products
 - MTO revenue is **fixed** in the objective (all MTO batches must be scheduled, so $R^{MTO} \times n^{MTO}$ is a constant). But it still matters for the RL reward — completing an MTO batch is a +$7,000 reward event
 - Only **completed** batches earn revenue. A batch cancelled by UPS mid-roast earns nothing
-- Revenue is earned at batch completion time ($t = e_b = s_b + 15$)
+- Revenue is earned at batch completion time ($t = e_b = s_b + p_k$, where $p_k$ is SKU-dependent: PSC=15, NDG=17, Busta=18)
 
 **Revenue per roaster-minute:**
 - PSC: $4,000 / 15 min = **$267/min** of roaster time
-- NDG/Busta: $7,000 / 15 min = **$467/min** of roaster time
-- This means every minute a roaster is idle costs ~$267–$467 in foregone revenue (opportunity cost)
+- NDG: $7,000 / 17 min = **$412/min** of roaster time
+- Busta: $7,000 / 18 min = **$389/min** of roaster time
+- This means every minute a roaster is idle costs ~$267–$412 in foregone revenue (opportunity cost)
 
 ---
 
@@ -100,7 +101,27 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 - R4 starts PSC at t=305 (or later if pipeline busy).
 - Overflow-idle cost: 5 min × $50 = $250.
 
-### 3.4 Safety-Idle Penalty (Idle While RC Low)
+### 3.4 Setup Cost (Per Changeover Event)
+
+| Symbol | Value | Unit | Trigger |
+|--------|-------|------|---------|
+| $c^{setup}$ | **$800** | per setup event | Roaster begins a setup (SKU transition), i.e., enters SETUP state |
+
+**Applies to:** Each individual setup event on each roaster. Incurred **once** at the moment the roaster enters SETUP state — not per minute. A single PSC→NDG transition costs exactly $800 regardless of whether the setup takes the full 5 minutes or is interrupted by UPS.
+
+**Rationale:** Changeovers consume cleaning materials, operator attention, and QC verification. The $800 lump-sum cost is separate from the **time cost** of setup (which is already penalized indirectly through lost throughput and, when RC is low, via the safety-idle penalty). Together, the time cost and the monetary cost make unnecessary changeovers doubly expensive.
+
+**Interaction with safety-idle penalty:** During the 5-minute setup, the roaster is non-productive. If RC < 20, the safety-idle penalty ($200/min × 5 min = $1,000) fires **in addition to** the $800 setup cost, for a combined penalty of $1,800 per changeover under low stock.
+
+**Example:**
+- R2 transitions from Busta → PSC at t=80. Setup cost = **$800** (incurred at t=80).
+- If RC Line 1 = 18 during t=80–84: additional safety-idle cost = 5 × $200 = $1,000.
+- Total changeover penalty: $800 + $1,000 = $1,800.
+- Same transition but RC Line 1 = 25: only $800 setup cost, no safety-idle.
+
+**UPS during setup:** If UPS hits a roaster mid-setup, the $800 has already been incurred (sunk cost). When the roaster recovers from DOWN and must re-setup, a **second** $800 is charged for the new setup event.
+
+### 3.5 Safety-Idle Penalty (Idle While RC Low)
 
 | Symbol | Value | Unit | Trigger |
 |--------|-------|------|---------|
@@ -112,7 +133,7 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 
 **Rationale:** When RC is below safety stock, every idle minute risks a future stockout. At $200/min, this is moderate — it nudges the solver to keep roasters productive when stock is low, but doesn't override the cost of a bad decision (e.g., starting an MTO batch just to avoid idle penalty when MTO isn't due yet).
 
-**Relationship to setup time:** During the 5-minute setup after an SKU switch, the roaster is "idle" in the SETUP state. If RC is below 20, each setup minute costs $200. A full PSC→NDG→PSC round-trip setup costs 10 min × $200 = $2,000 in idle penalty — half the revenue of 1 PSC batch. This naturally discourages unnecessary SKU switches when stock is low.
+**Relationship to setup time:** During the 5-minute setup after an SKU switch, the roaster is "idle" in the SETUP state. If RC is below 20, each setup minute costs $200. A full PSC→NDG→PSC round-trip setup costs 2 × $800 (setup cost) + 10 min × $200 (safety-idle) = $3,600 — nearly 1 PSC batch revenue. This naturally discourages unnecessary SKU switches when stock is low.
 
 **Does NOT apply:**
 - During planned downtime (roaster can't produce — not a scheduling decision)
@@ -130,11 +151,12 @@ The objective function is **Maximize Profit** — total revenue minus total cost
 
 ### 4.1 Deterministic Mode (Initial Schedule)
 
-$$\boxed{\text{Maximize Profit} = \underbrace{\sum_{b: a_b=1} R_{\text{sku}(b)}}_{\text{Revenue}} - \underbrace{c^{tard} \sum_j \text{tard}_j}_{\text{Tardiness}} - \underbrace{c^{idle} \sum_{r,t} \text{idle}_{r,t}}_{\text{Safety-Idle}} - \underbrace{c^{over} \sum_{r,t} \text{over}_{r,t}}_{\text{Overflow-Idle}}}$$
+$$\boxed{\text{Maximize Profit} = \underbrace{\sum_{b: a_b=1} R_{\text{sku}(b)}}_{\text{Revenue}} - \underbrace{c^{tard} \sum_j \text{tard}_j}_{\text{Tardiness}} - \underbrace{c^{setup} \sum_r N^{setup}_r}_{\text{Setup cost}} - \underbrace{c^{idle} \sum_{r,t} \text{idle}_{r,t}}_{\text{Safety-Idle}} - \underbrace{c^{over} \sum_{r,t} \text{over}_{r,t}}_{\text{Overflow-Idle}}}$$
 
 Where:
 - $R_{\text{sku}(b)} \in \{R^{PSC}, R^{NDG}, R^{BUS}\} = \{4000, 7000, 7000\}$
 - $\text{tard}_j = \max(0, \max_{b \in \mathcal{B}_j} e_b - 240)$
+- $N^{setup}_r$ = number of SKU transitions (setup events) on roaster $r$ — including any initial setup if the first batch is not PSC (see §3.4)
 - $\text{idle}_{r,t} = 1$ if roaster $r$ is not RUNNING at time $t$ AND not in planned downtime AND $B_{\ell(r)}(t) < 20$
 - $\text{over}_{r,t} = 1$ if roaster $r$ is idle because RC on its output line = 40 (see §3.3)
 
@@ -145,14 +167,15 @@ Where:
 
 ### 4.2 Reactive Mode (Post-UPS Re-solve)
 
-$$\boxed{\text{Max Profit}_{rem} = \sum_{b \in \mathcal{B}_{rem}} R_{\text{sku}(b)} \cdot a_b - c^{tard}\sum_j \text{tard}_j - c^{stock}\sum_{l} \text{SO}_l - c^{over}\sum_{r,t} \text{over}_{r,t} - c^{idle}\sum_{r,t} \text{idle}_{r,t}}$$
+$$\boxed{\text{Max Profit}_{rem} = \sum_{b \in \mathcal{B}_{rem}} R_{\text{sku}(b)} \cdot a_b - c^{tard}\sum_j \text{tard}_j - c^{stock}\sum_{l} \text{SO}_l - c^{setup}\sum_r N^{setup}_r - c^{over}\sum_{r,t} \text{over}_{r,t} - c^{idle}\sum_{r,t} \text{idle}_{r,t}}$$
 
 Where:
 - $\text{SO}_l = \left|\{\tau \in \mathcal{E}_l^{rem} : B_l(\tau) < 0\}\right|$ — **count** of consumption events on line $l$ where stock is strictly negative (demand unmet). Event-based, not duration-based.
+- $N^{setup}_r$ = setup events on roaster $r$ during remaining shift (including re-setups after UPS recovery)
 - $\text{over}_{r,t}$ and $\text{idle}_{r,t}$ as in deterministic mode
 - $\mathcal{B}_{rem}$ = remaining unstarted batches only; completed batches frozen
 
-**All four cost terms are active** because UPS can make both stockout and overflow-idle unavoidable.
+**All five cost terms are active** because UPS can make both stockout and overflow-idle unavoidable, and UPS recovery may force additional setups.
 
 ### 4.3 DRL Reward Function (Per-Step Decomposition)
 
@@ -170,6 +193,11 @@ def compute_reward(prev_state, action, new_state, t):
     # Tardiness cost: -c_tard for each new minute of tardiness
     new_tard = new_state.total_tardiness - prev_state.total_tardiness
     reward -= 1000 * new_tard
+    
+    # Setup cost: -c_setup for each roaster that just entered SETUP this step
+    for r in roasters:
+        if new_state.status[r] == SETUP and prev_state.status[r] != SETUP:
+            reward -= 800   # one-time lump-sum per setup event
     
     # Stockout cost: -c_stock per CONSUMPTION EVENT where stock < 0 (strictly negative)
     # B_l = 0 means last demand served but empty; B_l < 0 means demand unmet
@@ -199,6 +227,7 @@ def compute_reward(prev_state, action, new_state, t):
 ```
 
 **Key properties:**
+- Setup cost fires **once** when a roaster transitions to SETUP — not per minute of setup duration
 - Stockout penalty fires **only at consumption event times** (~94 per line per shift), not every slot
 - Overflow-idle for R3 uses the **both-lines-full** rule (R3 can route to either line)
 - Cumulative reward across all 480 time steps ≈ shift profit from the objective function
@@ -211,15 +240,16 @@ def compute_reward(prev_state, action, new_state, t):
 |-----------|------|--------|---------------|
 | **Stockout** | $1,500/event | 3 events ≈ 1 NDG batch revenue wiped | **1st (highest)** |
 | **Tardiness** | $1,000/min | 7 min late = 1 NDG batch revenue wiped | **2nd** |
-| **Safety-idle** | $200/min per roaster | 20 min idle = 1 PSC batch revenue wiped | **3rd** |
-| **Overflow-idle** | $50/min per roaster | 80 min idle = 1 PSC batch revenue wiped | **4th (lowest)** |
+| **Setup** | $800/event | 5 setups = 1 PSC batch revenue wiped | **3rd** |
+| **Safety-idle** | $200/min per roaster | 20 min idle = 1 PSC batch revenue wiped | **4th** |
+| **Overflow-idle** | $50/min per roaster | 80 min idle = 1 PSC batch revenue wiped | **5th (lowest)** |
 
 **Breakeven analysis:**
 - Is it worth a 5-min setup to switch from PSC to NDG?
   - Revenue gain: $7,000 (NDG) − $4,000 (PSC would have produced) = $3,000
-  - Setup cost: 5 min × $200 (if RC < 20) = $1,000
-  - **Net: +$2,000 → YES** (even under low stock, NDG is worth switching to)
-  - But: if RC is at 5 batches (critical), 5 min setup → 1 consumption event during setup → potential stockout event at $1,500 → **reconsider**
+  - Setup cost: $800 (lump-sum) + 5 min × $200 (if RC < 20) = $1,800
+  - **Net: +$1,200 → YES** (even under low stock, NDG is worth switching to)
+  - But: if RC is at 5 batches (critical), 5 min setup → 1 consumption event during setup → potential stockout event at $1,500 → total cost $800 + $1,000 + $1,500 = $3,300 → **net −$300 → reconsider**
 
 - Is it worth routing R3 to Line 1 (rescuing low stock)?
   - Benefit: avoid ~1 stockout event on L1 (consumption event arrives with $B_l < 0$) = $1,500 saved. If L1 stock is critically low, multiple consumption events could stockout → avoiding 3 events = $4,500 saved.
@@ -237,6 +267,7 @@ These cost values are **starting points**, not final. The thesis should acknowle
    - $R^{MTO} / R^{PSC} = 1.75$ (MTO batches are more valuable)
    - $c^{stock} / R^{PSC} = 0.375$ per minute (stockout quickly exceeds batch value)
    - $c^{tard} / R^{MTO} = 0.143$ per minute (7 min late wipes out one batch's revenue)
+   - $c^{setup} / R^{PSC} = 0.20$ per event (5 setups wipe out one PSC batch)
    - $c^{idle} / R^{PSC} = 0.05$ per minute (mild pressure to stay productive)
 3. **Sensitivity analysis:** If time permits, vary $c^{stock}$ and $c^{tard}$ by ±50% and observe whether strategy ranking changes. If CP-SAT beats DRL under all cost structures, the result is robust.
 
@@ -255,6 +286,7 @@ These cost values are **starting points**, not final. The thesis should acknowle
 ║                                                        ║
 ║  PENALTIES                                             ║
 ║    MTO tardiness:          −$1,000 / min late          ║
+║    Setup cost:             −$800 / event (per change)  ║
 ║    RC stockout:            −$1,500 / event (per line)  ║
 ║    Overflow-idle:          −$50 / min (per roaster)    ║
 ║    Safety-idle:            −$200 / min (per roaster)   ║
@@ -264,6 +296,6 @@ These cost values are **starting points**, not final. The thesis should acknowle
 ║    Safety stock: θ_SS = 20 batches (half of max 40)    ║
 ║    Max buffer:   B̄ = 40 batches per line              ║
 ║                                                        ║
-║  PRIORITY: Stockout > Tardiness > Idle > Overstock     ║
+║  PRIORITY: Stockout > Tardiness > Setup > Idle > Over  ║
 ╚════════════════════════════════════════════════════════╝
 ```

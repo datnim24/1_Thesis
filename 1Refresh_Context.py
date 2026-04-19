@@ -1,7 +1,7 @@
 import os
 import shutil
 
-SOURCE_DIR = r"C:\Users\ADMIN\OneDrive\1 Đại Học\1_THESIS\AI Context"
+SOURCE_DIR = r"C:\Users\Dat\OneDrive\1 Đại Học\1_THESIS\AI Context"
 DEST_DIR = r"C:\1_Local_Folder\Code\1_Thesis\Context"
 
 def refresh_context():

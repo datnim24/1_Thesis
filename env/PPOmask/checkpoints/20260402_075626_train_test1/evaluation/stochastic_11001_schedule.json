@@ -1,0 +1,812 @@
+[
+  {
+    "batch_id": "('R4', 0)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 0,
+    "end": 15,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 0)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 3,
+    "end": 18,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 0)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 6,
+    "end": 21,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 0)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 15,
+    "end": 30,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 1)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 30,
+    "end": 45,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 1)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 33,
+    "end": 48,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 1)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 36,
+    "end": 51,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J1', 0)",
+    "sku": "NDG",
+    "roaster": "R1",
+    "start": 47,
+    "end": 64,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('J1', 1)",
+    "sku": "NDG",
+    "roaster": "R2",
+    "start": 58,
+    "end": 75,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R1', 1)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 74,
+    "end": 89,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 2)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 75,
+    "end": 90,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 2)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 79,
+    "end": 94,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 2)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 82,
+    "end": 97,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 3)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 91,
+    "end": 106,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 3)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 95,
+    "end": 110,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 3)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 100,
+    "end": 115,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J1', 2)",
+    "sku": "NDG",
+    "roaster": "R1",
+    "start": 107,
+    "end": 124,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R2', 0)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 121,
+    "end": 136,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 4)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 122,
+    "end": 137,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 4)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 125,
+    "end": 140,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 4)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 130,
+    "end": 145,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 5)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 137,
+    "end": 152,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J1', 3)",
+    "sku": "NDG",
+    "roaster": "R2",
+    "start": 143,
+    "end": 160,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('J1', 4)",
+    "sku": "NDG",
+    "roaster": "R1",
+    "start": 153,
+    "end": 170,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R4', 5)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 155,
+    "end": 170,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 6)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 158,
+    "end": 173,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 5)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 161,
+    "end": 176,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 6)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 171,
+    "end": 186,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 7)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 174,
+    "end": 189,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 6)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 178,
+    "end": 193,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 2)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 189,
+    "end": 204,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J2', 0)",
+    "sku": "BUSTA",
+    "roaster": "R2",
+    "start": 192,
+    "end": 210,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R3', 8)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 201,
+    "end": 216,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 3)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 208,
+    "end": 223,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 1)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 215,
+    "end": 230,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 4)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 223,
+    "end": 238,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 7)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 234,
+    "end": 249,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 9)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 237,
+    "end": 252,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 7)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 241,
+    "end": 256,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 5)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 249,
+    "end": 264,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 8)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 249,
+    "end": 264,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 2)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 254,
+    "end": 269,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 6)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 264,
+    "end": 279,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 9)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 267,
+    "end": 282,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 10)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 270,
+    "end": 285,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 8)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 273,
+    "end": 288,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 7)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 282,
+    "end": 297,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 10)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 282,
+    "end": 297,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 11)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 285,
+    "end": 300,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J2', 1)",
+    "sku": "BUSTA",
+    "roaster": "R2",
+    "start": 290,
+    "end": 308,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R1', 8)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 299,
+    "end": 314,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 12)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 303,
+    "end": 318,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 11)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 307,
+    "end": 322,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 9)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 310,
+    "end": 325,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J2', 2)",
+    "sku": "BUSTA",
+    "roaster": "R2",
+    "start": 308,
+    "end": 326,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R1', 9)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 315,
+    "end": 330,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J2', 3)",
+    "sku": "BUSTA",
+    "roaster": "R2",
+    "start": 326,
+    "end": 344,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R3', 13)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 329,
+    "end": 344,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 10)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 330,
+    "end": 345,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 10)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 332,
+    "end": 347,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 12)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 335,
+    "end": 350,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 14)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 344,
+    "end": 359,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('J2', 4)",
+    "sku": "BUSTA",
+    "roaster": "R2",
+    "start": 344,
+    "end": 362,
+    "output_line": null,
+    "is_mto": true
+  },
+  {
+    "batch_id": "('R5', 11)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 348,
+    "end": 363,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 13)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 351,
+    "end": 366,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 15)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 359,
+    "end": 374,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 11)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 362,
+    "end": 377,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 3)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 368,
+    "end": 383,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 12)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 377,
+    "end": 392,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 14)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 379,
+    "end": 394,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 4)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 383,
+    "end": 398,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 16)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 383,
+    "end": 398,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 12)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 387,
+    "end": 402,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 15)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 397,
+    "end": 412,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 17)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 400,
+    "end": 415,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 13)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 403,
+    "end": 418,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 5)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 406,
+    "end": 421,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 14)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 419,
+    "end": 434,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 18)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 419,
+    "end": 434,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 13)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 422,
+    "end": 437,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 16)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 425,
+    "end": 440,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 19)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 434,
+    "end": 449,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 14)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 438,
+    "end": 453,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 15)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 439,
+    "end": 454,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 6)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 442,
+    "end": 457,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R1', 16)",
+    "sku": "PSC",
+    "roaster": "R1",
+    "start": 455,
+    "end": 470,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R3', 20)",
+    "sku": "PSC",
+    "roaster": "R3",
+    "start": 456,
+    "end": 471,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R2', 7)",
+    "sku": "PSC",
+    "roaster": "R2",
+    "start": 459,
+    "end": 474,
+    "output_line": "L1",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R4', 17)",
+    "sku": "PSC",
+    "roaster": "R4",
+    "start": 459,
+    "end": 474,
+    "output_line": "L2",
+    "is_mto": false
+  },
+  {
+    "batch_id": "('R5', 15)",
+    "sku": "PSC",
+    "roaster": "R5",
+    "start": 462,
+    "end": 477,
+    "output_line": "L2",
+    "is_mto": false
+  }
+]

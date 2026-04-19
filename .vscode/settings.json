@@ -1,3 +1,4 @@
 {
-    "chatgpt.openOnStartup": true
+    "chatgpt.openOnStartup": true,
+    "livePreview.defaultPreviewPath": "/q_learning/ql_results/30_03_2026_0602_ep603108_a00500_g09950_Test_restock4_profit57475/30_03_2026_0602_ep603108_a00500_g09950_Test_restock4_profit57475.html"
 }

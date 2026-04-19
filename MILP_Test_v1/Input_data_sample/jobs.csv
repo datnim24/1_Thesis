@@ -1,3 +1,0 @@
-job_id,sku,required_batches,due_time_min,priority,release_time_min
-J1,NDG,3,240,1,0
-J2,BUSTA,1,240,1,0
