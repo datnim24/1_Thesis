@@ -40,6 +40,7 @@ class PPOData:
     episode_termination_on_violation: bool = True
     rc_maintenance_bonus: float = 0.0
     completion_bonus: float = 0.0
+    mto_completion_bonus: float = 0.0
 
     def to_env_params(self) -> dict[str, Any]:
         return self.params

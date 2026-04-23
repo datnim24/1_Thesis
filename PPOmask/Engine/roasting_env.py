@@ -58,6 +58,7 @@ class RoastingMaskEnv(gym.Env):
         self.engine = SimulationEngine(self.params)
 
         self._default_scenario_seed = scenario_seed
+        self._scenario_rng = np.random.default_rng(scenario_seed)
         self._explicit_ups_events = ups_events
         self._ups_lambda = data.ups_lambda if ups_lambda is None else float(ups_lambda)
         self._ups_mu = data.ups_mu if ups_mu is None else float(ups_mu)
@@ -94,7 +95,15 @@ class RoastingMaskEnv(gym.Env):
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         super().reset(seed=seed)
-        scenario_seed = self._default_scenario_seed if seed is None else seed
+        if seed is not None:
+            scenario_seed = seed
+        elif self._explicit_ups_events is not None:
+            scenario_seed = 0
+        else:
+            # C26 fix: draw a fresh UPS seed each episode so PPO sees broad
+            # UPS diversity during training instead of replaying 8 fixed seeds.
+            # Reproducibility preserved via _scenario_rng seeded from constructor.
+            scenario_seed = int(self._scenario_rng.integers(0, 2**31 - 1))
         self.state = self.engine._initialize_state()
         self.kpi = self.engine._make_kpi_tracker()
         self._slot_index = 0
@@ -214,6 +223,7 @@ class RoastingMaskEnv(gym.Env):
         while self._slot_index < self.data.shift_length:
             self.state.t = self._slot_index
             before = float(self.kpi.net_profit())
+            prior_mto_completed = self.kpi.ndg_completed + self.kpi.busta_completed
 
             # Phase 1: UPS events
             for event in self._ups_by_time.get(self._slot_index, []):
@@ -250,6 +260,18 @@ class RoastingMaskEnv(gym.Env):
             self.engine._accrue_idle_penalties(self.state, self.kpi)
 
             accumulated_reward += incremental_profit(before, float(self.kpi.net_profit()))
+
+            # C27: Dense per-MTO-batch completion bonus. Paid at the slot where
+            # the NDG/BUSTA batch actually finishes, converting the sparse
+            # end-of-shift skip penalty into direct credit-assignable reward.
+            # Does NOT modify kpi.net_profit (reporting unchanged).
+            if self.data.mto_completion_bonus > 0.0:
+                mto_delta = (
+                    self.kpi.ndg_completed + self.kpi.busta_completed
+                    - prior_mto_completed
+                )
+                if mto_delta > 0:
+                    accumulated_reward += mto_delta * self.data.mto_completion_bonus
 
             # RC maintenance shaping reward (dense signal for keeping RC healthy)
             if self.data.rc_maintenance_bonus > 0.0:

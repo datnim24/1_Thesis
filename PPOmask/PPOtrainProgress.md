@@ -1063,6 +1063,347 @@ Gradient alive at 6h with `explained_var=0.994` — VecNormalize + separate netw
 
 ---
 
+## Cycle 25 — Master-Eval Config Fix: Re-apply C20/C22 Fixes (2026-04-20, 19:33-21:33)
+
+**Wall-clock**: 2h (7,200s) | **Episodes**: 29,950 | **Timesteps**: 30.4M | **FPS**: ~4,220
+
+### Motivation — Post-Hoc Investigation
+
+A 24h master_eval run finished 2026-04-20 17:35 with PPO at **$218,000** net profit vs CP-SAT's $380,800. To check whether PPO was just unlucky on the eval seed, we re-ran the trained `ppo_final_model.zip` on seeds 1, 2, 3:
+
+| Seed | Net Profit | BUSTA count | J2 Tardiness |
+|------|-----------|-------------|-------------|
+| 1 | -$85,700 | 1/5 | $422,000 |
+| 2 | $142,800 | 2/5 | $300,000 |
+| 3 | $84,200 | 2/5 | $301,000 |
+| **Avg** | **$47,100** | **1.7/5** | **$341,000** |
+
+**Diagnosis**: systematic BUSTA under-production (1-2 of 5 required) → $300k+ tardiness → profit destroyed. QL and RL-HH hit 5/5 BUSTA every seed. Consistent across all 3 seeds = **not a luck issue, a config issue**.
+
+**Root cause in `master_eval.py`'s PPO config**:
+```python
+# master_eval.py run_ppo() — MISSING the C22 fixes:
+run_dir = ppo_train_main([
+    "--time", ..., "--n-envs", "8", "--subproc",
+    "--seed", "300", "--learning-rate", "4e-4",
+    "--rc-maintenance-bonus", "50",
+    "--normalize-reward",       # ✓ has this
+    "--n-epochs", "3",
+    "--target-kl", "0.03",
+    "--ent-coef", "0.02",
+    # ❌ NO --separate-networks      (C19/C20 fix for gradient death)
+    # ❌ NO --completion-bonus       (C20 post-script fix for BUSTA skip)
+    # ❌ NO --clip-range 0.3         (C22 used 0.3, default is 0.2)
+    # ❌ NO --lr-schedule linear
+])
+```
+
+These are **exactly the fixes** that C20 and C22 proved are load-bearing. Master_eval was running a **pre-C19 config** with normalize-reward grafted on — effectively the broken C16-C18 regime.
+
+### Hypothesis
+
+Re-run training with the full C22 config (separate-networks + VecNormalize + completion-bonus + clip_range=0.3 + ent_coef=0.05 + target_kl=0.02 + lr=5e-4 + lr_schedule=linear) and expect:
+1. Gradient alive at 1h and 2h (C22 key test: `approx_kl > 1e-4` AND `explained_var > 0.5` simultaneously)
+2. BUSTA count = 5/5 on every seed (completion-bonus forces MTO completion)
+3. Avg eval profit ≥ $280k (Grade A threshold)
+
+### Configuration
+
+```
+--seed 42 --n-envs 8 --subproc
+--lr 5e-4 --lr-schedule linear
+--n-steps 4096 --batch-size 128 --n-epochs 3
+--gamma 0.99 --ent-coef 0.05 --clip-range 0.3 --target-kl 0.02
+--rc-maintenance-bonus 50 --completion-bonus 100000
+--separate-networks --normalize-reward
+--time 7200 --timesteps 100000000
+```
+
+Seed=42 deliberately (not C12's lucky 300) to prove the fix is **architectural**, matching C22's rationale.
+
+### Results
+
+**Training (meta.json)**
+| Metric | Value |
+|--------|-------|
+| Episodes | 29,950 |
+| Timesteps | 30.37M (vs requested 100M) |
+| FPS | ~4,220 |
+| best_profit (training) | **$591,580** |
+| final_avg_reward_1000 | **$340,252** |
+| violation_rate_last100 | **0.0%** ✅ |
+| violation_terminations | 4,880 / 29,950 = 16.3% overall |
+
+**Internal Eval (20 deterministic episodes)**
+| Metric | Value |
+|--------|-------|
+| Deterministic mean profit | **$325,740** |
+| Grade | **A** |
+| Violations | 0 |
+
+**Seeds 1,2,3 Eval (scripts/eval_c25_seeds.py)**
+| Model | Seed 1 | Seed 2 | Seed 3 | Avg Net | Avg BUSTA | Avg Tard |
+|-------|-------|-------|-------|---------|-----------|----------|
+| OLD (broken, master_eval) | -$85.7k | $142.8k | $84.2k | **$47,100** | **1.7/5** | **$341,000** |
+| C25 FINAL | $207.4k | $465.4k | $410.6k | **$361,133** | **5.0/5** ✅ | $33,333 |
+| **C25 BEST** | **$332.8k** | **$465.4k** | **$464.4k** | **$420,867** 🚀 | **5.0/5** ✅ | $33,333 |
+
+**9x improvement** in avg net profit. BUSTA production fixed on every seed. Only residual tardiness is seed 1 missing 1 NDG (PSC/NDG/BUSTA = 105/4/5 → $100k J1 tardiness).
+
+### Timeline & Symptoms
+
+- **0-30min**: `approx_kl=0.0038–0.006`, `clip_fraction=0.04–0.06`, `pg_loss=-0.002`. `target_kl firing` from step 1 — policy being actively clipped. `explained_variance=0.997` immediately. Loss scale ~0.04 (VecNormalize at work).
+- **30min-1h**: `ep_rew_mean` climbing from -$150k → -$16k. `best_profit=$570k` (already above CP-SAT's $380k!). Latest episodes producing 96–112 PSC + 5 BUSTA.
+- **1h-1.5h**: `mean_last100=$186k`, violation_rate=1–16% (oscillating down). Episodes routinely $250k–$569k.
+- **1.5h-2h**: **`mean_last100=$350k`** (Grade A). `ep_rew_mean=+$303k` (flipped positive). `violation_rate_last100=0%`. `best_profit=$589k–$591k`. Gradient still alive: `approx_kl=0.003–0.007`.
+- **End of 2h**: training stopped by time budget, final_avg_reward_1000 = $340k.
+
+### Diagnosis
+
+1. **The fix is architectural, not seed-dependent**: seed 42 (previously a dud in C1, C19) delivered Grade A with the C22 config. Confirms "seed 300 was lucky" narrative is obsolete — separate-networks + VecNormalize + completion-bonus is a reproducible fix.
+2. **Completion-bonus ($100k) does exactly what C20's post-script predicted**: forces BUSTA scheduling. 5.0/5 BUSTA on every eval seed.
+3. **Master_eval.py's PPO config was regressed**: it was written before C19 and never updated as the training evolved. The `--normalize-reward` flag was added but the decisive `--separate-networks` and `--completion-bonus` flags were omitted. This is a pure configuration bug, not a training-code bug.
+4. **Gradient lifespan at 2h is now routine**, not exceptional. C12's "lucky seed 300 kept gradient alive 4h" is no longer the ceiling — separate networks + VecNormalize keeps it alive *indefinitely* within the 2h budget, with `explained_variance=0.997` and `approx_kl=0.005` co-existing the whole time.
+
+### Action Taken
+
+- **Patch `master_eval.py`'s `run_ppo()` to include the C22 flags.** All future master_eval runs will use separate-networks, completion-bonus, clip_range=0.3, ent_coef=0.05, target_kl=0.02, lr=5e-4, lr_schedule=linear.
+- Save `scripts/eval_c25_seeds.py` for future "did the trained model actually generalize?" checks on held-out seeds.
+- Seed 1's 1-NDG shortfall is a separate issue (not BUSTA-related) — candidate for a follow-up cycle that tunes the NDG deadline pressure or adds a per-SKU skip penalty.
+
+**Run dir**: `PPOmask/outputs/20260420_193326_c25_busta_fix/`
+
+---
+
+## Cycle 26 — Per-Episode Seed Randomization (2026-04-20 23:57 → 2026-04-21 05:57)
+
+**Wall-clock**: 6h (21,600s) | **Episodes**: 75,782 | **Timesteps**: 82.97M | **FPS**: ~3,840
+
+### Motivation — Seed-Diversity Audit
+
+A 10-seed eval of C25 vs QL vs RL-HH (`scripts/eval_seeds_1_10.py`, output `results/10seedseval/`) showed:
+
+| Method | Avg Net | Std Net | Min | Max | BUSTA μ | Wins |
+|---|---:|---:|---:|---:|---:|---:|
+| Q-Learning | $230,120 | $102,411 | -$20,600 | $309,400 | 5.0/5 | 2/10 |
+| **MaskedPPO C25** | **$287,340** | **$180,232** | -$51,600 | **$467,800** | 4.3/5 | 6/10 |
+| RL-HH | $256,840 | **$58,845** | $172,600 | $323,400 | 5.0/5 | 2/10 |
+
+C25 had the highest average and ceiling but **3× the std** of RL-HH and one catastrophic outlier (seed 7: -$51,600, BUSTA=2/5). Audit of the trainers explained the variance:
+
+- **PPO (C25)**: 8 parallel envs each got `scenario_seed = args.seed + i` (i.e. 42..49), and `roasting_env.reset()` always replayed `_default_scenario_seed` because VecEnv passes `seed=None` on reset. Net: **8 fixed UPS scenarios for the entire 30M-step training run**.
+- **RL-HH** (`rl_hh/train_rl_hh.py:74`): `ups = generate_ups_events(λ, μ, episode, ...)` — fresh seed every episode.
+- **Q-Learning** (`q_learning/q_learning_train.py:309-312`): random λ, random μ, random seed every episode.
+
+So PPO was the only method overfitting to fixed UPS patterns. The fix is a one-liner.
+
+### Hypothesis
+
+Randomizing UPS scenario per episode (matching QL/RL-HH regime) will:
+1. Reduce PPO eval variance toward RL-HH's $58k std level.
+2. Hold or improve average profit (loses some per-seed memorization, gains generalization).
+3. Eliminate the seed-7-style catastrophic failures.
+
+### Configuration
+
+`PPOmask/Engine/roasting_env.py:61` — added `self._scenario_rng = np.random.default_rng(scenario_seed)`.
+`PPOmask/Engine/roasting_env.py:95-107` — `reset()` now draws fresh seed per episode when VecEnv doesn't pass one:
+
+```python
+if seed is not None:
+    scenario_seed = seed
+elif self._explicit_ups_events is not None:
+    scenario_seed = 0
+else:
+    scenario_seed = int(self._scenario_rng.integers(0, 2**31 - 1))
+```
+
+Each env still gets a deterministic stream (seeded from constructor seed 42..49) but the streams are ~10M scenarios long instead of length-1. Explicit-seed eval paths (evaluate_maskedppo, test suite) unchanged.
+
+Training flags identical to C25 (the proven C22 config), only scheduling for 6h instead of 2h:
+
+```
+--seed 42 --n-envs 8 --subproc
+--lr 5e-4 --lr-schedule linear
+--n-steps 4096 --batch-size 128 --n-epochs 3
+--gamma 0.99 --ent-coef 0.05 --clip-range 0.3 --target-kl 0.02
+--rc-maintenance-bonus 50 --completion-bonus 100000
+--separate-networks --normalize-reward
+--time 21600 --timesteps 100000000
+```
+
+### Results
+
+**Training (meta.json)** — Looks healthy in isolation:
+| Metric | Value |
+|--------|-------|
+| Episodes | 75,782 |
+| Timesteps | 82.97M (vs requested 100M) |
+| FPS | ~3,840 |
+| best_profit (training) | $298,925 |
+| final_avg_reward_1000 | -$21,048 |
+| violation_rate_last100 | 0.0% ✅ |
+| violation_terminations | 4,461 / 75,782 = 5.9% overall |
+
+**Internal post-training eval (50 deterministic episodes, eval seeds 42..91)** — `mean=-$119,264, grade=F`. Already a red flag.
+
+**10-Seed Eval (`scripts/eval_c26_10seeds.py`, seeds 1..10)** — 🚨 **catastrophic regression**:
+
+| Method | Avg Net | Std | Min | Max | BUSTA μ | Tard μ | Wins |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Q-Learning | $230,120 | $102,411 | -$20,600 | $309,400 | 5.0/5 | $46,400 | 3/10 |
+| RL-HH | $256,840 | $58,845 | $172,600 | $323,400 | 5.0/5 | $33,200 | **7/10** |
+| MaskedPPO **C26 best** | **-$133,140** | $59,503 | -$228,000 | -$71,600 | **0.0/5** ❌ | **$530,000** | 0/10 |
+| MaskedPPO **C26 final** | **-$128,440** | $51,640 | -$210,000 | -$71,200 | **0.0/5** ❌ | **$530,000** | 0/10 |
+
+**C25 vs C26 PPO direct comparison**:
+| Version | Avg Net | Std | Min | Max | BUSTA μ |
+|---|---:|---:|---:|---:|---:|
+| C25 (8 fixed seeds) | **$287,340** | $180,232 | -$51,600 | **$467,800** | 4.3/5 |
+| C26 (≈10M scenarios) | -$130,790 | **$55,000** | -$228,000 | -$71,200 | **0.0/5** |
+| Δ | **-$418,130** | -$125,000 | -$176,400 | -$535,000 | -4.3 |
+
+The hypothesis was **half right**: variance fell from $180k → $55k (3.3× reduction, matching RL-HH). But the policy converged to a **degenerate "never schedule BUSTA" optimum** — 0/5 BUSTA on every one of 10 seeds → $500k+ J2 tardiness every seed.
+
+### Diagnosis — Why "More Diversity" Backfired
+
+The C25 completion-bonus ($100k) was tuned against a **fixed 8-scenario reward landscape**. With per-episode seed randomization:
+
+1. **UPS hits R2 (BUSTA's roaster) ~λ/n_roasters fraction of episodes** ≈ 1.0 events × 6h / 5 roasters = each episode has ~14% chance of UPS damage to R2's BUSTA queue.
+2. **In those episodes, completing BUSTA is genuinely difficult** — some are infeasible without partial loss, costing -$30k–-$50k vs +$100k completion bonus.
+3. **Across 75k episodes the expected return of "always attempt BUSTA" is positive**, but the *risk-adjusted* gradient pushes PPO toward the **risk-free policy**: skip BUSTA entirely → guaranteed $500k tardiness, but no violation termination ($50k penalty avoided).
+4. **VecNormalize amplified the degenerate signal**: with ε-bounded reward variance, the avoid-BUSTA strategy's *steady* $-150k looked stable vs the attempt-BUSTA policy's noisy $250k–$500k swings. Normalized advantages favored the stable bad policy.
+5. **best_profit=$298k in training** was misleading — that was a single lucky episode where UPS missed R2 entirely; the eval-distribution average was already $-119k by training end.
+
+The C25 over-fit was actually a *useful* over-fit: 8 fixed seeds happened to include scenarios where attempting BUSTA almost always paid off, and the policy memorized that.
+
+### Action Taken
+
+- **Logged the failure mode in detail** — multi-seed PPO without reward re-shaping converges to BUSTA-skip.
+- **Reverted intent**: do NOT roll the per-episode seed randomization into master_eval's PPO config until reward shaping is re-tuned. The fix is correct in code; the reward signal is what needs adjusting next.
+- C26 best/final models retained at `PPOmask/outputs/20260420_235711_c26_multiseed/checkpoints/` for future ablation reference, but **NOT promoted** to master_eval artifacts.
+
+### Next-Cycle Candidates (C27)
+
+The fix should keep the seed randomization (variance reduction is real and valuable) and target the degenerate optimum:
+
+1. **Per-batch completion shaping**: small positive reward per BUSTA produced ($20k–$50k each), instead of/in addition to lump-sum completion bonus. Removes the "all-or-nothing" cliff.
+2. **Larger completion bonus scaled to seed difficulty**: e.g. $200k–$300k, possibly bonus-per-MTO-batch ($50k × 5 BUSTA).
+3. **Curriculum**: train first 50% of timesteps with low-disruption UPS (λ=2), then ramp to λ=5. Lets policy learn BUSTA scheduling on easy mode first.
+4. **Smaller seed pool**: cycle 32 fixed seeds randomly per env-reset instead of 10M unbounded — partial diversity, capped reward variance.
+5. **Tardiness penalty re-balancing**: current J2 cost ($500k for 5 missing BUSTA) and completion bonus ($100k) make "skip BUSTA" return -$400k. The math says PPO should prefer attempt — but VecNormalize compresses both. Either lower J2 cost or disable normalize_reward and use raw rewards with stronger shaping.
+
+**Run dir**: `PPOmask/outputs/20260420_235711_c26_multiseed/`
+**Eval dir**: `results/10seedseval_c26/` (per-seed JSON + HTML reports + summary.md/json)
+
+---
+
+## Cycle 27 — Dense Per-MTO-Batch Completion Bonus (2026-04-21 10:47 → 18:47)
+
+**Wall-clock**: 8h (28,801s, time budget hit) | **Episodes**: 118,796 | **Timesteps**: 114.32M | **FPS**: ~3,970
+
+### Motivation — Break the C26 Skip-BUSTA Attractor
+
+C26's failure was diagnosed as a **risk-adjusted gradient** problem: per-episode UPS randomization gave BUSTA-attempting policies a noisy return (some shifts infeasible after R2 hits), while the skip-BUSTA policy was *stable* at −$150k. VecNormalize's variance-normalized advantages favored stable-bad over noisy-good. The $100k lump-sum completion bonus was all-or-nothing — if any one of 10 MTO batches failed, the entire shaping signal vanished.
+
+### Hypothesis
+
+Replace the sparse end-of-shift credit-assignment path with a **dense per-batch bonus** delivered at the slot where each NDG/BUSTA batch actually finishes. This:
+1. Decouples reward from the all-or-nothing cliff — 9/10 batches still pays $270k of shaping.
+2. Credits the exact moment a BUSTA batch completes, giving PPO a clear gradient toward "keep BUSTA in flight even when R2 is disrupted."
+3. Keeps per-episode UPS randomization (the C26 variance-reduction win).
+
+### Configuration
+
+**Engine change** (`PPOmask/Engine/roasting_env.py:226,264-274`) — track MTO completion delta per slot and add bonus:
+
+```python
+prior_mto_completed = self.kpi.ndg_completed + self.kpi.busta_completed
+# ... slot phases ...
+if self.data.mto_completion_bonus > 0.0:
+    mto_delta = (self.kpi.ndg_completed + self.kpi.busta_completed
+                 - prior_mto_completed)
+    if mto_delta > 0:
+        accumulated_reward += mto_delta * self.data.mto_completion_bonus
+```
+
+Does NOT modify `kpi.net_profit` — reporting stays clean, shaping lives in the reward stream only.
+
+**CLI / shaping stack**:
+```
+--seed 42 --n-envs 8 --subproc
+--lr 5e-4 --lr-schedule linear
+--n-steps 4096 --batch-size 128 --n-epochs 3
+--gamma 0.99 --ent-coef 0.05 --clip-range 0.3 --target-kl 0.02
+--rc-maintenance-bonus 50 --completion-bonus 100000 --mto-completion-bonus 30000
+--separate-networks --normalize-reward
+--time 28800 --timesteps 200000000
+```
+
+Shaping ceiling per episode: $30k × 10 MTO batches + $100k lump-sum + ~$40k rc_maintenance ≈ **$440k on top of raw net_profit** (clearly labeled in `kpi/reward_sum` after the post-C27 patch; previously mislabeled as `kpi/net_profit`).
+
+### Results
+
+**Training (training_stats.json)**:
+| Metric | Value |
+|---|---|
+| Episodes | 118,796 |
+| Timesteps | 114.32M (time budget cut before 200M goal) |
+| FPS | ~3,970 |
+| best shaped reward | $901,255 |
+| final_avg_reward_1000 (shaped) | $765,652 |
+| violation_rate_last100 | **1.0%** |
+| mean_wait_fraction | 85.0% |
+| mean_psc_count | 105.6 |
+| grade | **A** |
+
+**Internal post-training eval (50 deterministic)**: `mean_profit=$393,596, grade=A, violations=0`.
+
+**10-Seed Eval (`scripts/eval_c27_10seeds.py`, seeds 1..10)** — clear SOTA:
+
+| Method | Avg Net | Std | Min | Max | BUSTA μ | Tard μ | Wins |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Q-Learning | $230,120 | $102,411 | -$20,600 | $309,400 | 5.0/5 | $46,400 | 0/10 |
+| RL-HH | $256,840 | $58,845 | $172,600 | $323,400 | 5.0/5 | $33,200 | 0/10 |
+| **MaskedPPO C27 best** | **$377,560** | $79,158 | $189,800 | **$467,800** | 4.6/5 | $40,000 | **7/10** |
+| MaskedPPO C27 final | $359,710 | $86,985 | $148,200 | $436,800 | 4.6/5 | $40,000 | 3/10 |
+
+**PPO Progression (C25 → C26 → C27)**:
+| Version | Avg Net | Std | BUSTA μ | Tard μ | Wins |
+|---|---:|---:|---:|---:|---:|
+| C25 (8 fixed seeds) | $287,340 | **$180,232** | 4.3/5 | $124,600 | 6/10 |
+| C26 (multi-seed, no per-batch bonus) | -$128,440 | $51,640 | **0.0/5** ❌ | $530,000 | 0/10 |
+| **C27 (multi-seed + per-batch bonus)** | **$377,560** | $79,158 | **4.6/5** ✅ | $40,000 | **7/10** |
+| Δ C27 − C25 | **+$90,220** | -$101k | +0.3 | -$85k | +1 |
+| Δ C27 − C26 | **+$505,700** | +$28k | +4.6 | -$490k | +7 |
+
+### Diagnosis — Why the Fix Worked
+
+1. **Dense per-batch signal** beats the skip-BUSTA attractor: every time R2 finishes a BUSTA batch, PPO gets an immediate +$30k that's impossible to accumulate by waiting. The gradient toward "commit to BUSTA" is now local to the decision slot, not buried in a sparse terminal bonus.
+2. **Credit assignment resolved**: C26's shaping told the policy "you win $100k if you happen to finish all 10 batches"; C27 tells it "you win $30k each time you finish one." n-step advantage estimation can propagate this.
+3. **Variance stays low** (std $79k vs C26's $51k) — only 60% higher than C26's degenerate-stable baseline, but with +$505k absolute mean. The C25 regression (std $180k) from 8-scenario overfitting never returns.
+4. **Setup cost collapses**: C27 avg_setup = $5,360 (vs QL $17,440, RL-HH $12,240) — PPO is scheduling long uninterrupted runs per SKU.
+5. **Idle cost halved**: C27 avg_idle = $70,280 (vs QL $153,340, RL-HH $149,320) — the policy is restocking proactively; RC maintenance bonus stayed tuned.
+6. **Weakness**: seeds 5, 8, 9 lost 1–2 BUSTA batches under heavy UPS. Seed 8 lost 2 BUSTA ($200k tardiness) — the hardest UPS realization in the set. Still marginally better than RL-HH ($189k vs $186k on that seed).
+
+### Action Taken
+
+- **Promoted** `20260421_104749_c27_mto_per_batch_bonus/checkpoints/best_training_profit_model.zip` as the new PPO reference — beats C25 by +$90k avg with 56% less variance and no seed-dependent collapse.
+- **Patched callback labeling bug** in `PPOmask/Engine/callbacks.py`: `kpi/net_profit` previously logged the shaped episode return (reward sum). Now logs the true `info["net_profit"]`; new `kpi/reward_sum` holds the shaped value. Progress print line shows both `_r` (shaped) and `_np` (net_profit) fields. `training_stats.json` gains `best_net_profit` and `final_avg_net_profit_1000`. Existing run's stats are unaffected.
+- Kept `--mto-completion-bonus 30000` as the canonical C27 shaping value; ablations at $10k / $20k / $50k could be future work but $30k already achieves 4.6/5 BUSTA.
+
+### Next-Cycle Candidates (C28+)
+
+1. **Curriculum on λ**: start training with λ=2, ramp to λ=5 over first 30M steps. Might help seed 8 (hardest UPS) without hurting others.
+2. **Per-batch bonus × 2 on BUSTA only**: since NDG completion is near-trivial (RC-free roaster R1), asymmetric $50k/BUSTA vs $20k/NDG could push BUSTA to 5/5 across seeds.
+3. **Longer rollout horizon**: n_steps=4096 × 8 envs = 32k samples/update. Increasing to 8192 might smooth per-episode UPS noise further.
+4. **Recover those 1.4 BUSTA**: a post-training fine-tune with smaller lr (1e-5) for 1M steps focused on UPS-disrupted episodes.
+
+**Run dir**: `PPOmask/outputs/20260421_104749_c27_mto_per_batch_bonus/`
+**Eval dir**: `results/10seedseval_c27/` (per-seed JSON + HTML reports + summary.md/json)
+
+---
+
 ## Gradient Lifespan Analysis
 
 The core bottleneck across all 16 cycles: the policy gradient dies when the value function converges.
@@ -1082,7 +1423,10 @@ The core bottleneck across all 16 cycles: the policy gradient dies when the valu
 | C18 | 256,256 | 300 | — | — | killed (penalty=500k too harsh) | killed |
 | C19 | 256,256 SEPARATE | 42 | 0→0.596 | 0.005→1e-6 | ~1.5h (35x stronger but still died) | $54.9k |
 | C20 | 256,256 SEP+VECNORM | 42 | 0.994 | 0.0065 | ALIVE 4h+ | $470,600 (no MTO penalty) |
-| **C22** | **256,256 SEP+VECNORM** | **42** | **0.994** | **0.005** | **ALIVE 6h+ (ongoing!)** | **$422,400 GRADE A (w/ MTO fix)** |
+| C22 | 256,256 SEP+VECNORM | 42 | 0.994 | 0.005 | ALIVE 6h+ | $422,400 GRADE A (w/ MTO fix) |
+| **C25** | **256,256 SEP+VECNORM +comp-bonus** | **42** | **0.997** | **0.005** | **ALIVE entire 2h** | **$420,867 seeds 1–3 avg, BUSTA 5/5 ✅** |
+| C26 | 256,256 SEP+VECNORM +comp-bonus (per-ep UPS) | 42 | 0.99+ | 0.005 | ALIVE 6h | **-$128,440** 10-seed avg, BUSTA 0/5 ❌ |
+| **C27** | **256,256 SEP+VECNORM +comp+mto-per-batch** | **42** | **0.997** | **0.003** | **ALIVE entire 8h** | **$377,560 10-seed avg, BUSTA 4.6/5, 7/10 wins 🏆** |
 
 **Pattern**: Longer gradient lifespan correlates with better eval — except when the gradient period pushes the policy into a bad exploration region (C15). C16 had the longest gradient (5h) but perturbation never fired due to callback design flaw.
 

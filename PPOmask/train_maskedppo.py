@@ -87,6 +87,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="Override violation penalty from shift_parameters.csv.")
     p.add_argument("--completion-bonus", type=float, default=None,
                    help="Lump-sum reward for completing the full shift without violation.")
+    p.add_argument("--mto-completion-bonus", type=float, default=None,
+                   help="Dense per-batch reward when an NDG or BUSTA batch finishes. "
+                        "Converts the sparse end-of-shift skip penalty into direct "
+                        "credit-assignable signal (C27 fix for multi-seed training).")
     p.add_argument("--progress-print-seconds", type=float, default=30.0)
     p.add_argument("--resume-from", type=str, default=None,
                    help="Path to a .zip model to resume training from (loads weights into new model).")
@@ -184,6 +188,8 @@ def main(argv: list[str] | None = None) -> Path:
         data.violation_penalty = args.violation_penalty
     if args.completion_bonus is not None:
         data.completion_bonus = args.completion_bonus
+    if args.mto_completion_bonus is not None:
+        data.mto_completion_bonus = args.mto_completion_bonus
     set_random_seed(args.seed)
 
     run_dir = _build_run_dir(args)
@@ -330,6 +336,8 @@ def main(argv: list[str] | None = None) -> Path:
         "violation_penalty": data.violation_penalty,
         "episode_termination_on_violation": data.episode_termination_on_violation,
         "rc_maintenance_bonus": data.rc_maintenance_bonus,
+        "completion_bonus": data.completion_bonus,
+        "mto_completion_bonus": data.mto_completion_bonus,
         # Episode stats
         "completed_episodes": progress_cb.completed_episodes,
         "best_profit": progress_cb.best_profit if progress_cb.completed_episodes else None,

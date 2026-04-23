@@ -70,8 +70,13 @@ class TrainingProgressCallback(BaseCallback):
         self._violation_type_counts: dict[str, int] = defaultdict(int)
 
         # Public state (read by train_maskedppo.py after training)
+        # latest_profit / best_profit track SHAPED episode return (reward sum).
+        # latest_net_profit / best_net_profit track TRUE KPI net_profit (unshaped).
         self.latest_profit = 0.0
         self.best_profit = float("-inf")
+        self.latest_net_profit = 0.0
+        self.best_net_profit = float("-inf")
+        self._net_profit_window: deque[float] = deque(maxlen=self.rolling_window)
         self.completed_episodes = 0
         self.stop_reason = "timesteps"
 
@@ -103,11 +108,16 @@ class TrainingProgressCallback(BaseCallback):
             length = int(episode["l"])
             self.completed_episodes += 1
             self.latest_profit = reward
+            net_profit = float(info.get("net_profit", reward))
+            self.latest_net_profit = net_profit
+            if net_profit > self.best_net_profit:
+                self.best_net_profit = net_profit
 
             # Store full history
             self._ep_rewards.append(reward)
             self._ep_lengths.append(length)
             self._reward_window.append(reward)
+            self._net_profit_window.append(net_profit)
 
             # Violation info from terminal step
             was_violation = info.get("violation", False)
@@ -172,7 +182,11 @@ class TrainingProgressCallback(BaseCallback):
     def _log_episode_scalars(
         self, reward: float, length: int, violation: bool, info: dict
     ) -> None:
-        self.logger.record("kpi/net_profit", reward)
+        # reward is the shaped episode return (sum of per-step rewards incl. shaping
+        # bonuses like mto_completion_bonus, rc_maintenance_bonus, completion_bonus).
+        # The env exposes the unshaped KPI profit via info["net_profit"].
+        self.logger.record("kpi/reward_sum", reward)
+        self.logger.record("kpi/net_profit", float(info.get("net_profit", reward)))
         self.logger.record("kpi/episode_length", length)
         self.logger.record("kpi/psc_count", float(info.get("kpi_psc_count", 0)))
         self.logger.record("kpi/stockout_count", float(info.get("kpi_stockout_events", 0)))
@@ -269,7 +283,12 @@ class TrainingProgressCallback(BaseCallback):
             "grade": grade,
             "n_episodes": n,
             "final_avg_reward_1000": final_avg_reward_1000,
-            "best_profit": self.best_profit,
+            "best_profit": self.best_profit,  # shaped reward
+            "best_net_profit": self.best_net_profit,  # true KPI net_profit
+            "final_avg_net_profit_1000": (
+                sum(list(self._net_profit_window)[-1000:]) / min(len(self._net_profit_window), 1000)
+                if self._net_profit_window else 0.0
+            ),
             "reward_slope": slope,
             "violation_rate_overall": viol_rate_overall,
             "violation_rate_last100": viol_rate_last100,
@@ -329,6 +348,7 @@ class TrainingProgressCallback(BaseCallback):
             return
         n = self.completed_episodes
         mean_r = statistics.mean(self._reward_window) if self._reward_window else 0.0
+        mean_np = statistics.mean(self._net_profit_window) if self._net_profit_window else 0.0
         viol_rate = (
             f"{sum(self._violation_window) / len(self._violation_window):.0%}"
             if self._violation_window
@@ -338,8 +358,10 @@ class TrainingProgressCallback(BaseCallback):
         mean_psc = sum(self._ep_psc_counts[-100:]) / len(self._ep_psc_counts[-100:]) if self._ep_psc_counts else 0.0
         print(
             f"[ppo-progress] steps={self.num_timesteps:,} elapsed={elapsed:.1f}s "
-            f"eps={n:,} latest=${self.latest_profit:,.0f} best=${self.best_profit:,.0f} "
-            f"mean_last{min(n, self.rolling_window)}=${mean_r:,.0f} "
+            f"eps={n:,} latest_r=${self.latest_profit:,.0f} best_r=${self.best_profit:,.0f} "
+            f"latest_np=${self.latest_net_profit:,.0f} best_np=${self.best_net_profit:,.0f} "
+            f"mean_r_last{min(n, self.rolling_window)}=${mean_r:,.0f} "
+            f"mean_np_last{min(n, self.rolling_window)}=${mean_np:,.0f} "
             f"viols={total_viols} viol_rate={viol_rate} psc={mean_psc:.1f}"
         )
 

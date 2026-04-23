@@ -1091,7 +1091,11 @@ def _build_reactive_html(result: dict[str, Any], offline: bool) -> str:
         divs.append(_figure_to_html(fig, include_plotlyjs=include_mode if index == 0 else False))
 
     run_name = result.get("reactive_run_name", "Reactive CP-SAT Oracle")
-    title = f"Reactive CP-SAT Oracle — {run_name}"
+    experiment = result.get("experiment", {})
+    seed = experiment.get("seed", "unknown")
+    lam = experiment.get("lambda_rate", "?")
+    mu = experiment.get("mu_mean", "?")
+    title = f"Reactive CP-SAT Oracle — {run_name} — Seed {seed}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1113,6 +1117,16 @@ def _build_reactive_html(result: dict[str, Any], offline: bool) -> str:
       margin: 0 0 20px 0;
       color: #616161;
     }}
+    .seed-banner {{
+      display: inline-block;
+      background: #1565C0;
+      color: white;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin: 0 0 16px 0;
+    }}
     .section {{
       margin-bottom: 18px;
       border: 1px solid #EEEEEE;
@@ -1124,6 +1138,7 @@ def _build_reactive_html(result: dict[str, Any], offline: bool) -> str:
 </head>
 <body>
   <h1>{title}</h1>
+  <div class="seed-banner">Eval Seed: {seed} &nbsp;|&nbsp; UPS λ = {lam} &nbsp;|&nbsp; μ = {mu} min</div>
   <p class="subtitle">Offline oracle re-optimisation at each UPS event — interactive dashboard.</p>
   {''.join(f'<div class="section">{div}</div>' for div in divs)}
 </body>
@@ -1252,7 +1267,11 @@ def _build_html(result: dict[str, Any], compare: dict[str, Any] | None, offline:
     divs: list[str] = []
     for index, fig in enumerate(figures):
         divs.append(_figure_to_html(fig, include_plotlyjs=include_mode if index == 0 else False))
-    title = f"Schedule Analysis — {result['metadata'].get('solver_engine', 'unknown')}"
+    experiment = result.get("experiment", {})
+    seed = experiment.get("seed", "unknown")
+    lam = experiment.get("lambda_rate", "?")
+    mu = experiment.get("mu_mean", "?")
+    title = f"Schedule Analysis — {result['metadata'].get('solver_engine', 'unknown')} — Seed {seed}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1274,6 +1293,16 @@ def _build_html(result: dict[str, Any], compare: dict[str, Any] | None, offline:
       margin: 0 0 20px 0;
       color: #616161;
     }}
+    .seed-banner {{
+      display: inline-block;
+      background: #1565C0;
+      color: white;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin: 0 0 16px 0;
+    }}
     .section {{
       margin-bottom: 18px;
       border: 1px solid #EEEEEE;
@@ -1285,6 +1314,7 @@ def _build_html(result: dict[str, Any], compare: dict[str, Any] | None, offline:
 </head>
 <body>
   <h1>{title}</h1>
+  <div class="seed-banner">Eval Seed: {seed} &nbsp;|&nbsp; UPS λ = {lam} &nbsp;|&nbsp; μ = {mu} min</div>
   <p class="subtitle">Interactive schedule analysis dashboard generated from the universal result schema.</p>
   {''.join(f'<div class="section">{div}</div>' for div in divs)}
 </body>
