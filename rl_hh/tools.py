@@ -114,10 +114,32 @@ class ToolKit:
             return None
         if len(candidates) == 1:
             return candidates[0]
-        # R3: both L1 (action 2) and L2 (action 3) feasible — balance RC
-        if state.rc_stock.get("L1", 0) <= state.rc_stock.get("L2", 0):
-            return 2  # route to L1 (lower stock)
-        return 3      # route to L2
+        # R3: both L1 (action 2) and L2 (action 3) feasible.
+        # Cycle 5: Route to the line with more headroom in the TIGHTEST dimension
+        # (RC buffer space vs upstream GC supply). This avoids sending R3 to a
+        # line whose GC_PSC is nearly depleted, which would block future R3/R4/R5
+        # batches there once GC hits 0.
+        max_rc = self.params.get("max_rc", 40)
+        rc_l1 = state.rc_stock.get("L1", 0)
+        rc_l2 = state.rc_stock.get("L2", 0)
+        gc_l1 = state.gc_stock.get(("L1", "PSC"), 0)
+        gc_l2 = state.gc_stock.get(("L2", "PSC"), 0)
+        score_l1 = min(max_rc - rc_l1, gc_l1)
+        score_l2 = min(max_rc - rc_l2, gc_l2)
+        # Cycle 14: UPS-aware — if R4 or R5 is DOWN, L2 is understaffed; bias R3
+        # toward L2 to maintain throughput on the weaker line.
+        l2_down = (
+            state.status.get("R4") == "DOWN"
+            or state.status.get("R5") == "DOWN"
+        )
+        l1_down = state.status.get("R1") == "DOWN" or state.status.get("R2") == "DOWN"
+        if l2_down and not l1_down:
+            return 3  # force L2 support
+        if l1_down and not l2_down:
+            return 2  # force L1 support
+        if score_l1 > score_l2:
+            return 2  # route to L1
+        return 3      # route to L2 (tie goes here per cycle 10)
 
     # ------------------------------------------------------------------
     # Tool 1 — GC_RESTOCK
@@ -126,9 +148,22 @@ class ToolKit:
     def _gc_restock(
         self, state, roaster_id: str | None, feasible: set[int],
     ) -> int | None:
-        """Restock the GC silo with the lowest stock/capacity ratio."""
+        """Restock only when a silo is genuinely running low.
+
+        Urgency rule (cycle 1): a silo qualifies if stock/cap < 0.5 AND
+        stock <= 12 absolute (PSC silos capacity=40 → safe above 20;
+        NDG/BUSTA cap=10 → safe above 5). Tool masked (returns None)
+        if no silo qualifies, freeing the agent to pick WAIT instead
+        of triggering wasteful restocks.
+        """
         if roaster_id is not None:
             return None  # only valid in the restock layer
+        # Cycle 16: count idle-waiting roasters per line — boosts urgency
+        # when more roasters are stalled waiting for this line's supply.
+        idle_per_line = {
+            "L1": sum(1 for r in ("R1", "R2") if state.status.get(r) == "IDLE"),
+            "L2": sum(1 for r in ("R4", "R5") if state.status.get(r) == "IDLE"),
+        }
         best_action: int | None = None
         best_ratio = float("inf")
         for aid in RESTOCK_ACTION_IDS:
@@ -139,6 +174,14 @@ class ToolKit:
             cap = self.params["gc_capacity"].get(pair, 1)
             stock = state.gc_stock.get(pair, 0)
             ratio = stock / max(1, cap)
+            # Boost priority by subtracting small amount per idle roaster
+            ratio -= 0.05 * idle_per_line.get(ad.line_id, 0)
+            if cap >= 20:
+                if ratio >= 0.35 or stock > 6:
+                    continue
+            else:
+                if ratio >= 0.4 or stock > 3:
+                    continue
             if ratio < best_ratio:
                 best_ratio = ratio
                 best_action = aid
@@ -186,14 +229,25 @@ class ToolKit:
     def _setup_avoid(
         self, state, roaster_id: str | None, feasible: set[int],
     ) -> int | None:
-        """Continue same SKU as last batch to avoid $800 setup + 5 min."""
+        """Continue same SKU as last batch to avoid $800 setup + 5 min.
+
+        Cycle 4: On R1/R2 when last=PSC and MTO still remaining, interpret
+        'avoid setup' as 'start MTO now so we only do ONE PSC→MTO transition
+        for the entire shift' instead of delegating to PSC (which creates a
+        future PSC→MTO + MTO→PSC double setup). Net: 1 setup per roaster
+        instead of 2. Exploits the agent's learned high Q-value for this tool.
+        """
         if roaster_id is None:
             return None
 
         last = state.last_sku.get(roaster_id, "PSC")
 
-        # PSC or unknown → delegate to PSC_THROUGHPUT (PSC→PSC = no setup)
+        # PSC or unknown → delegate to MTO (R1/R2 with MTO pending) or PSC
         if last in ("PSC", None):
+            if roaster_id in ("R1", "R2"):
+                mto = self._mto_deadline(state, roaster_id, feasible)
+                if mto is not None:
+                    return mto
             return self._psc_throughput(state, roaster_id, feasible)
 
         # last is NDG or BUSTA — try to continue same MTO SKU
