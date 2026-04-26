@@ -49,7 +49,7 @@ def make_env_factory(data, scenario_seed: int, ups_lambda: float | None, ups_mu:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train a MaskablePPO policy.")
     p.add_argument("--input-dir", default=None)
-    p.add_argument("--timesteps", type=int, default=500_000)
+    p.add_argument("--timesteps", type=int, default=100_000_000_000)
     p.add_argument("--time", "-t", type=float, default=None, help="Wall-clock budget in seconds.")
     p.add_argument("--n-envs", type=int, default=8)
     p.add_argument("--seed", type=int, default=123)

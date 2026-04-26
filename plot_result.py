@@ -833,44 +833,138 @@ def _build_restock_timeline(result: dict[str, Any]) -> go.Figure | None:
     return fig
 
 
-def _build_training_curve(training_log_path: Path) -> go.Figure | None:
-    """Build a training curve plot from a training_log.pkl sidecar file."""
+def _load_training_profits(training_log_path: Path) -> list[float] | None:
+    """Return per-episode profits as a list, or None if unreadable.
+
+    Supports two on-disk formats:
+    - dict with ``episode_profits`` key (PPO-style training log)
+    - list/tuple of per-episode profit floats (QL-style training log)
+    """
     import pickle
     if not training_log_path.exists():
         return None
     try:
         with open(training_log_path, "rb") as f:
             log_data = pickle.load(f)
-        profits = log_data.get("episode_profits", [])
-        if not profits or len(profits) < 2:
-            return None
     except Exception:
         return None
+    if isinstance(log_data, dict):
+        profits = log_data.get("episode_profits", [])
+    elif isinstance(log_data, (list, tuple)):
+        profits = list(log_data)
+    else:
+        return None
+    if not profits or len(profits) < 2:
+        return None
+    try:
+        return [float(p) for p in profits]
+    except (TypeError, ValueError):
+        return None
 
-    episodes = list(range(1, len(profits) + 1))
-    # Smoothing with rolling average
-    window = max(1, len(profits) // 20)
-    smoothed = []
-    for i in range(len(profits)):
-        start = max(0, i - window + 1)
-        smoothed.append(sum(profits[start : i + 1]) / (i - start + 1))
+
+def _downsample_pairs(xs: list, ys: list, max_points: int = 4000) -> tuple[list, list]:
+    if len(xs) <= max_points:
+        return xs, ys
+    step = max(1, len(xs) // max_points)
+    return xs[::step], ys[::step]
+
+
+def _build_training_curve(training_log_path: Path) -> go.Figure | None:
+    """Training curve (raw episode profits + rolling average)."""
+    profits = _load_training_profits(training_log_path)
+    if profits is None:
+        return None
+
+    n = len(profits)
+    episodes = list(range(1, n + 1))
+    window = max(1, min(500, n // 20))
+    smoothed: list[float] = []
+    running = 0.0
+    q: list[float] = []
+    for p in profits:
+        q.append(p)
+        running += p
+        if len(q) > window:
+            running -= q.pop(0)
+        smoothed.append(running / len(q))
+
+    raw_x, raw_y = _downsample_pairs(episodes, profits)
+    smooth_x, smooth_y = _downsample_pairs(episodes, smoothed)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=episodes, y=profits, mode="markers", name="Episode Profit",
-        marker=dict(size=2, color="rgba(33, 150, 243, 0.3)"),
+        x=raw_x, y=raw_y, mode="markers", name="Episode Profit",
+        marker=dict(size=2, color="rgba(33, 150, 243, 0.25)"),
     ))
     fig.add_trace(go.Scatter(
-        x=episodes, y=smoothed, mode="lines", name=f"Smoothed ({window}-ep avg)",
-        line=dict(color="#1565C0", width=2),
+        x=smooth_x, y=smooth_y, mode="lines", name=f"Smoothed ({window}-ep avg)",
+        line=dict(color="#0D47A1", width=2.5),
     ))
     fig.update_layout(
         template="plotly_white",
-        title="Training Curve: Episode Profit",
+        title=f"Training Curve ({n:,} episodes)",
         xaxis_title="Episode",
         yaxis_title="Net Profit ($)",
-        height=400,
-        margin=dict(l=50, r=20, t=55, b=50),
+        height=380,
+        margin=dict(l=60, r=20, t=55, b=50),
+        hovermode="x unified",
+    )
+    return fig
+
+
+def _build_convergence_plot(
+    training_log_path: Path,
+    epsilon_start: float | None = None,
+    epsilon_end: float | None = None,
+    epsilon_decay_fraction: float = 0.7,
+) -> go.Figure | None:
+    """Two-panel convergence plot: epsilon decay (if params given) + smoothed profit."""
+    profits = _load_training_profits(training_log_path)
+    if profits is None:
+        return None
+    from plotly.subplots import make_subplots
+
+    n = len(profits)
+    window = max(1, min(500, n // 20))
+    smoothed: list[float] = []
+    running = 0.0
+    q: list[float] = []
+    for p in profits:
+        q.append(p)
+        running += p
+        if len(q) > window:
+            running -= q.pop(0)
+        smoothed.append(running / len(q))
+
+    has_eps = epsilon_start is not None and epsilon_end is not None
+    if has_eps:
+        decay_span = max(1.0, epsilon_decay_fraction * n)
+        eps_curve = [
+            max(epsilon_end, epsilon_start - min(1.0, i / decay_span) * (epsilon_start - epsilon_end))
+            for i in range(n)
+        ]
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Exploration Decay (epsilon)", f"Profit Convergence ({window}-ep rolling avg)"))
+        eps_x, eps_y = _downsample_pairs(list(range(1, n + 1)), eps_curve)
+        fig.add_trace(go.Scatter(x=eps_x, y=eps_y, mode="lines", line=dict(color="#C62828", width=2), name="Epsilon"), row=1, col=1)
+        prof_x, prof_y = _downsample_pairs(list(range(1, n + 1)), smoothed)
+        fig.add_trace(go.Scatter(x=prof_x, y=prof_y, mode="lines", line=dict(color="#1565C0", width=2), name="Smoothed profit"), row=1, col=2)
+        fig.update_xaxes(title_text="Episode", row=1, col=1)
+        fig.update_xaxes(title_text="Episode", row=1, col=2)
+        fig.update_yaxes(title_text="Epsilon", row=1, col=1)
+        fig.update_yaxes(title_text="Smoothed Profit ($)", row=1, col=2)
+        fig.update_layout(template="plotly_white", height=340, margin=dict(l=60, r=20, t=60, b=40), showlegend=False)
+        return fig
+
+    prof_x, prof_y = _downsample_pairs(list(range(1, n + 1)), smoothed)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=prof_x, y=prof_y, mode="lines", line=dict(color="#1565C0", width=2), name="Smoothed profit"))
+    fig.update_layout(
+        template="plotly_white",
+        title=f"Profit Convergence ({window}-ep rolling avg)",
+        height=320,
+        margin=dict(l=60, r=20, t=55, b=40),
+        xaxis_title="Episode",
+        yaxis_title="Smoothed Profit ($)",
     )
     return fig
 
@@ -1231,7 +1325,20 @@ def _figure_to_html(fig: go.Figure, include_plotlyjs: str | bool) -> str:
     return pio.to_html(fig, full_html=False, include_plotlyjs=include_plotlyjs, config={"displaylogo": False, "responsive": True})
 
 
-def _build_html(result: dict[str, Any], compare: dict[str, Any] | None, offline: bool) -> str:
+def _build_html(
+    result: dict[str, Any],
+    compare: dict[str, Any] | None,
+    offline: bool,
+    training_info: dict[str, Any] | None = None,
+) -> str:
+    """Render a schedule-analysis dashboard.
+
+    ``training_info`` is an optional dict for learned-policy results:
+        {"log_path": str | Path, "epsilon_start": float, "epsilon_end": float}
+    When provided and the log exists, a training curve (and convergence
+    panel if epsilon params are given) is appended after the parameters table.
+    """
+
     if "reactive_oracle" in result:
         return _build_reactive_html(result, offline)
 
@@ -1262,6 +1369,21 @@ def _build_html(result: dict[str, Any], compare: dict[str, Any] | None, offline:
     if compare:
         figures.append(_build_pipeline_timeline(compare, title_suffix=" — Result B"))
     figures.append(_build_parameters_table(result))
+
+    if training_info:
+        log_path_raw = training_info.get("log_path")
+        if log_path_raw:
+            log_path = Path(log_path_raw)
+            curve_fig = _build_training_curve(log_path)
+            if curve_fig is not None:
+                figures.append(curve_fig)
+            conv_fig = _build_convergence_plot(
+                log_path,
+                epsilon_start=training_info.get("epsilon_start"),
+                epsilon_end=training_info.get("epsilon_end"),
+            )
+            if conv_fig is not None:
+                figures.append(conv_fig)
 
     include_mode: str | bool = True if offline else "cdn"
     divs: list[str] = []

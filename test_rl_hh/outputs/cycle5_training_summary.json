@@ -1,0 +1,10 @@
+{
+  "cycle": 5,
+  "episodes": 41799,
+  "wall_sec": 1800.0,
+  "best_training_profit": 426800.0,
+  "best_training_episode": 31900,
+  "final_epsilon": 0.05,
+  "best_ckpt": "test_rl_hh\\outputs\\cycle5_best.pt",
+  "final_ckpt": "test_rl_hh\\outputs\\cycle5_final.pt"
+}

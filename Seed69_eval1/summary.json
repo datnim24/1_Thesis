@@ -1,0 +1,257 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-25 00:28:41 (rescue-render)",
+    "ups_lambda": 5.0,
+    "ups_mu": 20.0,
+    "shift_length": 480,
+    "input_dir": "C:\\Local Folder\\CODE\\1_Thesis\\Input_data",
+    "model_paths": {
+      "cpsat": "(deterministic solver \u2014 no learned model)",
+      "ql": "q_learning\\ql_results\\23_04_2026_2034_ep546633_a01000_g09900_seed69_4h_s479740_profit210926\\q_table_seed69_4h_s479740.pkl",
+      "rlhh": "rl_hh\\outputs\\rlhh_cycle3_best.pt",
+      "ppo": "PPOmask\\outputs\\20260424_004458_seed69_pipeline_s427008_v2\\checkpoints\\final_model.zip"
+    },
+    "total_wall_sec": 0.0
+  },
+  "seeds": [
+    69
+  ],
+  "aggregate": {
+    "cpsat": {
+      "solver_name": "CP-SAT",
+      "n_runs": 1,
+      "avg_net": 443400.0,
+      "std_net": 0.0,
+      "min_net": 443400.0,
+      "max_net": 443400.0,
+      "avg_revenue": 486000.0,
+      "avg_tard": 0.0,
+      "avg_setup": 4000.0,
+      "avg_idle": 38600.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 104,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 14,
+      "per_seed": [
+        {
+          "net_profit": 443400.0,
+          "revenue": 486000.0,
+          "psc": 104,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 0.0,
+          "setup_cost": 4000.0,
+          "setup_events": 5,
+          "idle_cost": 38600.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 14,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 69
+        }
+      ]
+    },
+    "ql": {
+      "solver_name": "Q-Learning",
+      "n_runs": 1,
+      "avg_net": 127600.0,
+      "std_net": 0.0,
+      "min_net": 127600.0,
+      "max_net": 127600.0,
+      "avg_revenue": 458000.0,
+      "avg_tard": 150000.0,
+      "avg_setup": 20800.0,
+      "avg_idle": 159600.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 97,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 17,
+      "per_seed": [
+        {
+          "net_profit": 127600.0,
+          "revenue": 458000.0,
+          "psc": 97,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 150000.0,
+          "setup_cost": 20800.0,
+          "setup_events": 26,
+          "idle_cost": 159600.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 17,
+          "j1_late": 102.0,
+          "j2_late": 48.0,
+          "seed": 69
+        }
+      ]
+    },
+    "rlhh": {
+      "solver_name": "RL-HH (Dueling DDQN)",
+      "n_runs": 1,
+      "avg_net": 330600.0,
+      "std_net": 0.0,
+      "min_net": 330600.0,
+      "max_net": 330600.0,
+      "avg_revenue": 478000.0,
+      "avg_tard": 0.0,
+      "avg_setup": 8000.0,
+      "avg_idle": 139400.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 102,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 26,
+      "per_seed": [
+        {
+          "net_profit": 330600.0,
+          "revenue": 478000.0,
+          "psc": 102,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 0.0,
+          "setup_cost": 8000.0,
+          "setup_events": 10,
+          "idle_cost": 139400.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 26,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 69
+        }
+      ]
+    },
+    "ppo": {
+      "solver_name": "MaskedPPO",
+      "n_runs": 1,
+      "avg_net": 474600.0,
+      "std_net": 0.0,
+      "min_net": 474600.0,
+      "max_net": 474600.0,
+      "avg_revenue": 518000.0,
+      "avg_tard": 0.0,
+      "avg_setup": 4000.0,
+      "avg_idle": 39400.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 112,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 17,
+      "per_seed": [
+        {
+          "net_profit": 474600.0,
+          "revenue": 518000.0,
+          "psc": 112,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 0.0,
+          "setup_cost": 4000.0,
+          "setup_events": 5,
+          "idle_cost": 39400.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 17,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 69
+        }
+      ]
+    }
+  },
+  "hyperparameters": {
+    "ql": {
+      "name": "seed69_4h_s479740",
+      "episodes": 546633,
+      "alpha": 0.1,
+      "gamma": 0.99,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_schedule": "linear (reaches eps_end at 70% of budget)",
+      "final_epsilon": 0.05,
+      "state_formulation": "roaster_tabular_with_heuristic_restock",
+      "ups_mode": "env_default",
+      "ups_lambda": 5.0,
+      "ups_mu": 20.0,
+      "elapsed_seconds": 14400.0,
+      "stop_reason": "time limit (14400s)",
+      "q_table_entries": 10531,
+      "final_avg_profit_1000": 210925.6,
+      "q_table_file": "q_table_seed69_4h_s479740.pkl",
+      "training_log_file": "training_log_seed69_4h_s479740.pkl",
+      "timestamp": "2026-04-23T20:34:00.773907"
+    },
+    "rlhh": {
+      "model_path": "rl_hh\\outputs\\rlhh_cycle3_best.pt",
+      "epsilon": 0.05,
+      "has_optimizer_state": true
+    },
+    "ppo": {
+      "timestamp": "2026-04-24T04:45:08.726702",
+      "run_dir": "C:\\Local Folder\\CODE\\1_Thesis\\PPOmask\\outputs\\20260424_004458_seed69_pipeline_s427008_v2",
+      "seed": 427008,
+      "timesteps_requested": 100000000,
+      "timesteps_actual": 55144600,
+      "elapsed_seconds": 14400.158001600008,
+      "n_envs": 8,
+      "learning_rate": 0.0005,
+      "gamma": 0.99,
+      "n_steps": 4096,
+      "batch_size": 128,
+      "n_epochs": 3,
+      "gae_lambda": 0.95,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "net_arch": {
+        "pi": [
+          256,
+          256
+        ],
+        "vf": [
+          256,
+          256
+        ]
+      },
+      "ent_coef": 0.05,
+      "clip_range": 0.3,
+      "ups_lambda": 5.0,
+      "ups_mu": 20.0,
+      "violation_penalty": 50000.0,
+      "episode_termination_on_violation": true,
+      "rc_maintenance_bonus": 50.0,
+      "completion_bonus": 100000.0,
+      "mto_completion_bonus": 30000.0,
+      "completed_episodes": 56781,
+      "best_profit": 900000.0,
+      "final_avg_reward_1000": 755117.965,
+      "violation_terminations": 5641,
+      "violation_rate_last100": 0.13,
+      "violation_counts": {
+        "rc_negative_L1": 4145,
+        "rc_negative_L2": 1496
+      },
+      "action_distribution": {
+        "20": 47242644,
+        "7": 61502,
+        "3": 699395,
+        "15": 12397,
+        "6": 358915,
+        "8": 351216,
+        "4": 1284509,
+        "0": 1234186,
+        "5": 1226408,
+        "1": 1164619,
+        "2": 622592,
+        "13": 287934,
+        "16": 585672,
+        "14": 9088
+      },
+      "early_termination_rate": 0.13,
+      "stop_reason": "time budget (14400s)"
+    }
+  },
+  "rescued": true
+}
