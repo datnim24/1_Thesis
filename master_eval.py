@@ -369,10 +369,21 @@ def run_qlearning(out_dir: Path, time_budget: int, eval_ups: list = (), eval_see
 # ============================================================================
 
 def run_ppo(out_dir: Path, time_budget: int, eval_ups: list = (), eval_seed: int = 42) -> tuple[dict | None, dict | None]:
-    print(f"\n{'='*72}")
-    print(f"  [3/4] MASKED PPO  (budget: {_elapsed_str(time_budget)})")
-    print(f"{'='*72}")
+    """ARCHIVED 2026-04-28 (v4 plan, decision D7).
 
+    PPO/MaskedPPO removed from active comparison after gradient death across
+    18 training cycles. Code preserved at OLDCODE/PPOmask_archive/. The slot
+    in the 4-method comparison is now Paeng's Modified DDQN (paeng_ddqn/).
+
+    This stub returns (None, None) so existing callers that handle a failed
+    PPO run (try/except None-checks) work unchanged.
+    """
+    print(f"\n{'='*72}")
+    print(f"  [3/4] MASKED PPO -- ARCHIVED (v4). Use paeng_ddqn/ instead.")
+    print(f"{'='*72}")
+    return None, None
+
+    # Original PPO training code below preserved for reference but unreachable.
     t0 = time.perf_counter()
     try:
         from PPOmask.train_maskedppo import main as ppo_train_main

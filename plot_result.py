@@ -52,8 +52,9 @@ _RESULT_SEARCH_ROOTS = (
     ROOT_DIR / "OLDCODE" / "MILP_Test_v3",
     ROOT_DIR / "OLDCODE" / "MILP_Test_v4",
     ROOT_DIR / "q_learning" / "ql_results",
-    ROOT_DIR / "PPOmask" / "outputs",
+    ROOT_DIR / "OLDCODE" / "PPOmask_archive" / "outputs",  # PPO archived 2026-04-28 (v4)
     ROOT_DIR / "rl_hh" / "outputs",
+    ROOT_DIR / "paeng_ddqn" / "outputs",  # added for v4 Phase 5
 )
 _SIDECAR_SUFFIXES = ("_schedule.json", "_cancelled.json", "_ups.json", "_restocks.json", "_trace.json")
 _IGNORE_FILES = {"meta.json", "settings.json"}

@@ -431,15 +431,12 @@ class SteppableEngine:
                     self.log_callback("info", f"t=0: Q-Learning load error: {exc}")
                 return DispatchingHeuristic(self.params)
         if mode == "MaskablePPO":
-            try:
-                from PPOmask.Engine.ppo_strategy import PPOStrategy
-                from PPOmask.Engine.data_loader import load_data
-                ppo_data = load_data()
-                return PPOStrategy.load(data=ppo_data, deterministic=True)
-            except Exception as exc:
-                if self.log_callback:
-                    self.log_callback("info", f"t=0: MaskablePPO load error: {exc}")
-                return DispatchingHeuristic(self.params)
+            # ARCHIVED 2026-04-28 (v4 plan, decision D7) — PPO removed from
+            # active comparison. Code preserved at OLDCODE/PPOmask_archive/.
+            # Falls back to dispatching heuristic if user picks this mode.
+            if self.log_callback:
+                self.log_callback("info", "MaskablePPO archived in v4 — falling back to Dispatching")
+            return DispatchingHeuristic(self.params)
         return None  # Manual
 
     @property

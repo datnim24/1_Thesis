@@ -1,4 +1,0 @@
-cycle,episode,wall_sec,eval_profit,epsilon,tool_dist,healthy,reason
-1,86669,3601.1,-803440.0,0.0852,"{""PSC_THROUGHPUT"": 0.4063, ""GC_RESTOCK"": 0.08, ""MTO_DEADLINE"": 0.0839, ""SETUP_AVOID"": 0.0906, ""WAIT"": 0.3392}",False,Profit -803440 below threshold -500000
-2,86078,7204.5,-638600.0,0.0914,"{""PSC_THROUGHPUT"": 0.3407, ""GC_RESTOCK"": 0.0802, ""MTO_DEADLINE"": 0.0777, ""SETUP_AVOID"": 0.1788, ""WAIT"": 0.3225}",False,Profit -638600 below threshold -500000
-3,86638,10807.3,-10840.0,0.0855,"{""PSC_THROUGHPUT"": 0.245, ""GC_RESTOCK"": 0.086, ""MTO_DEADLINE"": 0.1075, ""SETUP_AVOID"": 0.2026, ""WAIT"": 0.3589}",True,OK

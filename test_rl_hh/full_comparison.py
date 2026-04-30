@@ -23,8 +23,8 @@ if str(_ROOT) not in sys.path:
 from env.simulation_engine import SimulationEngine
 from env.ups_generator import generate_ups_events
 from PPOmask.Engine.data_loader import load_data
-from PPOmask.Engine.ppo_strategy import PPOStrategy
-from sb3_contrib import MaskablePPO
+# PPO archived to OLDCODE/PPOmask_archive/ on 2026-04-28 (v4 plan).
+# Paeng DDQN takes PPO's slot in the comparison once paeng_ddqn/ is built.
 
 from dispatch.dispatching_heuristic import DispatchingHeuristic
 from q_learning.q_strategy import QStrategy, load_q_table
@@ -128,55 +128,70 @@ def main():
 
     seeds = list(range(900_000, 900_100))
 
-    # Model paths
-    ql_table_path = _ROOT / "q_learning" / "ql_results" / "23_04_2026_2034_ep546633_a01000_g09900_seed69_4h_s479740_profit210926" / "q_table_seed69_4h_s479740.pkl"
-    ppo_model_path = _ROOT / "PPOmask" / "outputs" / "20260424_004458_seed69_pipeline_s427008_v2" / "checkpoints" / "final_model.zip"
+    # Model paths (PPO archived to OLDCODE/PPOmask_archive/ on 2026-04-28; Paeng DDQN added v4)
+    ql_table_path = _ROOT / "q_learning" / "ql_results" / "31_03_2026_0919_ep1433449_a00500_g09900_Q_learn_nonUPS_overnight_profit296270" / "q_table_Q_learn_nonUPS_overnight.pkl"
     rlhh_ckpt_path = _ROOT / "rl_hh" / "outputs" / "rlhh_cycle3_best.pt"
+    paeng_ckpt_path = _ROOT / "paeng_ddqn" / "outputs" / "paeng_best.pt"
 
     # Pre-load expensive things
     print("Loading models...")
     q_table = load_q_table(str(ql_table_path))
-    ppo_model = MaskablePPO.load(str(ppo_model_path))
     rlhh_agent = DuelingDDQNAgent()
     rlhh_agent.load_checkpoint(str(rlhh_ckpt_path))
     rlhh_agent.epsilon = 0.0
 
+    paeng_agent = None
+    if paeng_ckpt_path.exists():
+        from paeng_ddqn.agent import PaengAgent
+        paeng_agent = PaengAgent.from_checkpoint(paeng_ckpt_path)
+        paeng_agent.epsilon = 0.0
+    else:
+        print(f"  [skip] paeng_ddqn checkpoint not found at {paeng_ckpt_path} — running 4-method comparison instead of 5.")
+
     results = {}
+    n_methods = 5 if paeng_agent is not None else 4
+    idx = 1
 
     # 1. Dispatching baseline
-    print("\n[1/5] Dispatching heuristic baseline...")
+    print(f"\n[{idx}/{n_methods}] Dispatching heuristic baseline...")
     results["dispatching"] = evaluate_strategy(
         "Dispatching heuristic",
         lambda s: DispatchingHeuristic(params),
         seeds, data, params, ups_lambda, ups_mu,
     )
+    idx += 1
 
     # 2. Q-learning
-    print("\n[2/5] Q-learning best...")
+    print(f"\n[{idx}/{n_methods}] Q-learning best...")
     results["q_learning"] = evaluate_strategy(
         "Q-learning (tabular)",
         lambda s: QStrategy(params, q_table=q_table),
         seeds, data, params, ups_lambda, ups_mu,
     )
+    idx += 1
 
-    # 3. PPO
-    print("\n[3/5] MaskedPPO best...")
-    results["ppo"] = evaluate_strategy(
-        "MaskedPPO",
-        lambda s: PPOStrategy(data=data, model=ppo_model, deterministic=True),
-        seeds, data, params, ups_lambda, ups_mu,
-    )
+    # 3. Paeng DDQN (v4 — replaces PPO slot)
+    if paeng_agent is not None:
+        from paeng_ddqn.strategy import PaengStrategy
+        print(f"\n[{idx}/{n_methods}] Paeng's Modified DDQN...")
+        results["paeng_ddqn"] = evaluate_strategy(
+            "Paeng's Modified DDQN",
+            lambda s: PaengStrategy(paeng_agent, data, training=False),
+            seeds, data, params, ups_lambda, ups_mu,
+        )
+        idx += 1
 
     # 4. RL-HH (with promoted tools)
-    print("\n[4/5] RL-HH (Dueling DDQN + improved tools)...")
+    print(f"\n[{idx}/{n_methods}] RL-HH (Dueling DDQN + improved tools)...")
     results["rl_hh"] = evaluate_strategy(
         "RL-HH (Dueling DDQN)",
         lambda s: RLHHStrategy(rlhh_agent, data, training=False),
         seeds, data, params, ups_lambda, ups_mu,
     )
+    idx += 1
 
     # 5. CP-SAT no-UPS ceiling (one solve, deterministic)
-    print("\n[5/5] CP-SAT no-UPS ceiling (single deterministic solve)...")
+    print(f"\n[{idx}/{n_methods}] CP-SAT no-UPS ceiling (single deterministic solve)...")
     t0 = time.perf_counter()
     cp_result = run_pure_cpsat(time_limit_sec=900, ups_events=None, num_workers=8)
     cp_elapsed = time.perf_counter() - t0
