@@ -1,0 +1,7 @@
+parameter,value,note
+solver_name,CBC,Free open-source solver bundled with PuLP. Use HiGHS for better performance (pip install highspy).
+time_limit_sec,30,Maximum solve time in seconds before returning best found solution.
+mip_gap_target,0.01,Stop when gap between best integer solution and LP bound is below 1%.
+enable_gui,1,1 = enable Flask GUI interface.
+enable_disruptions,0,0 = ignore manual_disruptions_template.csv (deterministic baseline). Set to 1 ONLY when GUI has submitted explicit disruption events.
+allow_r3_flexible_output,1,1 = R3 output routing is a free decision variable (y_b in {0,1}). 0 = R3 always outputs to L2 (fixed mode).

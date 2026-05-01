@@ -1,0 +1,28 @@
+# All run outputs
+Results/
+
+# Model weights / serialized objects
+*.pt
+*.pkl
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Logs and training artefacts
+*.log
+**/training_log.csv
+**/monitored_log.csv
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

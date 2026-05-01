@@ -1,0 +1,14 @@
+# Python 3.11
+# Install torch from the official CPU wheel index:
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# For CUDA 11.8 GPU wheels use --extra-index-url https://download.pytorch.org/whl/cu118 instead.
+
+numpy==2.2.6
+ortools==9.15.6755
+torch==2.7.1
+stable-baselines3==2.8.0
+sb3-contrib==2.8.0
+gymnasium==1.2.3
+matplotlib==3.10.1
+plotly==6.0.1
+tensorboard==2.20.0

@@ -1,0 +1,32 @@
+parameter,value,note
+shift_length_min,480,Total shift duration in minutes. Time slots: 0 to 479.
+time_step_min,1,Resolution of the time horizon (1-minute slots).
+max_rc_batches_per_line,40,RC buffer capacity per line in batch units (20000 kg / 500 kg per batch).
+safety_stock_batches,20,Safety stock threshold (theta_SS). Idle penalty active when B_l < this value.
+setup_time_diff_sku_min,5,Setup time (sigma) required when switching between different SKU types on the same roaster.
+psc_pool_size_per_roaster,32,Max PSC batches schedulable per roaster per shift = floor(shift_length_min / process_time_min) = floor(480/15) = 32. Total PSC pool = 5 roasters x 32 = 160 candidate batches.
+initial_rc_l1,12,Starting RC stock on Line 1 at shift start (batch units).
+initial_rc_l2,15,Starting RC stock on Line 2 at shift start (batch units).
+psc_consume_rate_l1_min_per_batch,9.1,Line 1 packaging consumes 1 RC batch every 9.1 minutes (rho_L1). (Changed from 8.1) 
+psc_consume_rate_l2_min_per_batch,8.8,Line 2 packaging consumes 1 RC batch every 8.8 minutes (rho_L2). (Changed from 7.8) 
+stockout_cost_per_event_per_line,1500,Penalty per consumption event where B_l < 0 (strictly negative). Applied in reactive mode only — stockout is a hard constraint in deterministic mode. NOT a per-minute rate.
+tardiness_cost_per_min,1000,Penalty per minute an MTO job finishes after due_time_min (slot 240).
+idle_cost_per_min_per_roaster,200,Penalty per minute a roaster is idle (not busy and not in planned downtime) while B_l < safety_stock_batches on its line.
+setup_cost_per_event,800,Lump-sum penalty per SKU changeover event on a roaster. Incurred once when roaster enters SETUP state (e.g. PSC->NDG). Separate from setup time cost.
+overflow_idle_cost_per_min_per_roaster,50,Penalty per minute a roaster is idle because its output line RC buffer is full (= max_rc_batches_per_line). For R3 (flexible): both lines must be full.
+ups_lambda,5,Expected number of UPS events per shift (Poisson arrival rate). Used as default for Q-learning training and evaluation. (Changed from 2 to 5)
+ups_mu,20,Mean UPS repair duration in minutes (Exponential distribution). Used as default for Q-learning training and evaluation.
+gc_capacity_l1_psc,40,GC silo capacity for (L1 PSC) in batch-units.
+gc_capacity_l1_ndg,10,GC silo capacity for (L1 NDG) in batch-units.
+gc_capacity_l1_busta,10,GC silo capacity for (L1 BUSTA) in batch-units.
+gc_capacity_l2_psc,40,GC silo capacity for (L2 PSC) in batch-units.
+gc_initial_l1_psc,20,Initial GC stock for (L1 PSC) in batch-units.
+gc_initial_l1_ndg,5,Initial GC stock for (L1 NDG) in batch-units.
+gc_initial_l1_busta,5,Initial GC stock for (L1 BUSTA) in batch-units.
+gc_initial_l2_psc,20,Initial GC stock for (L2 PSC) in batch-units.
+restock_duration_min,15,Duration of one GC restock operation in minutes 
+restock_qty_batches,5,GC batch-units added per completed restock.
+violation_penalty,50000,Large penalty applied when a hard constraint is violated. Episode terminates immediately.
+episode_termination_on_violation,1,If 1 the episode ends on any hard constraint breach. If 0 violations are penalized but episode continues.
+rc_maintenance_bonus,0,Reward added per slot per line where rc_stock >= safety_stock. Dense shaping signal to encourage restocking. Set to 0 to disable.
+mto_skip_penalty_per_batch,100000,Penalty per MTO batch not completed by end of shift. Per mathematical model c_skip = $100000 (Changed from 50000).
