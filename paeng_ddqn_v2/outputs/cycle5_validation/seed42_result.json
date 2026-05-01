@@ -1,0 +1,58 @@
+{
+  "seed": 42,
+  "net_profit": 171200.0,
+  "tardiness_cost": 125000.0,
+  "revenue": 462000.0,
+  "ideal_profit": 0.0,
+  "action_dist": {
+    "0": 1,
+    "1": 20,
+    "2": 13,
+    "3": 0,
+    "4": 2,
+    "5": 1,
+    "6": 1,
+    "7": 4,
+    "8": 0
+  },
+  "schedule": [],
+  "restocks": [],
+  "ups_events": [
+    {
+      "time": 97,
+      "roaster": "R3",
+      "duration": 1
+    },
+    {
+      "time": 124,
+      "roaster": "R1",
+      "duration": 3
+    },
+    {
+      "time": 233,
+      "roaster": "R1",
+      "duration": 45
+    },
+    {
+      "time": 319,
+      "roaster": "R1",
+      "duration": 1
+    },
+    {
+      "time": 342,
+      "roaster": "R1",
+      "duration": 14
+    },
+    {
+      "time": 421,
+      "roaster": "R5",
+      "duration": 25
+    },
+    {
+      "time": 473,
+      "roaster": "R3",
+      "duration": 7
+    }
+  ],
+  "n_seeds": 1
+}
