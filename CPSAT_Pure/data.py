@@ -39,6 +39,8 @@ REQUIRED_SHIFT_KEYS = (
     "idle_cost_per_min_per_roaster",
     "overflow_idle_cost_per_min_per_roaster",
     "setup_cost_per_event",
+    "stockout_cost_per_event_per_line",
+    "mto_skip_penalty_per_batch",
     "gc_capacity_l1_psc",
     "gc_capacity_l1_ndg",
     "gc_capacity_l1_busta",
@@ -273,6 +275,14 @@ def load(input_dir: str = "Input_data", overrides: dict | None = None) -> dict[s
         "overflow_idle_cost_per_min_per_roaster",
     )
     cost_setup = _parse_float(shift_params["setup_cost_per_event"], "setup_cost_per_event")
+    cost_stockout = _parse_float(
+        shift_params["stockout_cost_per_event_per_line"],
+        "stockout_cost_per_event_per_line",
+    )
+    cost_skip_mto = _parse_float(
+        shift_params["mto_skip_penalty_per_batch"],
+        "mto_skip_penalty_per_batch",
+    )
 
     time_limit = _parse_int(solver_params["time_limit_sec"], "time_limit_sec")
     mip_gap = _parse_float(solver_params["mip_gap_target"], "mip_gap_target")
@@ -360,6 +370,8 @@ def load(input_dir: str = "Input_data", overrides: dict | None = None) -> dict[s
         "cost_idle": cost_idle,
         "cost_overflow": cost_overflow,
         "cost_setup": cost_setup,
+        "cost_stockout": cost_stockout,
+        "cost_skip_mto": cost_skip_mto,
         "time_limit": time_limit,
         "mip_gap": mip_gap,
         "allow_r3_flex": allow_r3_flex,

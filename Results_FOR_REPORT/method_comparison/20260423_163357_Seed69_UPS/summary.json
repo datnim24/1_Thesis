@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-24 00:34:48",
+    "ups_lambda": 5.0,
+    "ups_mu": 20.0,
+    "shift_length": 480,
+    "input_dir": "C:\\Local Folder\\CODE\\1_Thesis\\Input_data",
+    "model_paths": {
+      "cpsat": "None"
+    },
+    "total_wall_sec": 28851.827493900026
+  },
+  "config": {
+    "n_runs": 1,
+    "seed_start": 69,
+    "random_seeds": false,
+    "meta_seed": 42,
+    "seed_pool_max": 100000,
+    "methods_enabled": {
+      "cpsat": true,
+      "ql": false,
+      "rlhh": false,
+      "ppo": false
+    },
+    "model_overrides": {
+      "ql_qtable": null,
+      "rlhh_ckpt": null,
+      "ppo_model": null
+    },
+    "ups_overrides": {
+      "lambda": null,
+      "mu": null
+    },
+    "cpsat": {
+      "time_limit_sec": 28800,
+      "num_workers": 8,
+      "mip_gap": null
+    },
+    "save_per_seed_html": true,
+    "embed_plots_in_main": true,
+    "report_title": "Scheduling Method Comparison Report"
+  },
+  "seeds": [
+    69
+  ],
+  "aggregate": {
+    "cpsat": {
+      "solver_name": "CP-SAT",
+      "n_runs": 1,
+      "avg_net": 443400.0,
+      "std_net": 0.0,
+      "min_net": 443400.0,
+      "max_net": 443400.0,
+      "avg_revenue": 486000.0,
+      "avg_tard": 0.0,
+      "avg_setup": 4000.0,
+      "avg_idle": 38600.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 104,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 14,
+      "per_seed": [
+        {
+          "net_profit": 443400.0,
+          "revenue": 486000.0,
+          "psc": 104,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 0.0,
+          "setup_cost": 4000.0,
+          "setup_events": 5,
+          "idle_cost": 38600.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 14,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 69,
+          "elapsed_sec": 28850.37412699999
+        }
+      ]
+    }
+  },
+  "hyperparameters": {
+    "cpsat": {
+      "solver": "OR-Tools CP-SAT (Pure v3)",
+      "time_limit_sec": 28800,
+      "num_workers": 8,
+      "mip_gap": null,
+      "description": "Deterministic MILP/CP-SAT with UPS injected as planned downtime."
+    }
+  }
+}

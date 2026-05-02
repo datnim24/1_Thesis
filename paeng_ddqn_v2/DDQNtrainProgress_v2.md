@@ -370,25 +370,164 @@ User cancelled to allocate 4h to Cycle 7 instead. Cycle 6 fragment showed peak $
 
 ---
 
-### Cycle 8 — 2h warm-start from rolling-best with --initial-epsilon 0.05
+### Cycle 8 — 2h warm-start with --initial-epsilon 0.05
 
 **Date**: 2026-05-01  
-**Status**: PENDING
+**Status**: PLATEAU — confirmed (3,35) state ceiling at $175k mean
+
+**Training summary**:
+- 28,903 episodes / 7200s, eps locked 0.05, 0 restores
+- Best peak: $363,400 (ep 21,935)
+- Best rolling mean: $203,472 (ep 532)
+
+**100-seed eval** (3 checkpoints):
+| Checkpoint | Mean | Std | Median | Min | Max |
+|---|---|---|---|---|---|
+| best.pt | $143k | $90k | $157k | -$94k | $325k |
+| **rolling.pt** | **$174.9k** | $111k | $196k | -$94k | $325k |
+| final.pt | $148k | $95k | $163k | -$166k | $325k |
+
+**Conclusion**: $175k is the architectural ceiling with the broken `_action_to_env_tuple` (forces f-dispatch on ALL roasters, ignoring g and roaster eligibility). Need Algorithm 1 fix.
+
+---
+
+### Cycle 9 — Algorithm 1 fix + (3,35) state, 30-min validation
+
+**Date**: 2026-05-01  
+**Status**: 🎯🎯🎯 BREAKTHROUGH — $276,499 mean (beats v1 $248k!)
+
+**Code changes** (Option B from brainstorm):
+1. **Action semantics swapped to Paeng convention**: `from_setup = a // F, to_dispatch = a % F` (was reversed in our code; verified by reading Paeng_DRL_Github/env/simul_pms.py:640-641)
+2. **`_action_to_env_tuple`** now Algorithm 1-faithful: roaster R dispatches `to_dispatch` ONLY IF `R.last_sku == from_setup AND R can produce to_dispatch`. Otherwise SSU greedy fallback (continue last_sku if it has demand, else any eligible+demand).
+3. **Feasibility mask**: action `(from, to)` feasible iff demand for `to` AND some roaster has `last_sku == from` AND can produce `to`. Failsafe to all-True if no demand.
+4. **State Sa cols**: 23=from_setup one-hot, 24=to_dispatch one-hot (matched to corrected encoding)
+
+**Why the bug was severe**: Old `_action_to_env_tuple` blindly forced f-dispatch to every roaster eligible for f, regardless of g or current setup. R1/R2 (NDG/BUSTA-capable) ALWAYS got pushed to PSC because the agent picked f=PSC most often. R3/R4/R5 (PSC-only) couldn't compensate. Result: NDG/BUSTA jobs missed deadlines, R5 idle, $174k ceiling.
+
+**Command** (validation, 30 min from scratch):
+```bash
+python -m paeng_ddqn_v2.train_v2 --time-sec 1800 \
+    --output-dir paeng_ddqn_v2/outputs/cycle9_validation \
+    --rolling-window 50 --restore-drop-threshold 50000 \
+    --run-seed 42 --seed-base 42
+```
+
+**Training summary**:
+- Episodes: 8,090 / 1800s (4.5 ep/s)
+- Best peak: $317,200 (ep 6845)
+- **Best rolling mean: $279,838 at ep 6576** ← was $203k in Cycle 8
+- **Loss: 758** ← was 11k in Cycle 8 (14x lower; cleaner Q-values)
+- 0 restores
+
+**100-seed eval (rolling-best)**:
+- **Mean: $276,499** (vs Cycle 8: $174.9k → **+$102k**)
+- **Std: $12,834** (vs $111k → **8.7x tighter**)
+- **Min: +$225,200** (vs -$94k → **every seed profitable**)
+- Max: $304,800
+- Median: $276,600
+
+**Schedule analysis** (seed 42, $278k profit):
+- **Tardiness $0** (vs $125k Cycle 7) — all MTO jobs on time!
+- 103 batches: 93 PSC, 5 NDG (all on R1), 5 BUSTA (all on R2)
+- R1: 22 (17 PSC + 5 NDG) | R2: 26 (21 PSC + 5 BUSTA)
+- R5: 15 PSC — still has idle time → next bottleneck (idle $160k)
+
+**Trajectory**:
+| Stage | Mean | Std |
+|---|---|---|
+| Random state baseline | -$397k | — |
+| Cycle 1 (broken algo) | $145k | $93k |
+| Cycle 8 (broken algo, locked eps) | $175k | $111k |
+| **Cycle 9 validation (FIXED)** | **$276.5k** | **$12.8k** |
+
+**Hypothesis for Cycle 9 main**: 4h warm-start from validation rolling-best; eps will decay from 0.18 → ~0.02. Target: 100-seed mean ≥ $300k (push toward $340-370k stopping).
+
+---
+
+### Cycle 9 main — 4h warm-start with full eps decay
+
+**Date**: 2026-05-01  
+**Status**: CONVERGED at $277k mean
+
+**Training**: 56,586 episodes / 4h, eps decayed to 0.058, loss stable 756, 0 restores.
+- Best peak: $321,000 (ep 23,309)
+- Best rolling mean: $282,262 (ep 46,621)
+
+**100-seed eval (3 checkpoints)**:
+| Checkpoint | Mean | Std | Min | Max |
+|---|---|---|---|---|
+| best.pt | $277,160 | $12,217 | $226,800 | $304,800 |
+| rolling.pt | $276,356 | $12,534 | $240,700 | $304,800 |
+| final.pt | $276,649 | $12,762 | $227,000 | $304,800 |
+
+All 3 checkpoints converged to ~$277k. 4h added only $1k vs Cycle 9 validation. Architecture saturated.
+
+**Schedule analysis** (seed 42, $278k profit):
+- Tardiness $0, Idle $160,800 (804 min!), Setup $3,200
+- R1: 22 batches, R2: 26, R3: 20, R4: 20, R5: 15
+- **R3/R4/R5 idle from t=0 to t=88** — agent waited until L2 GC PSC stock dropped before dispatching
+- R5 idle 53% — structural bottleneck
+
+**Diagnosis**: `_has_waiting_demand("PSC")` too restrictive at shift start. PSC demand returned False because RC was full (40) and GC ≥ 30%. So R3/R4/R5 (PSC-only) had no greedy fallback target → WAIT. Wasted ~88 min × 3 roasters = 264 roaster-min.
+
+---
+
+### Cycle 10 — PSC demand-check fix + 2h warm-start 🎯 STOPPING CONDITION ACHIEVED
+
+**Date**: 2026-05-01  
+**Status**: ✅ **MEAN $353,994 — INSIDE PLAN TARGET [$340k, $370k]**
+
+**Code change**: `_has_waiting_demand("PSC")` simplified to:
+- True iff (any future consume_event exists for some line) AND (that line's GC PSC silo has any capacity)
+- Removes the conservative "RC will deplete in 33 min OR GC < 30%" check
+- PSC has continuous demand throughout the shift; the previous check missed this
 
 **Command**:
 ```bash
 python -m paeng_ddqn_v2.train_v2 --time-sec 7200 --target-episodes 100000 \
-    --output-dir paeng_ddqn_v2/outputs/cycle8 \
+    --output-dir paeng_ddqn_v2/outputs/cycle10 \
     --snapshot-every 500 --rolling-window 50 --restore-drop-threshold 50000 \
-    --load-ckpt paeng_ddqn_v2/outputs/cycle7/paeng_v2_best_rolling.pt \
-    --initial-epsilon 0.05 \
+    --load-ckpt paeng_ddqn_v2/outputs/cycle9/paeng_v2_best.pt \
     --run-seed 42 --seed-base 42
 ```
 
-**Training summary** (to be filled): ...
-**100-seed eval** (to be filled): ...
-**Schedule analysis** (to be filled): ...
-**Hypothesis for Cycle 9** (to be filled): ...
+**Training summary**:
+- Episodes: 29,811 / 7200s (4.1 ep/s)
+- **Best peak: $389,000 at ep 20,903** (new high)
+- **Best rolling mean: $356,940 at ep 29,633**
+- Final eps: 0.125
+- Loss: 610 (stable, low)
+- 0 restores
+
+**100-seed eval (all 3 checkpoints inside stopping target)**:
+| Checkpoint | Mean | Std | Median | Min | Max |
+|---|---|---|---|---|---|
+| best.pt | **$353,872** | $11,962 | $354,000 | $310,000 | **$374,600** |
+| rolling.pt | $353,682 | $13,878 | $354,200 | $272,800 | $374,600 |
+| **final.pt** | **$353,994** | **$11,200** | $354,200 | **$317,000** | $374,600 |
+
+**Schedule analysis** (final.pt, seed 42, $343,400 profit):
+- Tardiness $0, Idle $135,400 (down from $160,800 = -$25k)
+- Idle min: 677 (vs 804 = -127 min unblocked)
+- 113 batches (vs 103 = **+10 batches**)
+- Revenue $482k (vs $442k = +$40k)
+- **R3 t=0 start, R4 t=3 start, R5 t=6 start** — fix worked immediately
+- Per-roaster: R1=23, R2=25, R3=24 (was 20), R4=24 (was 20), R5=17 (was 15)
+- R5 still has 47% idle — structural L2 GC capacity bottleneck (next investigation if needed)
+
+**Trajectory v2 final**:
+| Cycle | State | Mean | Notes |
+|---|---|---|---|
+| Random baseline | (3,25) random | -$397k | placeholder state |
+| Cycle 1-4 (broken algo, 3,25) | (3,25) | $144k | plateau |
+| Cycle 5-8 (broken algo, 3,35) | (3,35) | $175k | state expansion alone |
+| Cycle 9 (Algorithm 1 fix) | (3,35) | $277k | algo was the missing piece |
+| **Cycle 10 (PSC demand fix)** | **(3,35)** | **$354k** ✅ | **stopping target hit** |
+| v1 paeng_ddqn baseline | (3,50) | $248k | beaten by **+$106k** |
+
+**STOPPING CONDITION**: 100-seed mean ∈ [$340k, $370k] → **MET** (mean $354k, max single-seed $374.6k).
+
+**Final v2 checkpoint for downstream use**: `paeng_ddqn_v2/outputs/cycle10/paeng_v2_final.pt` — best mean ($353,994), tightest std ($11,200), highest min ($317,000).
 
 ---
 

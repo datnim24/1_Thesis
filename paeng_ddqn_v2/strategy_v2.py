@@ -90,23 +90,31 @@ def _roaster_can_produce(roaster_id: str, sku: str) -> bool:
 
 
 def _has_waiting_demand(family: str, sim_state, params: dict, period_T: int) -> bool:
-    """True if there is current demand for `family` that the agent could service."""
+    """True if there is current demand for `family` that the agent could service.
+
+    PSC: continuous demand throughout shift (consume_events keep firing). Demand True
+        iff ANY future consume_event exists for some line AND that line's PSC GC silo
+        has room (so dispatched PSC has somewhere to push output). This prevents the
+        Cycle 9 bug where R3/R4/R5 idled at shift start because RC was full and GC was
+        slightly above the 30% threshold, making greedy fallback return WAIT.
+    NDG/BUSTA: demand iff any MTO job of that sku still has remaining > 0.
+    """
+    del period_T  # unused (kept for API compatibility)
     if family == "PSC":
-        # Demand if RC will go negative within next ~3 periods given upcoming consumes
         consume_events = params.get("consume_events", {"L1": [], "L2": []})
-        horizon = sim_state.t + 3 * period_T
-        for line in ("L1", "L2"):
-            upcoming = sum(1 for t in consume_events.get(line, []) if sim_state.t < t <= horizon)
-            if sim_state.rc_stock.get(line, 0) - upcoming < 0:
-                return True
-        # Also count GC stock low for PSC silos
         gc_capacity = params.get("gc_capacity", {})
         for line in ("L1", "L2"):
+            has_future_consume = any(t > sim_state.t for t in consume_events.get(line, []))
+            if not has_future_consume:
+                continue
             cap = gc_capacity.get((line, "PSC"), 0)
-            if cap > 0 and sim_state.gc_stock.get((line, "PSC"), 0) < 0.3 * cap:
+            gc = sim_state.gc_stock.get((line, "PSC"), 0)
+            # If we know capacity, only "demand" when room remains; if capacity unknown,
+            # default to True (let engine handle silo limits).
+            if cap == 0 or gc < cap:
                 return True
         return False
-    # NDG / BUSTA: demand iff any MTO job of that sku has remaining > 0
+    # NDG / BUSTA
     job_sku = params.get("job_sku", {})
     for jid, remaining in sim_state.mto_remaining.items():
         if remaining > 0 and job_sku.get(jid) == family:

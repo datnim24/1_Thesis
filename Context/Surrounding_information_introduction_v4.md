@@ -121,12 +121,12 @@ Novelty is in the *systematic comparison of fundamentally different reactive app
 
 ## 6. Methodology Architecture (for Sections 3.1 and 3.2)
 
-### Six-method architecture (4 reactive + 2 deterministic benchmark)
+### Six-method architecture (4 reactive + 2 exact-solver benchmarks)
 
 | Method | Type | Implementation | Role in thesis |
 |---|---|---|---|
-| **MILP** (benchmark) | Exact optimization | PuLP / OR-Tools MILP | Deterministic benchmark — LP relaxation lower bound to verify CP-SAT quality. Does NOT participate in reactive experiments. |
-| **CP-SAT** (ceiling) | Constraint programming | Google OR-Tools CP-SAT (Python API) | Deterministic solver — establishes theoretical performance ceiling (~$295k). Does NOT participate in reactive experiments (re-solve time ~2 min on thesis hardware = impractical). |
+| **MILP** (benchmark) | Exact optimization | PuLP / OR-Tools MILP on the unified soft model | Runs at $\\lambda = 0$ (deterministic special case of the soft model) — LP relaxation lower bound to verify CP-SAT quality. Does NOT participate in reactive experiments. |
+| **CP-SAT** (ceiling) | Constraint programming | Google OR-Tools CP-SAT (Python API) on the unified soft model | Perfect-information ceiling — runs at $\\lambda = 0$ as deterministic baseline AND at $\\lambda > 0$ with all UPS events pre-merged as planned downtime (clairvoyant). Does NOT participate in reactive experiments (re-solve time ~2 min on thesis hardware = impractical). |
 | Dispatching heuristic | Rule-based | Priority rules: urgency-threshold MTO, most-remaining-batches priority, lowest-stock R3 routing | **Core baseline** — represents current operator practice. Null hypothesis. |
 | Tabular Q-Learning | Discretized-state RL | Custom tabular Q-learning, 9,233 Q-table entries, ε-greedy. Lineage: Zhang (2007) LBF-Q, mirrored experimentally by Luo (2020) Section 6.4 and Paeng (2021) Table 3. | Discretized-state RL baseline — the "tabular" rung of the architectural ladder. Tests whether the literature pattern (deep beats tabular under disruption) reproduces on our problem class. |
 | **Paeng's Modified DDQN** 🆕 | Continuous-state DDQN with parameter sharing | PyTorch DDQN, parameter-sharing per-SKU blocks (3 hidden layers: 64→32→16, ReLU), Huber loss, target sync, RMSProp | **Primary key-reference comparison method** — Paeng et al. (2021), IEEE Access. Architecture adapted from semiconductor wafer preparation to our roasting UPMSP-SDFST. Tests whether DDQN beats tabular Q-Learning under UPS, replicating Paeng's headline result on a new problem class. |
@@ -242,7 +242,7 @@ The system must satisfy all of the following:
 
 1. Generate a feasible predictive schedule for a full 8-hour shift with no constraint violations (pipeline NoOverlap, RC inventory bounds, setup times, downtime avoidance).
 2. React to UPS events: when an unplanned stoppage occurs, the reactive strategy produces a revised decision within practically acceptable time (target: < 1 millisecond for dispatching and tabular Q-Learning lookup; < 10 milliseconds for Paeng DDQN inference; < 10 milliseconds for RL-HH Dueling DDQN tool selection + execution).
-3. Track RC inventory in batch units for both lines and prevent stockout (deterministic mode) or minimize stockout impact (reactive mode).
+3. Track RC inventory in batch units for both lines and minimize stockout impact (soft penalty applied uniformly; at $\\lambda = 0$ the optimizer reaches zero stockouts naturally — deterministic baseline = $\\lambda = 0$ special case of the same model).
 4. Handle MTO batch scheduling with soft due-date constraint at slot 240.
 5. Support R3 cross-line output routing as a decision variable (and as experimental factor: fixed vs. flexible).
 6. Enable controlled experimental comparison: same UPS realizations applied to all four reactive strategies for fair paired comparison.
@@ -388,13 +388,14 @@ The system must satisfy all of the following:
 | Stockout penalty | $c^{stock} = \$1{,}500$/event (per consumption event with $B_l < 0$, strictly negative). $B_l = 0$ is NOT stockout. **Event-based, not per-minute.** | ✅ |
 | Safety-idle penalty | $c^{idle} = \$200$/min/roaster (idle when $B_l < 20$, not DOWN) | ✅ |
 | Overflow-idle penalty | $c^{over} = \$50$/min/roaster (forced idle at $B_l = 40$). **R3: only when both lines = 40.** | ✅ |
-| Overflow-idle in det. mode | Included in deterministic objective (solver paces production to avoid overflow) | ✅ |
-| Stockout handling | Hard constraint in deterministic mode; soft penalty ($1,500/event) in reactive mode | ✅ |
-| Overflow handling | Hard constraint in all modes (physical impossibility) | ✅ |
+| Overflow-idle | Included in objective (solver paces production to avoid overflow) | ✅ |
+| Stockout handling | Soft penalty ($1,500/event) — applied uniformly across all $\\lambda$. At $\\lambda = 0$ the optimizer reaches zero stockouts without the penalty triggering, so the deterministic baseline is the special case of the same soft model. | ✅ |
+| MTO skip handling | Soft penalty ($100,000/batch) for unscheduled MTO at end-of-shift, dominant enough that the solver only skips when physically impossible. Replaces the prior hard "every MTO must be scheduled" constraint. | ✅ |
+| Overflow handling | Hard constraint (physical impossibility — silo cannot hold more) | ✅ |
 | UPS parameters | Synthetic (literature MTBF/MTTR); not calibrated to plant | ✅ |
 | Setup time | 5 min between ANY different SKU pair, uniform | ✅ |
 | Experimental grid | 5 λ × 3 μ × 4 strategies = 60 cells × 50 reps = 3,000 runs (R3 routing kept flexible — part of action space, not a treatment factor) | ✅ |
-| MILP benchmark | Same model as CP-SAT, deterministic only, LP bound verification. ~200 runs. | ✅ |
+| MILP benchmark | Same unified soft model as CP-SAT, run at $\\lambda = 0$ only (deterministic special case), for LP bound verification. ~200 runs. | ✅ |
 | Strategies (reactive) | Dispatching (baseline) / Tabular Q-Learning (Zhang 2007 LBF-Q lineage) / Paeng's Modified DDQN (primary key reference) / RL-HH (Dueling DDQN — thesis innovation) | ✅ |
 | Dispatching spec | Urgency threshold 0.7, most-remaining MTO priority, Busta tie-break, lowest-stock R3 routing | ✅ |
 | Env action space | 21 raw actions (R3 split into →L1 and →L2, 4 restock actions). Per-roaster decision. Action masking for feasibility. Used directly by tabular Q-Learning and Paeng DDQN. RL-HH wraps these as tool outputs (5 tools). | ✅ |
@@ -451,7 +452,8 @@ Adapt freely — do not copy verbatim.
 | RC max_buffer calculation | — | ✅ **Resolved: 40 batches** (20,000 kg / 500 kg per batch) | ✅ Done |
 | Initial last_sku at shift start | — | ✅ **Resolved: PSC** for all roasters | ✅ Done |
 | Stockout definition | — | ✅ **Resolved: event-based** ($1,500 per consumption event with $B_l < 0$, strictly negative). $B_l = 0$ is not stockout. Duration ($B_l \leq 0$) is KPI only. | ✅ Done |
-| Overflow-idle in deterministic mode | — | ✅ **Resolved: included** in deterministic objective | ✅ Done |
+| Overflow-idle | — | ✅ **Resolved: included** in objective (uniform across all $\\lambda$) | ✅ Done |
+| Deterministic-vs-reactive mode split | — | ✅ **Retired:** unified soft model (UPS_Mathematical_Model.md) covers both. $\\lambda = 0$ is the deterministic special case. `mathematical_model_complete.md` removed. | ✅ Done |
 | R3 overflow-idle encoding | — | ✅ **Resolved: both lines must be full** for R3 overflow-idle | ✅ Done |
 | Cost structure | — | ✅ **Resolved:** cost.md created. Revenue $4k/$7k, penalties $1.5k/$1k/$200/$50. | ✅ Done |
 | MILP role | — | ✅ **Resolved:** deterministic benchmark, LP bound verification, not reactive | ✅ Done |
@@ -468,7 +470,7 @@ Adapt freely — do not copy verbatim.
 |---|----------|---------|--------|
 | 1 | `revised_scope_memo.docx` | Instructor approval | Ready for meeting |
 | 2 | `Thesis_Problem_Description_v4.md` | Complete problem description (bilingual VN/EN) | ✅ Updated v3→v4: MaskedPPO removed; Paeng DDQN added; method ladder restructured |
-| 3 | `mathematical_model_complete.md` | Math formulation + I/O | ✅ Unchanged from v3 |
+| 3 | `UPS_Mathematical_Model.md` | **Canonical math model** (unified soft formulation; deterministic baseline is the $\\lambda = 0$ special case). Replaces the retired `mathematical_model_complete.md`. | ✅ Promoted to canonical |
 | 4 | `cost.md` | Cost structure (single source of truth for $) | ✅ Unchanged from v3 |
 | 5 | `Surrounding_information_introduction_v4.md` | Writing reference for Ch 1–6 | ✅ Updated v3→v4: methodology architecture, contribution claim, draft sentences |
 | 6 | `event_simulation_logic_complete.md` | Simulation loop spec | ✅ Unchanged from v3 |
@@ -479,4 +481,4 @@ Adapt freely — do not copy verbatim.
 
 ---
 
-*Next action: student brings scope memo to instructor for approval, then begins implementation (simulation environment → CP-SAT deterministic model → MILP benchmark → dispatching heuristic → UPS simulation → DRL agent → experiments).*
+*Next action: student brings scope memo to instructor for approval, then begins implementation (simulation environment → CP-SAT soft model → MILP benchmark at $\\lambda = 0$ → dispatching heuristic → UPS simulation → DRL agent → experiments).*

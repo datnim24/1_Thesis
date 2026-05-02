@@ -19,7 +19,7 @@ the parent repository.
 | `dispatch/`         | Urgency-first dispatching     | Rule-based baseline                   |
 | `q_learning/`       | Tabular Q-learning            | Classical RL baseline                 |
 | `rl_hh/`            | Dueling DDQN hyper-heuristic  | Canonical RL method                   |
-| `paeng_ddqn_v2/`    | Period-based parameter-sharing DDQN | In development (Paeng 2021 port) |
+| `paeng_ddqn_v2/`    | Period-based parameter-sharing DDQN | Paeng 2021 port (FBS state, dueling) |
 
 ## Layout
 

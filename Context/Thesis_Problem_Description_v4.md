@@ -298,12 +298,11 @@ $$B\_l(t) = B^0\_l + \\underbrace{\\sum\_{\\substack{b \\in \\mathcal{B}^{PSC}:\
 
 Trong đó $B^0\_l$ là RC stock ban đầu (initial condition, input).
 
-#### **2.5.4 Inventory bounds — hard constraints**
+#### **2.5.4 Inventory bounds**
 
 **Stockout — $B\_l(t) < 0$:** Nghĩa là consumption event xảy ra nhưng không có RC batch nào để lấy. Dây chuyền PSC packaging **dừng** — đây là failure mode chính cần phòng tránh.
 
-* Trong **deterministic mode** (lập lịch ban đầu, không có UPS): $B\_l(t) \\geq 0$ là **hard constraint**. Model phải tìm schedule sao cho RC không bao giờ về 0 khi có consumption event.
-* Trong **reactive mode** (sau UPS, re-solve): stockout có thể **unavoidable** (ví dụ: 2 roasters trên Line 1 cùng down 30 phút, consumption vẫn tiếp tục). Lúc này $B\_l(\\tau) \\geq 0$ tại consumption events chuyển thành **soft constraint** với penalty $c^{stock} = $1{,}500$ **per consumption event** bị thiếu hàng — model tìm schedule **minimizes số stockout events** thay vì tuyên bố infeasible. Xem `cost.md` §3.2.
+* $B\_l(\\tau) \\geq 0$ tại consumption events là **soft constraint** với penalty $c^{stock} = $1{,}500$ **per consumption event** bị thiếu hàng. Model tìm schedule **minimizes số stockout events** thay vì tuyên bố infeasible khi UPS realization làm cho zero-stockout không khả thi (ví dụ: 2 roasters trên Line 1 cùng down 30 phút). Áp dụng đồng nhất cho mọi instance — $\\lambda = 0$ là special case không có UPS, ở đó solver luôn đạt được $\\text{SO}\_l = 0$ mà không cần penalty kích hoạt. Xem `cost.md` §3.2.
 
 **Overflow — $B\_l(t) > \\overline{B}\_l$:** Nghĩa là roaster hoàn thành PSC batch nhưng RC stock đã đầy — không có chỗ chứa output. Roaster **phải dừng** — không thể xả RC. Đây là **hard constraint trong mọi mode** vì overflow là physical impossibility (silo đầy vật lý, không thể ép thêm).
 
@@ -748,21 +747,20 @@ Chỉ **completed** batches earn revenue. Batch bị UPS hủy giữa chừng: r
 
 **Hierarchy:** Stockout ($1,500/event) > Tardiness ($1,000/min) > Safety-Idle ($200/min) > Overflow-Idle ($50/min)
 
-### **7.4 Deterministic Mode (Initial Schedule)**
+### **7.4 Unified Soft Objective (mọi instance, mọi $\\lambda$)**
 
-$$\\boxed{\\text{Maximize Profit} = \\sum\_{b: a\_b=1} R\_{\\text{sku}(b)} - c^{tard} \\sum\_j \\text{tard}*j - c^{idle} \\sum*{r,t} \\text{idle}*{r,t} - c^{over} \\sum*{r,t} \\text{over}\_{r,t}}$$
+$$\\boxed{\\text{Max Profit} = \\sum\_{b: a\_b=1} R\_{\\text{sku}(b)} - c^{tard}\\sum\_j \\text{tard}*j - c^{skip}\\sum*{b \\in \\mathcal{B}^{MTO}}(1 - a\_b) - c^{stock}\\sum\_l \\text{SO}*l - c^{setup}\\sum\_r N^{setup}\_r - c^{idle}\\sum{r,t} \\text{idle}*{r,t} - c^{over}\\sum\_{r,t} \\text{over}\_{r,t}}$$
 
-Không có $c^{stock}$ trong deterministic mode — stockout là hard constraint ($B\_l(t) \\geq 0$), solver không bao giờ gặp stockout.
+Một objective duy nhất áp dụng cho mọi instance. Không còn phân tách "deterministic mode" vs "reactive mode" — cả hai chỉ là special cases của cùng một soft model:
 
-### **7.5 Reactive Mode (Post-UPS Re-solve)**
-
-$$\\boxed{\\text{Max Profit}*{rem} = \\sum*{b \\in \\mathcal{B}*{rem}} R*{\\text{sku}(b)} \\cdot a\_b - c^{tard}\\sum\_j \\text{tard}*j - c^{stock}\\sum\_l \\text{SO}l - c^{idle}\\sum{r,t} \\text{idle}*{r,t} - c^{over}\\sum\_{r,t} \\text{over}\_{r,t}}$$
+* $\\lambda = 0$: không có UPS event nào được sinh ra → solver luôn tìm được schedule với $\\text{SO}\_l = 0$ và $a\_b = 1\\ \\forall b \\in \\mathcal{B}^{MTO}$ → các penalty stockout/skip kích hoạt = 0 → kết quả tương đương deterministic baseline.
+* $\\lambda > 0$: UPS có thể làm cho zero-stockout / full-MTO không khả thi → solver cân nhắc trade-off giữa các penalty.
 
 Trong đó:
 
-* $\text{SO}\_l = |\{\tau \in \mathcal{E}\_l^{rem} : B\_l(\tau) < 0\}|$ — **số lượng consumption events** trên line $l$ mà stock strictly negative (demand unmet). $B\_l = 0$ không phải stockout. Đây là **event-count**, không phải duration.
-* $c^{stock} = $1{,}500$ per event — phạt mỗi **lần** consumption event bị thiếu hàng, không phải mỗi **phút** thiếu hàng.
-* Tất cả 4 thành phần cost đều active vì UPS có thể gây stockout và overflow-idle unavoidable.
+* $\text{SO}\_l = |\{\tau \in \mathcal{E}\_l : B\_l(\tau) < 0\}|$ — **số lượng consumption events** trên line $l$ mà stock strictly negative (demand unmet). $B\_l = 0$ không phải stockout. Đây là **event-count**, không phải duration.
+* $c^{stock} = $1{,}500$ per event — phạt mỗi **lần** consumption event bị thiếu hàng.
+* $c^{skip} = $100{,}000$ per batch MTO không hoàn thành cuối ca — đủ lớn để dominates mọi tổ hợp các penalty khác cho một batch, đảm bảo solver chỉ skip khi vật lý không thể hoàn thành.
 
 **Phân biệt penalty vs. KPI (quan trọng):**
 
@@ -799,20 +797,20 @@ Model tự quyết định toàn bộ các biến sau tại mỗi lần solve (i
 
 ## **9. Solution Methods**
 
-### **9.1 Tổng Quan — 4 Reactive Strategies + Deterministic Benchmark**
+### **9.1 Tổng Quan — 4 Reactive Strategies + Exact Solver Benchmark**
 
 |Method|Loại|Vai trò|Tham gia thí nghiệm UPS?|
 |-|-|-|-|
-|**MILP**|Exact optimization|Deterministic benchmark — LP relaxation lower bound để verify chất lượng CP-SAT|**Không** — chỉ giải deterministic|
-|**CP-SAT**|Constraint programming|Deterministic solver — xác lập performance ceiling lý thuyết (~$295k)|**Không** — re-solve ~2 phút, không practical|
+|**MILP**|Exact optimization|Benchmark trên $\\lambda = 0$ instances — LP relaxation lower bound để verify chất lượng CP-SAT|**Không** — chỉ chạy ở $\\lambda = 0$|
+|**CP-SAT**|Constraint programming|Perfect-information ceiling — chạy trên cùng instances với UPS pre-merged as planned downtime|**Không reactive** — re-solve time không practical, dùng làm clairvoyant ceiling|
 |**Dispatching Heuristic**|Rule-based|**Core baseline** — đại diện operator practice. Null hypothesis.|**Có**|
 |**Tabular Q-Learning**|Discretized-state RL|Lineage Zhang 2007 / LBF-Q. Cùng vai trò baseline với Luo (2020) Section 6.4 và Paeng (2021) Table 3 — discretized-state RL mà deep methods sẽ vượt qua.|**Có**|
 |**Paeng's Modified DDQN** 🆕|Continuous-state DDQN với parameter sharing|**Primary key reference comparison method** — Paeng et al. (2021), IEEE Access. Áp dụng kiến trúc DDQN với parameter-sharing vào bài toán UPMSP-SDFST của chúng tôi.|**Có**|
 |**RL-Hyper-Heuristic**|Dueling DDQN selecting dispatching tools|**Đóng góp chính của luận văn** — Dueling DDQN agent chọn từ 5 dispatching tools. Một bước kiến trúc xa hơn Paeng (2021), theo motivation từ Ren & Liu (2024) D3QN.|**Có**|
 
-**MILP + CP-SAT benchmark:** Cả hai giải cùng mô hình toán deterministic. MILP cung cấp LP relaxation lower bound → verify CP-SAT quality. CP-SAT xác lập theoretical ceiling (~$295k). Không tham gia reactive experiments.
+**MILP + CP-SAT benchmark:** Cả hai giải cùng mô hình toán soft (xem `UPS_Mathematical_Model.md`) — không có model deterministic riêng. MILP chạy trên $\\lambda = 0$ instances để cung cấp LP bound verify CP-SAT. CP-SAT có thể chạy với UPS events pre-merged as downtime (perfect-information mode) → xác lập clairvoyant ceiling cho mọi $(\\lambda, \\mu)$ cell. Không tham gia reactive experiments vì re-solve time không phù hợp real-time.
 
-> **Ghi chú về CP-SAT reactive (đã loại bỏ):** CP-SAT event-triggered re-solve đã được implement và test, nhưng loại khỏi reactive comparison vì re-solve time (~2 phút trên i3-9100F) không phù hợp real-time. Code vẫn tồn tại trong codebase.
+> **Ghi chú về CP-SAT reactive re-solve (đã loại bỏ):** CP-SAT event-triggered re-solve đã được implement và test, nhưng loại khỏi reactive comparison vì re-solve time (~2 phút trên i3-9100F) không phù hợp real-time. Code vẫn tồn tại trong `OLDCODE/Reactive_CPSAT/`.
 
 > **Ghi chú về MaskedPPO (đã loại bỏ khỏi luận văn):** End-to-end MaskedPPO đã được thử nghiệm qua 18 training cycles với hiện tượng gradient death (shared policy/value backbone → value convergence → advantage ≈ 0 → policy frozen). Không thể đưa kết quả PPO vào so sánh reactive vì không đạt convergence ổn định. Code PPOmask/ vẫn còn trong codebase nhưng không phải một phần của thesis comparison. Ghi chú gradient death được đưa vào Chapter 6 (Future Work) như một cảnh báo phương pháp luận, không phải finding chính.
 
@@ -1031,14 +1029,14 @@ Main Loop — for t = 0 to 479:
 
 ## **10. Experimental Design**
 
-### **10.1 Thí Nghiệm 1: MILP vs. CP-SAT Deterministic Benchmark**
+### **10.1 Thí Nghiệm 1: MILP vs. CP-SAT trên $\\lambda = 0$ Instances**
 
-Cùng model, cùng instance, hai solver khác nhau. Mục đích: verify CP-SAT solution quality.
+Cùng model soft (UPS_Mathematical_Model.md), cùng instance ở $\\lambda = 0$, hai solver khác nhau. Mục đích: verify CP-SAT solution quality. Ở $\\lambda = 0$ không có UPS event nào được sinh ra, nên kết quả tương đương với deterministic baseline (zero stockout, full MTO).
 
 |Parameter|Value|
 |-|-|
 |Instances|100 replications × 2 R3 modes = 200 runs|
-|UPS|$\\lambda = 0$ (không có disruption)|
+|UPS|$\\lambda = 0$ (không có disruption — soft model degenerates về deterministic special case)|
 |Metrics|Objective value (profit $), solve time, LP relaxation gap|
 |Expected finding|CP-SAT achieves same/near-optimal profit as MILP, faster solve time|
 

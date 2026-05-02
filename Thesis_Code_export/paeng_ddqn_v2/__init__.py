@@ -1,14 +1,10 @@
-"""Paeng DDQN v2 — period-based Dueling DDQN port (Paeng 2021).
+"""Paeng DDQN v2 — period-based parameter-sharing Dueling DDQN (Paeng 2021 port).
 
-In active development. The agent uses Family-Based State (FBS) features and
-parameter-sharing networks across roasters, with a period-based environment
-wrapper (Paeng 2021 §3) instead of slot-by-slot dispatch.
+Period-based decisions (every 11-minute period vs slot-by-slot), Family-Based
+State (FBS) features, parameter-sharing dueling network across roasters,
+reward shaping per Paeng 2021 §3.
 
 Public modules:
-- ``train``: training entry point (CLI: --name, --time, --seed).
-- ``evaluate``: single-seed evaluation with universal-schema export.
-
-Both modules currently raise ``NotImplementedError`` — they expose the
-expected CLI surface so master_eval and scripts can call them once the
-implementation lands.
+- ``train``: full training pipeline (config + agent + strategy + training loop).
+- ``evaluate``: single-seed schema-export + multi-seed aggregate evaluation.
 """

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>Scheduling Method Comparison Report</title>
+<style>
+      body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color: #222; }
+      h1 { margin-bottom: 4px; }
+      h2 { border-bottom: 2px solid #ddd; padding-bottom: 4px; margin-top: 32px; }
+      h3 { margin-top: 20px; }
+      .meta { background: #f5f5f7; padding: 12px 16px; border-radius: 6px; font-size: 0.92em; }
+      .meta code { background: #fff; padding: 1px 5px; border-radius: 3px; }
+      table { border-collapse: collapse; margin: 8px 0; font-size: 0.92em; }
+      th, td { padding: 6px 10px; border: 1px solid #d0d0d5; vertical-align: top; }
+      th { background: #efefef; text-align: left; }
+      table.summary td, table.summary th { min-width: 140px; }
+      table.per-seed td.winner { background: #d8f4d6; font-weight: bold; }
+      table.per-seed td.failed { background: #fdecea; color: #c0392b; text-align: center; }
+      table.per-seed tr.wins-row { background: #eef4ff; }
+      table.per-seed tr.coverage-row { background: #fff9e6; font-size: 0.86em; }
+      table.csv { font-size: 0.85em; }
+      table.csv th, table.csv td { padding: 3px 6px; }
+      .muted { color: #777; font-size: 0.84em; }
+      details { margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px; background: #fafafa; }
+      details > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
+      details[open] > summary { margin-bottom: 8px; }
+      details.seed-plots { border-color: #b0c4de; background: #f4f8fc; }
+      details.method-plots { border-color: #d3d3d3; background: #fff; margin-left: 18px; }
+      details.hp-block pre { background: #1e1e1e; color: #dcdcdc; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 0.86em; }
+      iframe.plot-frame { width: 100%; height: 1200px; border: 1px solid #ccc; border-radius: 4px; }
+      .winner-tag { display: inline-block; background: #4caf50; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+<h1>Scheduling Method Comparison Report</h1>
+<div class='meta'><strong>Generated:</strong> 2026-04-22 00:56:40 (rescue-render)<br><strong>Seeds:</strong> 1..50 (50 runs)<br><strong>UPS:</strong> λ=5.0 events/shift, μ=20.0 min<br><strong>Shift length:</strong> 480 min<br><strong>Input dir:</strong> <code>C:\Local Folder\CODE\1_Thesis\Input_data</code><br><strong>CP-SAT model:</strong> <code>(deterministic solver — no learned model)</code><br><strong>Q-Learning model:</strong> <code>C:\Local Folder\CODE\1_Thesis\q_learning\ql_results\19_04_2026_1527_ep9738_a01000_g09900_master_profit249556\q_table_master.pkl</code><br><strong>RL-HH (Dueling DDQN) model:</strong> <code>C:\Local Folder\CODE\1_Thesis\rl_hh\outputs\rlhh_overall_best.pt</code><br><strong>MaskedPPO model:</strong> <code>C:\Local Folder\CODE\1_Thesis\PPOmask\outputs\20260421_104749_c27_mto_per_batch_bonus\checkpoints\best_training_profit_model.zip</code><br><strong>Total wall time:</strong> 0.0s</div>
+
+<h2>1. Aggregate Comparison</h2>
+<p>Averages and dispersion across <strong>50 runs</strong>. Each seed feeds the
+<strong>identical UPS realization</strong> to every method.</p>
+<table class='summary'><thead><tr><th>Metric (avg across N runs)</th><th>CP-SAT</th><th>Q-Learning</th><th>RL-HH (Dueling DDQN)</th><th>MaskedPPO</th></tr></thead><tbody><tr><td><strong>Net Profit ($)</strong></td><td>$291,333<br><span class='muted'>σ=$46,658 &middot; min=$216,400 &middot; max=$400,800</span></td><td>-$76,276<br><span class='muted'>σ=$263,021 &middot; min=-$652,800 &middot; max=$230,000</span></td><td>$272,346<br><span class='muted'>σ=$107,497 &middot; min=-$255,800 &middot; max=$352,800</span></td><td>$415,450<br><span class='muted'>σ=$59,561 &middot; min=$189,800 &middot; max=$481,400</span></td></tr><tr><td><strong>Revenue ($)</strong></td><td>$439,333<br><span class='muted'>σ=$19,151 &middot; min=$410,000 &middot; max=$482,000</span></td><td>$402,240<br><span class='muted'>σ=$35,463 &middot; min=$316,000 &middot; max=$454,000</span></td><td>$457,300<br><span class='muted'>σ=$25,253 &middot; min=$334,000 &middot; max=$498,000</span></td><td>$502,940<br><span class='muted'>σ=$13,087 &middot; min=$466,000 &middot; max=$526,000</span></td></tr><tr><td><strong>Tardiness Cost ($)</strong></td><td>$4,111<br><span class='muted'>σ=$9,137 &middot; min=$0 &middot; max=$39,000</span></td><td>$232,120<br><span class='muted'>σ=$210,548 &middot; min=$20,000 &middot; max=$800,000</span></td><td>$21,420<br><span class='muted'>σ=$82,820 &middot; min=$0 &middot; max=$536,000</span></td><td>$22,000<br><span class='muted'>σ=$46,467 &middot; min=$0 &middot; max=$200,000</span></td></tr><tr><td><strong>Setup Cost ($)</strong></td><td>$8,741<br><span class='muted'>σ=$1,454 &middot; min=$3,200 &middot; max=$9,600</span></td><td>$28,592<br><span class='muted'>σ=$6,137 &middot; min=$21,600 &middot; max=$48,000</span></td><td>$12,592<br><span class='muted'>σ=$4,597 &middot; min=$6,400 &middot; max=$29,600</span></td><td>$5,088<br><span class='muted'>σ=$700 &middot; min=$4,000 &middot; max=$7,200</span></td></tr><tr><td><strong>Idle Cost ($)</strong></td><td>$135,148<br><span class='muted'>σ=$31,043 &middot; min=$63,600 &middot; max=$182,000</span></td><td>$175,204<br><span class='muted'>σ=$24,650 &middot; min=$129,800 &middot; max=$224,600</span></td><td>$149,952<br><span class='muted'>σ=$18,209 &middot; min=$128,800 &middot; max=$252,600</span></td><td>$58,512<br><span class='muted'>σ=$22,728 &middot; min=$36,000 &middot; max=$115,200</span></td></tr><tr><td><strong>Stockout Cost ($)</strong></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$42,600<br><span class='muted'>σ=$12,814 &middot; min=$7,500 &middot; max=$58,500</span></td><td>$990<br><span class='muted'>σ=$5,392 &middot; min=$0 &middot; max=$37,500</span></td><td>$1,890<br><span class='muted'>σ=$6,075 &middot; min=$0 &middot; max=$33,000</span></td></tr><tr><td><strong>Over-capacity Cost ($)</strong></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td></tr><tr><td><strong>PSC Batches</strong></td><td>92.3<br><span class='muted'>σ=4.8 &middot; min=85.0 &middot; max=103.0</span></td><td>84.6<br><span class='muted'>σ=7.8 &middot; min=65.0 &middot; max=96.0</span></td><td>96.9<br><span class='muted'>σ=6.3 &middot; min=66.0 &middot; max=107.0</span></td><td>108.6<br><span class='muted'>σ=3.3 &middot; min=99.0 &middot; max=114.0</span></td></tr><tr><td><strong>NDG Batches</strong></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>4.4<br><span class='muted'>σ=1.0 &middot; min=2.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.1 &middot; min=4.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td></tr><tr><td><strong>BUSTA Batches</strong></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>4.7<br><span class='muted'>σ=0.8 &middot; min=0.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>4.8<br><span class='muted'>σ=0.5 &middot; min=3.0 &middot; max=5.0</span></td></tr><tr><td><strong>Setup Events</strong></td><td>10.9<br><span class='muted'>σ=1.8 &middot; min=4.0 &middot; max=12.0</span></td><td>35.7<br><span class='muted'>σ=7.7 &middot; min=27.0 &middot; max=60.0</span></td><td>15.7<br><span class='muted'>σ=5.7 &middot; min=8.0 &middot; max=37.0</span></td><td>6.4<br><span class='muted'>σ=0.9 &middot; min=5.0 &middot; max=9.0</span></td></tr><tr><td><strong>Restock Operations</strong></td><td>16.0<br><span class='muted'>σ=1.7 &middot; min=12.0 &middot; max=18.0</span></td><td>14.2<br><span class='muted'>σ=1.3 &middot; min=12.0 &middot; max=16.0</span></td><td>25.6<br><span class='muted'>σ=1.3 &middot; min=18.0 &middot; max=27.0</span></td><td>17.6<br><span class='muted'>σ=0.8 &middot; min=16.0 &middot; max=19.0</span></td></tr><tr><td><strong>J1 Tardiness (min)</strong></td><td>2.2<br><span class='muted'>σ=4.2 &middot; min=0.0 &middot; max=21.0</span></td><td>102.3<br><span class='muted'>σ=99.1 &middot; min=0.0 &middot; max=227.0</span></td><td>7.9<br><span class='muted'>σ=37.6 &middot; min=0.0 &middot; max=198.0</span></td><td>0.0<br><span class='muted'>σ=0.0 &middot; min=0.0 &middot; max=0.0</span></td></tr><tr><td><strong>J2 Tardiness (min)</strong></td><td>1.9<br><span class='muted'>σ=7.7 &middot; min=0.0 &middot; max=39.0</span></td><td>41.8<br><span class='muted'>σ=34.6 &middot; min=0.0 &middot; max=123.0</span></td><td>11.5<br><span class='muted'>σ=42.1 &middot; min=0.0 &middot; max=238.0</span></td><td>0.0<br><span class='muted'>σ=0.0 &middot; min=0.0 &middot; max=0.0</span></td></tr></tbody></table>
+
+<h2>2. Per-Seed Breakdown (Net Profit)</h2>
+<p>Winner highlighted in green. Bottom row tallies wins.</p>
+<table class='per-seed'><thead><tr><th>Seed</th><th>CP-SAT</th><th>Q-Learning</th><th>RL-HH (Dueling DDQN)</th><th>MaskedPPO</th><th>Winner</th></tr></thead><tbody><tr><td>1</td><td class='failed'>—</td><td class=''>-$561,900</td><td class=''>$174,800</td><td class='winner'>$366,000</td><td>MaskedPPO</td></tr><tr><td>2</td><td class=''>$240,600</td><td class=''>$176,900</td><td class=''>$304,000</td><td class='winner'>$467,800</td><td>MaskedPPO</td></tr><tr><td>3</td><td class=''>$297,000</td><td class=''>$187,100</td><td class=''>$323,400</td><td class='winner'>$425,000</td><td>MaskedPPO</td></tr><tr><td>4</td><td class='failed'>—</td><td class=''>-$292,900</td><td class=''>$275,600</td><td class='winner'>$387,400</td><td>MaskedPPO</td></tr><tr><td>5</td><td class='failed'>—</td><td class=''>-$285,600</td><td class=''>$243,800</td><td class='winner'>$332,600</td><td>MaskedPPO</td></tr><tr><td>6</td><td class=''>$287,200</td><td class=''>$215,800</td><td class=''>$316,000</td><td class='winner'>$458,400</td><td>MaskedPPO</td></tr><tr><td>7</td><td class='failed'>—</td><td class=''>-$334,300</td><td class=''>$290,800</td><td class='winner'>$411,800</td><td>MaskedPPO</td></tr><tr><td>8</td><td class='winner'>$287,400</td><td class=''>-$314,800</td><td class=''>$186,600</td><td class=''>$189,800</td><td>CP-SAT</td></tr><tr><td>9</td><td class=''>$243,600</td><td class=''>-$244,700</td><td class=''>$172,600</td><td class='winner'>$350,800</td><td>MaskedPPO</td></tr><tr><td>10</td><td class=''>$263,200</td><td class=''>$155,400</td><td class=''>$280,800</td><td class='winner'>$386,000</td><td>MaskedPPO</td></tr><tr><td>11</td><td class='failed'>—</td><td class=''>$135,000</td><td class=''>$314,000</td><td class='winner'>$423,400</td><td>MaskedPPO</td></tr><tr><td>12</td><td class='failed'>—</td><td class=''>$203,100</td><td class=''>$321,000</td><td class='winner'>$441,400</td><td>MaskedPPO</td></tr><tr><td>13</td><td class=''>$321,400</td><td class=''>-$191,300</td><td class=''>$302,000</td><td class='winner'>$354,200</td><td>MaskedPPO</td></tr><tr><td>14</td><td class=''>$392,800</td><td class=''>$171,000</td><td class=''>$284,200</td><td class='winner'>$457,000</td><td>MaskedPPO</td></tr><tr><td>15</td><td class=''>$275,600</td><td class=''>$208,800</td><td class=''>$314,200</td><td class='winner'>$468,200</td><td>MaskedPPO</td></tr><tr><td>16</td><td class=''>$216,400</td><td class=''>-$126,200</td><td class=''>$292,800</td><td class='winner'>$444,800</td><td>MaskedPPO</td></tr><tr><td>17</td><td class='failed'>—</td><td class=''>$173,900</td><td class=''>$308,200</td><td class='winner'>$381,400</td><td>MaskedPPO</td></tr><tr><td>18</td><td class='failed'>—</td><td class=''>-$423,400</td><td class=''>-$255,800</td><td class='winner'>$338,600</td><td>MaskedPPO</td></tr><tr><td>19</td><td class=''>$274,000</td><td class=''>$206,700</td><td class=''>$308,000</td><td class='winner'>$473,800</td><td>MaskedPPO</td></tr><tr><td>20</td><td class=''>$267,000</td><td class=''>$182,700</td><td class=''>$292,200</td><td class='winner'>$467,400</td><td>MaskedPPO</td></tr><tr><td>21</td><td class='failed'>—</td><td class=''>$158,700</td><td class=''>$306,400</td><td class='winner'>$438,800</td><td>MaskedPPO</td></tr><tr><td>22</td><td class=''>$305,200</td><td class=''>$230,000</td><td class=''>$300,800</td><td class='winner'>$479,400</td><td>MaskedPPO</td></tr><tr><td>23</td><td class='failed'>—</td><td class=''>$189,300</td><td class=''>$288,200</td><td class='winner'>$466,600</td><td>MaskedPPO</td></tr><tr><td>24</td><td class=''>$266,400</td><td class=''>-$143,600</td><td class=''>$286,600</td><td class='winner'>$449,800</td><td>MaskedPPO</td></tr><tr><td>25</td><td class='failed'>—</td><td class=''>-$652,800</td><td class=''>$259,000</td><td class='winner'>$362,500</td><td>MaskedPPO</td></tr><tr><td>26</td><td class=''>$332,400</td><td class=''>$197,500</td><td class=''>$289,000</td><td class='winner'>$473,200</td><td>MaskedPPO</td></tr><tr><td>27</td><td class='failed'>—</td><td class=''>-$229,200</td><td class=''>$331,800</td><td class='winner'>$453,400</td><td>MaskedPPO</td></tr><tr><td>28</td><td class=''>$282,000</td><td class=''>-$197,200</td><td class=''>$220,300</td><td class='winner'>$436,400</td><td>MaskedPPO</td></tr><tr><td>29</td><td class='failed'>—</td><td class=''>-$265,000</td><td class=''>$324,800</td><td class='winner'>$457,600</td><td>MaskedPPO</td></tr><tr><td>30</td><td class=''>$218,800</td><td class=''>-$411,500</td><td class=''>$317,200</td><td class='winner'>$481,400</td><td>MaskedPPO</td></tr><tr><td>31</td><td class='failed'>—</td><td class=''>-$295,900</td><td class='winner'>$290,200</td><td class=''>$263,100</td><td>RL-HH (Dueling DDQN)</td></tr><tr><td>32</td><td class='failed'>—</td><td class=''>-$409,600</td><td class=''>-$166,700</td><td class='winner'>$458,200</td><td>MaskedPPO</td></tr><tr><td>33</td><td class=''>$270,000</td><td class=''>$198,900</td><td class=''>$317,600</td><td class='winner'>$464,600</td><td>MaskedPPO</td></tr><tr><td>34</td><td class=''>$365,800</td><td class=''>$187,800</td><td class=''>$352,800</td><td class='winner'>$370,200</td><td>MaskedPPO</td></tr><tr><td>35</td><td class=''>$265,200</td><td class=''>$177,900</td><td class=''>$311,200</td><td class='winner'>$467,600</td><td>MaskedPPO</td></tr><tr><td>36</td><td class='failed'>—</td><td class=''>$188,500</td><td class=''>$334,800</td><td class='winner'>$427,200</td><td>MaskedPPO</td></tr><tr><td>37</td><td class=''>$283,000</td><td class=''>-$111,200</td><td class=''>$319,200</td><td class='winner'>$450,200</td><td>MaskedPPO</td></tr><tr><td>38</td><td class=''>$244,000</td><td class=''>-$112,400</td><td class=''>$326,800</td><td class='winner'>$412,900</td><td>MaskedPPO</td></tr><tr><td>39</td><td class='failed'>—</td><td class=''>-$170,800</td><td class=''>$295,800</td><td class='winner'>$354,800</td><td>MaskedPPO</td></tr><tr><td>40</td><td class='failed'>—</td><td class=''>-$347,000</td><td class=''>$314,200</td><td class='winner'>$341,800</td><td>MaskedPPO</td></tr><tr><td>41</td><td class='winner'>$400,800</td><td class=''>$217,100</td><td class=''>$325,600</td><td class=''>$362,000</td><td>CP-SAT</td></tr><tr><td>42</td><td class='failed'>—</td><td class=''>$126,800</td><td class=''>$301,400</td><td class='winner'>$457,200</td><td>MaskedPPO</td></tr><tr><td>43</td><td class=''>$310,800</td><td class=''>-$268,100</td><td class=''>$288,600</td><td class='winner'>$461,600</td><td>MaskedPPO</td></tr><tr><td>44</td><td class='failed'>—</td><td class=''>-$371,500</td><td class=''>$241,800</td><td class='winner'>$438,600</td><td>MaskedPPO</td></tr><tr><td>45</td><td class='failed'>—</td><td class=''>-$478,000</td><td class=''>$294,000</td><td class='winner'>$456,400</td><td>MaskedPPO</td></tr><tr><td>46</td><td class=''>$295,200</td><td class=''>$180,700</td><td class=''>$305,600</td><td class='winner'>$466,200</td><td>MaskedPPO</td></tr><tr><td>47</td><td class='failed'>—</td><td class=''>$144,000</td><td class=''>$325,000</td><td class='winner'>$408,600</td><td>MaskedPPO</td></tr><tr><td>48</td><td class=''>$349,000</td><td class=''>-$134,100</td><td class=''>$311,600</td><td class='winner'>$431,000</td><td>MaskedPPO</td></tr><tr><td>49</td><td class='failed'>—</td><td class=''>-$449,200</td><td class=''>$230,900</td><td class='winner'>$386,200</td><td>MaskedPPO</td></tr><tr><td>50</td><td class=''>$311,200</td><td class=''>-$205,200</td><td class=''>$323,600</td><td class='winner'>$369,200</td><td>MaskedPPO</td></tr><tr class='coverage-row'><td><strong>Seeds completed</strong></td><td>27/50</td><td>50/50</td><td>50/50</td><td>50/50</td><td>—</td></tr><tr class='wins-row'><td><strong>Wins</strong></td><td><strong>2/50</strong></td><td><strong>0/50</strong></td><td><strong>1/50</strong></td><td><strong>47/50</strong></td><td>—</td></tr></tbody></table>
+
+<h2>3. Method Hyperparameters</h2>
+<details class='hp-block'><summary><strong>CP-SAT</strong> hyperparameters</summary><pre>{
+  &quot;solver&quot;: &quot;OR-Tools CP-SAT (Pure v3)&quot;,
+  &quot;time_limit_sec&quot;: 60,
+  &quot;num_workers&quot;: 8,
+  &quot;mip_gap&quot;: null,
+  &quot;description&quot;: &quot;Deterministic MILP/CP-SAT with UPS injected as planned downtime.&quot;
+}</pre></details>
+<details class='hp-block'><summary><strong>Q-Learning</strong> hyperparameters</summary><pre>{
+  &quot;name&quot;: &quot;master&quot;,
+  &quot;episodes&quot;: 9738,
+  &quot;alpha&quot;: 0.1,
+  &quot;gamma&quot;: 0.99,
+  &quot;epsilon_start&quot;: 1.0,
+  &quot;epsilon_end&quot;: 0.05,
+  &quot;epsilon_schedule&quot;: &quot;linear (reaches eps_end at 70% of budget)&quot;,
+  &quot;final_epsilon&quot;: 0.05,
+  &quot;state_formulation&quot;: &quot;roaster_tabular_with_heuristic_restock&quot;,
+  &quot;ups_mode&quot;: &quot;env_default&quot;,
+  &quot;ups_lambda&quot;: 5.0,
+  &quot;ups_mu&quot;: 20.0,
+  &quot;elapsed_seconds&quot;: 180.0,
+  &quot;stop_reason&quot;: &quot;time limit (180s)&quot;,
+  &quot;q_table_entries&quot;: 6187,
+  &quot;final_avg_profit_1000&quot;: 249555.8,
+  &quot;q_table_file&quot;: &quot;q_table_master.pkl&quot;,
+  &quot;training_log_file&quot;: &quot;training_log_master.pkl&quot;,
+  &quot;timestamp&quot;: &quot;2026-04-19T15:27:18.117829&quot;
+}</pre></details>
+<details class='hp-block'><summary><strong>RL-HH (Dueling DDQN)</strong> hyperparameters</summary><pre>{
+  &quot;model_path&quot;: &quot;C:\\Local Folder\\CODE\\1_Thesis\\rl_hh\\outputs\\rlhh_overall_best.pt&quot;,
+  &quot;epsilon&quot;: 0.05,
+  &quot;has_optimizer_state&quot;: true
+}</pre></details>
+<details class='hp-block'><summary><strong>MaskedPPO</strong> hyperparameters</summary><pre>{
+  &quot;timestamp&quot;: &quot;2026-04-21T18:47:56.289101&quot;,
+  &quot;run_dir&quot;: &quot;C:\\Local Folder\\CODE\\1_Thesis\\PPOmask\\outputs\\20260421_104749_c27_mto_per_batch_bonus&quot;,
+  &quot;seed&quot;: 42,
+  &quot;timesteps_requested&quot;: 200000000,
+  &quot;timesteps_actual&quot;: 114320008,
+  &quot;elapsed_seconds&quot;: 28801.040699199977,
+  &quot;n_envs&quot;: 8,
+  &quot;learning_rate&quot;: 0.0005,
+  &quot;gamma&quot;: 0.99,
+  &quot;n_steps&quot;: 4096,
+  &quot;batch_size&quot;: 128,
+  &quot;n_epochs&quot;: 3,
+  &quot;gae_lambda&quot;: 0.95,
+  &quot;vf_coef&quot;: 0.5,
+  &quot;max_grad_norm&quot;: 0.5,
+  &quot;net_arch&quot;: {
+    &quot;pi&quot;: [
+      256,
+      256
+    ],
+    &quot;vf&quot;: [
+      256,
+      256
+    ]
+  },
+  &quot;ent_coef&quot;: 0.05,
+  &quot;clip_range&quot;: 0.3,
+  &quot;ups_lambda&quot;: 5.0,
+  &quot;ups_mu&quot;: 20.0,
+  &quot;violation_penalty&quot;: 50000.0,
+  &quot;episode_termination_on_violation&quot;: true,
+  &quot;rc_maintenance_bonus&quot;: 50.0,
+  &quot;completion_bonus&quot;: 100000.0,
+  &quot;mto_completion_bonus&quot;: 30000.0,
+  &quot;completed_episodes&quot;: 118796,
+  &quot;best_profit&quot;: 901255.0,
+  &quot;final_avg_reward_1000&quot;: 765652.325,
+  &quot;violation_terminations&quot;: 5904,
+  &quot;violation_rate_last100&quot;: 0.01,
+  &quot;violation_counts&quot;: {
+    &quot;rc_negative_L1&quot;: 4863,
+    &quot;rc_negative_L2&quot;: 1041
+  },
+  &quot;action_distribution&quot;: {
+    &quot;13&quot;: 606337,
+    &quot;6&quot;: 817797,
+    &quot;8&quot;: 738584,
+    &quot;2&quot;: 1164066,
+    &quot;20&quot;: 97354149,
+    &quot;4&quot;: 2729308,
+    &quot;1&quot;: 2517616,
+    &quot;5&quot;: 2621080,
+    &quot;7&quot;: 43016,
+    &quot;0&quot;: 2663656,
+    &quot;14&quot;: 149547,
+    &quot;3&quot;: 1644625,
+    &quot;15&quot;: 11168,
+    &quot;16&quot;: 1255601
+  },
+  &quot;early_termination_rate&quot;: 0.01,
+  &quot;stop_reason&quot;: &quot;time budget (28800s)&quot;
+}</pre></details>
+
+<h2>4. Plots Per Seed Per Method</h2>
+<p>Click to expand. Each method report contains Roasting Schedule (Gantt), RC Stock,
+GC Stock, Restock Operations, Pipeline Utilization, Cost Waterfall and R3 Routing.</p>
+<details class='seed-plots'><summary>Seed 1</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_01/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_01/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_01/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 2</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_02/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_02/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_02/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_02/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 3</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_03/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_03/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_03/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_03/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 4</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_04/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_04/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_04/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 5</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_05/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_05/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_05/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 6</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_06/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_06/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_06/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_06/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 7</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_07/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_07/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_07/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 8</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_08/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_08/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_08/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_08/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 9</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_09/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_09/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_09/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_09/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 10</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_10/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_10/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_10/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_10/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 11</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_11/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_11/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_11/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 12</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_12/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_12/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_12/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 13</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_13/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_13/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_13/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_13/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 14</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_14/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_14/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_14/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_14/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 15</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_15/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_15/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_15/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_15/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 16</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_16/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_16/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_16/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_16/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 17</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_17/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_17/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_17/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 18</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_18/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_18/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_18/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 19</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_19/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_19/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_19/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_19/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 20</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_20/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_20/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_20/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_20/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 21</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_21/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_21/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_21/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 22</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_22/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_22/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_22/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_22/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 23</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_23/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_23/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_23/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 24</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_24/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_24/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_24/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_24/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 25</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_25/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_25/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_25/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 26</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_26/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_26/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_26/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_26/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 27</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_27/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_27/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_27/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 28</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_28/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_28/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_28/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_28/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 29</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_29/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_29/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_29/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 30</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_30/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_30/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_30/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_30/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 31</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_31/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_31/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_31/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 32</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_32/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_32/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_32/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 33</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_33/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_33/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_33/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_33/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 34</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_34/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_34/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_34/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_34/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 35</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_35/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_35/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_35/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_35/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 36</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_36/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_36/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_36/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 37</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_37/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_37/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_37/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_37/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 38</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_38/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_38/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_38/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_38/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 39</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_39/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_39/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_39/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 40</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_40/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_40/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_40/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 41</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_41/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_41/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_41/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_41/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 42</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_42/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_42/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_42/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 43</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_43/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_43/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_43/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_43/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 44</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_44/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_44/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_44/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 45</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_45/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_45/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_45/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 46</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_46/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_46/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_46/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_46/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 47</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_47/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_47/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_47/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 48</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_48/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_48/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_48/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_48/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 49</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_49/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_49/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_49/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 50</summary><details class='method-plots'><summary>CP-SAT</summary><iframe src='seed_50/cpsat_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_50/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_50/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_50/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+
+<h2>5. Input Parameters</h2>
+<details class='csv-block' open><summary><code>jobs.csv</code> (2 rows)</summary><table class='csv'><thead><tr><th>job_id</th><th>sku</th><th>required_batches</th><th>due_time_min</th><th>release_time_min</th></tr></thead><tbody><tr><td>J1</td><td>NDG</td><td>5</td><td>240</td><td>0</td></tr><tr><td>J2</td><td>BUSTA</td><td>5</td><td>240</td><td>0</td></tr></tbody></table></details>
+<h4>manual_disruptions_template.csv</h4><p><em>empty</em></p>
+<h4>planned_downtime.csv</h4><p><em>empty</em></p>
+<details class='csv-block' open><summary><code>roasters.csv</code> (5 rows)</summary><table class='csv'><thead><tr><th>roaster_id</th><th>line_id</th><th>pipeline_line</th><th>can_process_psc</th><th>can_process_ndg</th><th>can_process_busta</th><th>can_output_l1</th><th>can_output_l2</th><th>process_time_min</th><th>consume_time_min</th><th>initial_last_sku</th><th>is_active</th></tr></thead><tbody><tr><td>R1</td><td>L1</td><td>L1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R2</td><td>L1</td><td>L1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R3</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R4</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R5</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>shift_parameters.csv</code> (31 rows)</summary><table class='csv'><thead><tr><th>parameter</th><th>value</th><th>note</th></tr></thead><tbody><tr><td>shift_length_min</td><td>480</td><td>Total shift duration in minutes. Time slots: 0 to 479.</td></tr><tr><td>time_step_min</td><td>1</td><td>Resolution of the time horizon (1-minute slots).</td></tr><tr><td>max_rc_batches_per_line</td><td>40</td><td>RC buffer capacity per line in batch units (20000 kg / 500 kg per batch).</td></tr><tr><td>safety_stock_batches</td><td>20</td><td>Safety stock threshold (theta_SS). Idle penalty active when B_l &lt; this value.</td></tr><tr><td>setup_time_diff_sku_min</td><td>5</td><td>Setup time (sigma) required when switching between different SKU types on the same roaster.</td></tr><tr><td>psc_pool_size_per_roaster</td><td>32</td><td>Max PSC batches schedulable per roaster per shift = floor(shift_length_min / process_time_min) = floor(480/15) = 32. Total PSC pool = 5 roasters x 32 = 160 candidate batches.</td></tr><tr><td>initial_rc_l1</td><td>12</td><td>Starting RC stock on Line 1 at shift start (batch units).</td></tr><tr><td>initial_rc_l2</td><td>15</td><td>Starting RC stock on Line 2 at shift start (batch units).</td></tr><tr><td>psc_consume_rate_l1_min_per_batch</td><td>9.1</td><td>Line 1 packaging consumes 1 RC batch every 9.1 minutes (rho_L1). (Changed from 8.1) </td></tr><tr><td>psc_consume_rate_l2_min_per_batch</td><td>8.8</td><td>Line 2 packaging consumes 1 RC batch every 8.8 minutes (rho_L2). (Changed from 7.8) </td></tr><tr><td>stockout_cost_per_event_per_line</td><td>1500</td><td>Penalty per consumption event where B_l &lt; 0 (strictly negative). Applied in reactive mode only — stockout is a hard constraint in deterministic mode. NOT a per-minute rate.</td></tr><tr><td>tardiness_cost_per_min</td><td>1000</td><td>Penalty per minute an MTO job finishes after due_time_min (slot 240).</td></tr><tr><td>idle_cost_per_min_per_roaster</td><td>200</td><td>Penalty per minute a roaster is idle (not busy and not in planned downtime) while B_l &lt; safety_stock_batches on its line.</td></tr><tr><td>setup_cost_per_event</td><td>800</td><td>Lump-sum penalty per SKU changeover event on a roaster. Incurred once when roaster enters SETUP state (e.g. PSC-&gt;NDG). Separate from setup time cost.</td></tr><tr><td>overflow_idle_cost_per_min_per_roaster</td><td>50</td><td>Penalty per minute a roaster is idle because its output line RC buffer is full (= max_rc_batches_per_line). For R3 (flexible): both lines must be full.</td></tr><tr><td>ups_lambda</td><td>5</td><td>Expected number of UPS events per shift (Poisson arrival rate). Used as default for Q-learning training and evaluation. (Changed from 2 to 5)</td></tr><tr><td>ups_mu</td><td>20</td><td>Mean UPS repair duration in minutes (Exponential distribution). Used as default for Q-learning training and evaluation.</td></tr><tr><td>gc_capacity_l1_psc</td><td>40</td><td>GC silo capacity for (L1 PSC) in batch-units.</td></tr><tr><td>gc_capacity_l1_ndg</td><td>10</td><td>GC silo capacity for (L1 NDG) in batch-units.</td></tr><tr><td>gc_capacity_l1_busta</td><td>10</td><td>GC silo capacity for (L1 BUSTA) in batch-units.</td></tr><tr><td>gc_capacity_l2_psc</td><td>40</td><td>GC silo capacity for (L2 PSC) in batch-units.</td></tr><tr><td>gc_initial_l1_psc</td><td>20</td><td>Initial GC stock for (L1 PSC) in batch-units.</td></tr><tr><td>gc_initial_l1_ndg</td><td>5</td><td>Initial GC stock for (L1 NDG) in batch-units.</td></tr><tr><td>gc_initial_l1_busta</td><td>5</td><td>Initial GC stock for (L1 BUSTA) in batch-units.</td></tr><tr><td>gc_initial_l2_psc</td><td>20</td><td>Initial GC stock for (L2 PSC) in batch-units.</td></tr><tr><td>restock_duration_min</td><td>15</td><td>Duration of one GC restock operation in minutes </td></tr><tr><td>restock_qty_batches</td><td>5</td><td>GC batch-units added per completed restock.</td></tr><tr><td>violation_penalty</td><td>50000</td><td>Large penalty applied when a hard constraint is violated. Episode terminates immediately.</td></tr><tr><td>episode_termination_on_violation</td><td>1</td><td>If 1 the episode ends on any hard constraint breach. If 0 violations are penalized but episode continues.</td></tr><tr><td>rc_maintenance_bonus</td><td>0</td><td>Reward added per slot per line where rc_stock &gt;= safety_stock. Dense shaping signal to encourage restocking. Set to 0 to disable.</td></tr><tr><td>mto_skip_penalty_per_batch</td><td>100000</td><td>Penalty per MTO batch not completed by end of shift. Per mathematical model c_skip = $100000 (Changed from 50000).</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>skus.csv</code> (3 rows)</summary><table class='csv'><thead><tr><th>sku</th><th>is_mto</th><th>credits_rc_stock</th><th>revenue_per_batch_usd</th><th>default_due_time_min</th><th>batch_size_kg</th><th>roast_time_min</th></tr></thead><tbody><tr><td>PSC</td><td>0</td><td>1</td><td>4000</td><td></td><td>500</td><td>15</td></tr><tr><td>NDG</td><td>1</td><td>0</td><td>7000</td><td>240</td><td>500</td><td>17</td></tr><tr><td>BUSTA</td><td>1</td><td>0</td><td>7000</td><td>240</td><td>500</td><td>18</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>solver_config.csv</code> (6 rows)</summary><table class='csv'><thead><tr><th>parameter</th><th>value</th><th>note</th></tr></thead><tbody><tr><td>solver_name</td><td>CBC</td><td>Free open-source solver bundled with PuLP. Use HiGHS for better performance (pip install highspy).</td></tr><tr><td>time_limit_sec</td><td>30</td><td>Maximum solve time in seconds before returning best found solution.</td></tr><tr><td>mip_gap_target</td><td>0.01</td><td>Stop when gap between best integer solution and LP bound is below 1%.</td></tr><tr><td>enable_gui</td><td>1</td><td>1 = enable Flask GUI interface.</td></tr><tr><td>enable_disruptions</td><td>0</td><td>0 = ignore manual_disruptions_template.csv (deterministic baseline). Set to 1 ONLY when GUI has submitted explicit disruption events.</td></tr><tr><td>allow_r3_flexible_output</td><td>1</td><td>1 = R3 output routing is a free decision variable (y_b in {0</td></tr></tbody></table></details>
+
+<p class='muted' style='margin-top:32px'>Generated by <code>scripts/compare_methods.py</code>.
+Edit the CONFIG block at the top of the file to adjust seeds, methods, UPS parameters,
+or CP-SAT budget for sensitivity analysis.</p>
+</body>
+</html>

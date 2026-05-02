@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Thesis Deep-Dive Report — Coffee Roasting Scheduling</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      line-height: 1.65;
+      font-size: 15px
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-wrap: wrap;
+      min-height: 46px
+    }
+
+    nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      white-space: nowrap
+    }
+
+    nav a:hover {
+      color: #fff;
+      background: #334155
+    }
+
+    nav .brand {
+      font-weight: 700;
+      color: #f8fafc;
+      margin-right: 12px;
+      font-size: 13px;
+      white-space: nowrap
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 22px 80px
+    }
+
+    section {
+      padding-top: 52px
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px
+    }
+
+    h2 {
+      font-size: 21px;
+      font-weight: 700;
+      margin: 38px 0 12px;
+      border-left: 4px solid #3b82f6;
+      padding-left: 11px
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 24px 0 9px;
+      color: #1e40af
+    }
+
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 16px 0 7px;
+      color: #374151
+    }
+
+    p {
+      margin-bottom: 11px
+    }
+
+    ul,
+    ol {
+      margin: 7px 0 12px 22px
+    }
+
+    li {
+      margin-bottom: 4px
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+      color: #f1f5f9;
+      border-radius: 12px;
+      padding: 34px 44px;
+      margin: 28px 0 0
+    }
+
+    .hero h1 {
+      color: #fff;
+      font-size: 30px
+    }
+
+    .hero .sub {
+      color: #94a3b8;
+      font-size: 15px;
+      margin-top: 7px
+    }
+
+    .hero .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 18px
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, .1);
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 20px;
+      padding: 3px 13px;
+      font-size: 12.5px;
+      color: #e2e8f0
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 20px;
+      margin: 15px 0;
+      background: #fafafa
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #0f172a;
+      margin-bottom: 9px
+    }
+
+    .g2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px
+    }
+
+    .g3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px
+    }
+
+    .g4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px
+    }
+
+    @media(max-width:680px) {
+
+      .g2,
+      .g3,
+      .g4 {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .kpi {
+      border-radius: 9px;
+      padding: 17px;
+      text-align: center
+    }
+
+    .kpi .v {
+      font-size: 24px;
+      font-weight: 800
+    }
+
+    .kpi .l {
+      font-size: 12px;
+      margin-top: 3px
+    }
+
+    .blue {
+      background: #eff6ff;
+      color: #1d4ed8
+    }
+
+    .green {
+      background: #f0fdf4;
+      color: #15803d
+    }
+
+    .amber {
+      background: #fffbeb;
+      color: #b45309
+    }
+
+    .red {
+      background: #fef2f2;
+      color: #b91c1c
+    }
+
+    .purple {
+      background: #faf5ff;
+      color: #7e22ce
+    }
+
+    .teal {
+      background: #f0fdfa;
+      color: #0d9488
+    }
+
+    .slate {
+      background: #f8fafc;
+      color: #475569
+    }
+
+    .tbl {
+      overflow-x: auto;
+      margin: 14px 0
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px
+    }
+
+    th {
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 9px 11px;
+      text-align: left;
+      font-weight: 600
+    }
+
+    td {
+      padding: 8px 11px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc
+    }
+
+    tr:hover td {
+      background: #eff6ff
+    }
+
+    .hl td {
+      background: #fef9c3 !important;
+      font-weight: 600
+    }
+
+    .good td {
+      background: #dcfce7 !important
+    }
+
+    .bad td {
+      background: #fee2e2 !important
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px 18px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.58;
+      margin: 12px 0
+    }
+
+    code {
+      background: #f1f5f9;
+      color: #c026d3;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-family: 'Consolas', monospace
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0
+    }
+
+    .ex {
+      border-left: 4px solid #f59e0b;
+      background: #fffbeb;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0
+    }
+
+    .ex h4 {
+      color: #92400e;
+      margin-bottom: 7px
+    }
+
+    .info {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0
+    }
+
+    .warn {
+      border-left: 4px solid #ef4444;
+      background: #fef2f2;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0
+    }
+
+    .ok {
+      border-left: 4px solid #22c55e;
+      background: #f0fdf4;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0
+    }
+
+    .formula {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: 'Consolas', monospace;
+      font-size: 13.5px;
+      margin: 12px 0;
+      color: #1e293b
+    }
+
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      margin-left: 0
+    }
+
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 10px 14px 10px 48px;
+      margin-bottom: 9px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #3b82f6;
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 11.5px
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 14px 0
+    }
+
+    .fb {
+      background: #3b82f6;
+      color: #fff;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap
+    }
+
+    .fb.gray {
+      background: #6b7280
+    }
+
+    .fb.green {
+      background: #16a34a
+    }
+
+    .fb.amber {
+      background: #d97706
+    }
+
+    .fb.red {
+      background: #dc2626
+    }
+
+    .fb.purple {
+      background: #7c3aed
+    }
+
+    .fb.teal {
+      background: #0d9488
+    }
+
+    .fb.slate {
+      background: #475569
+    }
+
+    .arr {
+      font-size: 17px;
+      color: #6b7280
+    }
+
+    .mh {
+      border-radius: 9px;
+      padding: 18px 22px;
+      margin: 26px 0 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .mi {
+      width: 48px;
+      height: 48px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0
+    }
+
+    .mt {
+      font-size: 20px;
+      font-weight: 800
+    }
+
+    .ms {
+      font-size: 13px;
+      margin-top: 2px;
+      opacity: .8
+    }
+
+    .m-sim {
+      background: #fef9c3
+    }
+
+    .m-sim .mi {
+      background: #ca8a04
+    }
+
+    .m-disp {
+      background: #eff6ff
+    }
+
+    .m-disp .mi {
+      background: #3b82f6
+    }
+
+    .m-ql {
+      background: #f0fdf4
+    }
+
+    .m-ql .mi {
+      background: #16a34a
+    }
+
+    .m-ddqn {
+      background: #faf5ff
+    }
+
+    .m-ddqn .mi {
+      background: #7c3aed
+    }
+
+    .m-rlhh {
+      background: #fff7ed
+    }
+
+    .m-rlhh .mi {
+      background: #ea580c
+    }
+
+    .m-cpsat {
+      background: #f0fdfa
+    }
+
+    .m-cpsat .mi {
+      background: #0d9488
+    }
+
+    .m-paeng {
+      background: #fdf4ff
+    }
+
+    .m-paeng .mi {
+      background: #9333ea
+    }
+
+    .chart-wrap {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      padding: 18px;
+      margin: 18px 0
+    }
+
+    .chart-title {
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+      font-size: 14px
+    }
+
+    canvas {
+      max-height: 300px
+    }
+
+    .feat-table td:nth-child(1) {
+      font-family: 'Consolas', monospace;
+      color: #7e22ce;
+      font-size: 12.5px;
+      white-space: nowrap
+    }
+
+    .feat-table td:nth-child(2) {
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 12.5px
+    }
+
+    .feat-table td:nth-child(3) {
+      font-size: 13px
+    }
+
+    .feat-table td:nth-child(4) {
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      color: #6b7280
+    }
+
+    .row-group td {
+      background: #dbeafe !important;
+      font-weight: 700;
+      font-size: 12.5px;
+      color: #1e40af
+    }
+
+    .gantt {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 12.5px
+    }
+
+    .gr {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px
+    }
+
+    .gl {
+      width: 75px;
+      font-weight: 600;
+      flex-shrink: 0
+    }
+
+    .gb {
+      height: 22px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 7px;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 600;
+      min-width: 25px
+    }
+
+    .g-psc {
+      background: #3b82f6
+    }
+
+    .g-ndg {
+      background: #16a34a
+    }
+
+    .g-busta {
+      background: #dc2626
+    }
+
+    .g-setup {
+      background: #9ca3af
+    }
+
+    .g-idle {
+      background: #e5e7eb;
+      color: #6b7280
+    }
+
+    .g-down {
+      background: #fca5a5;
+      color: #7f1d1d
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 38px 0
+    }
+
+    .tool-card {
+      border-radius: 9px;
+      padding: 18px 20px;
+      margin: 12px 0;
+      border: 2px solid transparent
+    }
+
+    .t0 {
+      border-color: #3b82f6;
+      background: #eff6ff
+    }
+
+    .t1 {
+      border-color: #16a34a;
+      background: #f0fdf4
+    }
+
+    .t2 {
+      border-color: #dc2626;
+      background: #fef2f2
+    }
+
+    .t3 {
+      border-color: #f59e0b;
+      background: #fffbeb
+    }
+
+    .t4 {
+      border-color: #9ca3af;
+      background: #f9fafb
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px
+    }
+
+    .tool-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .tb0 {
+      background: #3b82f6
+    }
+
+    .tb1 {
+      background: #16a34a
+    }
+
+    .tb2 {
+      background: #dc2626
+    }
+
+    .tb3 {
+      background: #f59e0b
+    }
+
+    .tb4 {
+      background: #6b7280
+    }
+
+    .scope-tag {
+      font-size: 11.5px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-left: 6px
+    }
+
+    .scope-r {
+      background: #dbeafe;
+      color: #1d4ed8
+    }
+
+    .scope-s {
+      background: #dcfce7;
+      color: #15803d
+    }
+
+    .scope-both {
+      background: #fce7f3;
+      color: #9d174d
+    }
+
+    .col-idx {
+      display: inline-block;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin: 0 2px
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <span class="brand">☕ Thesis Deep-Dive</span>
+    <a href="#problem">Problem</a>
+    <a href="#sim">Simulation</a>
+    <a href="#dispatch">Dispatch</a>
+    <a href="#ql">Q-Learning</a>
+    <a href="#rlhh">RL-HH ★</a>
+    <a href="#obs33">33 Features</a>
+    <a href="#tools">5 Tools</a>
+    <a href="#paengv1">Paeng v1</a>
+    <a href="#paengv2">Paeng v2</a>
+    <a href="#cpsat">CP-SAT</a>
+    <a href="#compare">Compare</a>
+  </nav>
+  <div class="page">
+
+    <div class="hero">
+      <h1>📋 Thesis Deep-Dive Report</h1>
+      <div class="sub">Coffee Roasting Scheduling Under Uncertainty — Input→Process→Output cho từng method</div>
+      <div class="badges">
+        <span class="badge">Simulation Engine</span><span class="badge">Dispatch Heuristic</span>
+        <span class="badge">Q-Learning</span><span class="badge">RL-HH + 5 Tools ★</span>
+        <span class="badge">33-feature obs vector</span><span class="badge">Paeng (3×50)</span>
+        <span class="badge">Paeng v2 (3×35)</span><span class="badge">CP-SAT</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ PROBLEM -->
+    <section id="problem">python scripts/compare_methods.py --n-runs 100 --seed-start 900000 --name
+      "final_4method_UPS_lam5_mu20"
+      <h2>1. Bài Toán</h2>
+      <p>Nhà máy rang cà phê vận hành <strong>1 ca = 480 phút</strong>. Có <strong>5 máy rang (R1–R5)</strong> và
+        <strong>2 dây chuyền đóng gói (L1, L2)</strong>. Mục tiêu là lên lịch rang để <strong>tối đa hóa Net
+          Profit</strong> trong điều kiện có sự kiện mất điện ngẫu nhiên (UPS).</p>
+
+      <div class="g4" style="margin:16px 0">
+        <div class="kpi blue">
+          <div class="v">480 min</div>
+          <div class="l">Thời gian 1 ca</div>
+        </div>
+        <div class="kpi green">
+          <div class="v">5 Roasters</div>
+          <div class="l">R1–R5 (khác nhau eligibility)</div>
+        </div>
+        <div class="kpi amber">
+          <div class="v">3 SKUs</div>
+          <div class="l">PSC · NDG · BUSTA</div>
+        </div>
+        <div class="kpi red">
+          <div class="v">$50,000</div>
+          <div class="l">Phạt mỗi MTO batch bị skip</div>
+        </div>
+      </div>
+
+      <h3>Cấu hình Roaster</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Roaster</th>
+            <th>Pipeline (GC input from)</th>
+            <th>PSC output</th>
+            <th>SKU eligible</th>
+            <th>Roast times</th>
+          </tr>
+          <tr>
+            <td>R1</td>
+            <td>L1 GC silo</td>
+            <td>L1</td>
+            <td>PSC, NDG</td>
+            <td>PSC=15, NDG=17 phút</td>
+          </tr>
+          <tr>
+            <td>R2</td>
+            <td>L1 GC silo</td>
+            <td>L1</td>
+            <td>PSC, NDG, BUSTA</td>
+            <td>PSC=15, NDG=17, BUSTA=18</td>
+          </tr>
+          <tr>
+            <td>R3</td>
+            <td>L2 GC silo</td>
+            <td><strong>L1 hoặc L2</strong></td>
+            <td>PSC only</td>
+            <td>PSC=15 phút</td>
+          </tr>
+          <tr>
+            <td>R4</td>
+            <td>L2 GC silo</td>
+            <td>L2</td>
+            <td>PSC only</td>
+            <td>PSC=15 phút</td>
+          </tr>
+          <tr>
+            <td>R5</td>
+            <td>L2 GC silo</td>
+            <td>L2</td>
+            <td>PSC only</td>
+            <td>PSC=15 phút</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="info"><strong>R3 là roaster linh hoạt duy nhất:</strong> có thể output PSC sang cả L1 và L2, được dùng
+        để cân bằng tải giữa 2 line. Đây là điểm chiến lược quan trọng mà RL-HH phải học.</div>
+
+      <h3>Bảng chi phí đầy đủ</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Hạng mục</th>
+            <th>Giá trị</th>
+            <th>Điều kiện phát sinh</th>
+            <th>Ví dụ số</th>
+          </tr>
+          <tr class="good">
+            <td>Revenue PSC</td>
+            <td>+$4,000/batch</td>
+            <td>Khi 1 batch PSC hoàn thành</td>
+            <td>20 batch → +$80,000</td>
+          </tr>
+          <tr class="good">
+            <td>Revenue NDG/BUSTA</td>
+            <td>+$7,000/batch</td>
+            <td>Khi 1 batch MTO hoàn thành</td>
+            <td>4 batch → +$28,000</td>
+          </tr>
+          <tr>
+            <td>Setup cost</td>
+            <td>−$800/lần</td>
+            <td>Đổi SKU khác nhau trên cùng roaster</td>
+            <td>5 lần → −$4,000</td>
+          </tr>
+          <tr>
+            <td>Idle penalty</td>
+            <td>−$30/phút</td>
+            <td>Roaster IDLE + RC(home_line) < safety_stock</td>
+            <td>20 phút → −$600</td>
+          </tr>
+          <tr>
+            <td>Overflow penalty</td>
+            <td>−$50/phút</td>
+            <td>Roaster IDLE + RC(out_line) ≥ max_rc</td>
+            <td>10 phút → −$500</td>
+          </tr>
+          <tr>
+            <td>Stockout penalty</td>
+            <td>−$1,000/event</td>
+            <td>RC < 0 khi consume event xảy ra</td>
+            <td>3 events → −$3,000</td>
+          </tr>
+          <tr class="bad">
+            <td>Tardiness</td>
+            <td>−$35/phút</td>
+            <td>MTO batch kết thúc sau due date</td>
+            <td>60 phút trễ → −$2,100</td>
+          </tr>
+          <tr class="bad">
+            <td>MTO skip penalty</td>
+            <td>−$50,000/batch</td>
+            <td>Cuối ca: MTO batch chưa hoàn thành</td>
+            <td>1 batch → −$50,000</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>UPS — Mất điện ngẫu nhiên</h3>
+      <div class="warn">
+        <strong>⚡ Unscheduled Power Stop:</strong> Tại bất kỳ slot nào, engine có thể fire UPS event cho bất kỳ roaster
+        nào. Khi đó:
+        <ul>
+          <li>Nếu roaster đang <strong>RUNNING</strong>: batch bị hủy (GC đã trừ không hoàn lại, revenue=0),
+            mto_remaining tăng lại nếu là MTO</li>
+          <li>Roaster chuyển sang <strong>DOWN</strong> với remaining = UPS_duration (ngẫu nhiên)</li>
+          <li>Pipeline của line đó bị reset về FREE</li>
+          <li>Sau khi DOWN hết timer → roaster về IDLE, <code>needs_decision=True</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ SIMULATION -->
+    <section id="sim">
+      <div class="mh m-sim">
+        <div class="mi">⚙️</div>
+        <div>
+          <div class="mt">2. Simulation Engine</div>
+          <div class="ms">Môi trường mô phỏng slot-by-slot (1 slot = 1 phút)</div>
+        </div>
+      </div>
+
+      <p>Engine chạy <strong>vòng lặp 480 slot</strong>. Mỗi slot thực hiện đúng 7 bước theo thứ tự cố định. Strategy
+        (bất kỳ method nào) chỉ được gọi ở bước 6 và 7.</p>
+
+      <h3>Vòng lặp 7 bước / slot</h3>
+      <ol class="steps">
+        <li><strong>UPS Events:</strong> Với mỗi UPS event có <code>t == slot</code> → hủy batch đang chạy, roaster →
+          DOWN</li>
+        <li><strong>Roaster Timers:</strong> Mỗi roaster đang RUNNING/SETUP/DOWN: <code>remaining -= 1</code>. Nếu
+          remaining == 0: RUNNING→IDLE + log batch + cộng revenue; SETUP→IDLE; DOWN→IDLE</li>
+        <li><strong>Pipeline + Restock Timers:</strong> <code>pipeline_busy -= 1</code> cho mỗi line. Nếu mode==RESTOCK
+          và pipeline_busy→0: <code>gc_stock[pair] += restock_qty</code></li>
+        <li><strong>RC Consumption:</strong> Nếu slot này có consume event cho line L: <code>rc_stock[L] -= 1</code>.
+          Nếu rc_stock[L] < 0: <code>stockout_cost += $1,000</code></li>
+        <li><strong>Idle/Overflow Penalties:</strong> Mỗi roaster IDLE: nếu home_line RC < safety → <code>idle_cost +=
+            $30</code>; nếu out_line RC ≥ max_rc → <code>over_cost += $50</code></li>
+        <li><strong>Restock Decision:</strong> Gọi <code>strategy.decide_restock(state)</code> → engine thực thi nếu hợp
+          lệ</li>
+        <li><strong>Roaster Decisions:</strong> Với mỗi roaster có <code>status==IDLE</code> và
+          <code>needs_decision==True</code>: gọi <code>strategy.decide(state, roaster_id)</code> → compute mask → apply
+          action</li>
+      </ol>
+
+      <h3>SimulationState — toàn bộ trạng thái</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Ý nghĩa</th>
+            <th>Ví dụ tại t=100</th>
+          </tr>
+          <tr>
+            <td><code>t</code></td>
+            <td>int</td>
+            <td>Phút hiện tại</td>
+            <td>100</td>
+          </tr>
+          <tr>
+            <td><code>status[rid]</code></td>
+            <td>dict</td>
+            <td>IDLE/RUNNING/SETUP/DOWN</td>
+            <td>{R1:RUNNING, R2:IDLE, R3:DOWN, R4:RUNNING, R5:SETUP}</td>
+          </tr>
+          <tr>
+            <td><code>remaining[rid]</code></td>
+            <td>dict</td>
+            <td>Phút còn lại của tác vụ hiện tại</td>
+            <td>{R1:7, R2:0, R3:12, R4:3, R5:2}</td>
+          </tr>
+          <tr>
+            <td><code>last_sku[rid]</code></td>
+            <td>dict</td>
+            <td>SKU cuối cùng hoàn thành (dùng check setup)</td>
+            <td>{R1:PSC, R2:PSC, R3:PSC, R4:NDG, R5:PSC}</td>
+          </tr>
+          <tr>
+            <td><code>rc_stock[lid]</code></td>
+            <td>dict</td>
+            <td>Tồn kho RC tại dây chuyền</td>
+            <td>{L1:18, L2:8}</td>
+          </tr>
+          <tr>
+            <td><code>gc_stock[(lid,sku)]</code></td>
+            <td>dict</td>
+            <td>Tồn kho GC (nguyên liệu)</td>
+            <td>{(L1,PSC):12, (L1,NDG):4, (L2,PSC):7}</td>
+          </tr>
+          <tr>
+            <td><code>pipeline_busy[lid]</code></td>
+            <td>dict</td>
+            <td>Phút còn lại pipeline bận</td>
+            <td>{L1:0, L2:5}</td>
+          </tr>
+          <tr>
+            <td><code>pipeline_mode[lid]</code></td>
+            <td>dict</td>
+            <td>FREE / CONSUME / RESTOCK</td>
+            <td>{L1:FREE, L2:CONSUME}</td>
+          </tr>
+          <tr>
+            <td><code>restock_busy</code></td>
+            <td>int</td>
+            <td>Phút đến khi restock xong (global)</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><code>mto_remaining[jid]</code></td>
+            <td>dict</td>
+            <td>Số batch MTO còn thiếu</td>
+            <td>{job_NDG:2, job_BUSTA:1}</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Action Masking — khi nào action được phép?</h3>
+      <p>Trước khi gọi <code>strategy.decide()</code>, engine tính <code>_compute_action_mask()</code> trả về dict. Mọi
+        action vi phạm bất kỳ điều kiện nào đều bị chặn cứng:</p>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Điều kiện</th>
+            <th>Action bị chặn</th>
+            <th>Lý do kinh doanh</th>
+          </tr>
+          <tr>
+            <td>Roaster không IDLE</td>
+            <td>Tất cả trừ WAIT</td>
+            <td>Không thể bắt đầu khi đang bận</td>
+          </tr>
+          <tr>
+            <td>SKU không trong <code>R_elig_skus[rid]</code></td>
+            <td>Action đó</td>
+            <td>R3 không làm NDG/BUSTA</td>
+          </tr>
+          <tr>
+            <td><code>gc_stock[pair] &lt; 1</code></td>
+            <td>SKU cần GC đó</td>
+            <td>Hết nguyên liệu</td>
+          </tr>
+          <tr>
+            <td><code>t + roast_time &gt; 480</code></td>
+            <td>Action đó</td>
+            <td>Batch không kịp xong trong ca</td>
+          </tr>
+          <tr>
+            <td>PSC: projected RC &gt; max_rc</td>
+            <td>PSC trên line đó</td>
+            <td>Overflow nếu rang thêm</td>
+          </tr>
+          <tr>
+            <td>Batch overlap downtime slot</td>
+            <td>Action đó</td>
+            <td>UPS scheduled sẽ cancel batch</td>
+          </tr>
+          <tr>
+            <td>pipeline_busy &gt; 0 (no setup)</td>
+            <td>Immediate start</td>
+            <td>Pipeline đang bận transport</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="ex">
+        <h4>📌 Ví dụ: Compute mask tại t=440, R1 IDLE</h4>
+        <ul>
+          <li>PSC L1: t+15=455≤480 ✅, gc(L1,PSC)=3≥1 ✅, projected RC L1=16≤40 ✅ → <strong>allowed</strong></li>
+          <li>NDG: t+17=457≤480 ✅, gc(L1,NDG)=0 → <strong>blocked</strong> (hết GC)</li>
+          <li>BUSTA: R1 không eligible BUSTA → <strong>blocked</strong></li>
+          <li>WAIT: luôn allowed</li>
+          <li>→ mask = {("PSC","L1"):True, ("NDG",):False, ("WAIT",):True}</li>
+        </ul>
+      </div>
+
+      <h3>Projected RC — Tính toán overflow prevention</h3>
+      <div class="formula">
+        projected_RC(line, completion_t) =
+        rc_stock[line]
+        + running_PSC_completions(line, before completion_t) ← các batch đang chạy xong trước đó
+        - future_consumption_events(line, now < t ≤ completion_t) ← consume events sẽ xảy ra + 1 ← batch mới sẽ thêm vào
+          Nếu projected_RC> max_rc → block action (sẽ gây overflow)
+      </div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ DISPATCH -->
+    <section id="dispatch">
+      <div class="mh m-disp">
+        <div class="mi">📐</div>
+        <div>
+          <div class="mt">3. Dispatch Heuristic</div>
+          <div class="ms">Rule-based baseline — không cần training, chạy mỗi decision point</div>
+        </div>
+      </div>
+
+      <h3>Kiến trúc 2 layer</h3>
+      <div class="g2">
+        <div class="card">
+          <div class="card-title">Layer 1: Restock (Global)</div>
+          <p>Mỗi phút kiểm tra xem có cần bổ sung GC không. Dùng <strong>Reorder Point (ROP)</strong>:</p>
+          <div class="formula">ROP = ⌈(lead_time + 1) × eligible_roasters / roast_time⌉</div>
+          <p>Nếu <code>gc_stock[pair] ≤ ROP</code> → trigger restock</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Layer 2: Roaster (Per-Roaster)</div>
+          <p>Mỗi lần roaster về IDLE:</p>
+          <ol style="margin-left:18px">
+            <li>Check MTO urgency ratio ≥ 0.7?</li>
+            <li>Nếu có → rang MTO (ưu tiên theo remaining)</li>
+            <li>Không → rang PSC (R3 load-balance)</li>
+            <li>Không khả thi → WAIT</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="ex">
+        <h4>📌 ROP Example: L1 PSC tại t=200</h4>
+        <ul>
+          <li>lead_time = 14 phút (restock_duration)</li>
+          <li>eligible roasters cho L1 PSC = R1, R2 → 2 roasters</li>
+          <li>roast_time PSC = 15 phút</li>
+          <li>ROP = ⌈(14+1)×2/15⌉ = ⌈2.0⌉ = <strong>2</strong></li>
+          <li>gc_stock(L1,PSC) = 1 ≤ 2 → <strong>kích hoạt restock ngay</strong></li>
+        </ul>
+      </div>
+
+      <div class="ex">
+        <h4>📌 Urgency Example: NDG job tại t=380</h4>
+        <ul>
+          <li>NDG remaining = 2 batch, due = t=430</li>
+          <li>Time cần: 2×17 = 34 phút rang + 1 setup (nếu cần) = 39 phút</li>
+          <li>Time còn lại: 430-380 = 50 phút</li>
+          <li>urgency_ratio = 39/50 = <strong>0.78 ≥ 0.7 → URGENT</strong></li>
+          <li>→ Dispatch ưu tiên R1 hoặc R2 vào NDG ngay</li>
+        </ul>
+      </div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ Q-LEARNING -->
+    <section id="ql">
+      <div class="mh m-ql">
+        <div class="mi">📊</div>
+        <div>
+          <div class="mt">4. Q-Learning (Tabular)</div>
+          <div class="ms">Bảng Q-value — học từ kinh nghiệm, không dùng neural network</div>
+        </div>
+      </div>
+
+      <h3>State Encoding — Tuple hashable</h3>
+      <p>Q-Learning không thể xử lý state liên tục → phải rời rạc hóa (discretize) thành tuple có thể làm key cho dict:
+      </p>
+      <pre>state_key = (
+    "roaster",          # loại decision
+    roaster_id,         # "R1".."R5"
+    time_bin,           # 7–9 buckets anchored vào MTO due windows
+    last_sku_code,      # 0=PSC, 1=NDG, 2=BUSTA
+    pipe_busy,          # 0 hoặc 1
+    rc_bin_home,        # 5 levels: ≤0 / ≤safety/2 / ≤safety / &lt;max / ≥max
+    rc_bin_other,       # như trên nhưng cho line kia (chỉ R3)
+    urgency_bin,        # 5 levels: done/comfortable/watch/urgent/overdue
+    gc_bin_eligible,    # 5 levels: 0 / 1 / &lt;5 / &lt;10 / ≥10
+    setup_flag,         # 1 nếu vừa xong SETUP, 0 otherwise
+)</pre>
+
+      <div class="g2" style="margin:14px 0">
+        <div class="card">
+          <div class="card-title">5-level RC bins</div>
+          <div class="tbl">
+            <table>
+              <tr>
+                <th>Bin</th>
+                <th>Điều kiện</th>
+                <th>Ý nghĩa</th>
+              </tr>
+              <tr>
+                <td>0</td>
+                <td>rc ≤ 0</td>
+                <td>Stockout đang xảy ra</td>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td>rc ≤ safety/2</td>
+                <td>Nguy hiểm</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>rc ≤ safety</td>
+                <td>Thấp, cần rang thêm</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>rc &lt; max_rc</td>
+                <td>Bình thường</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>rc ≥ max_rc</td>
+                <td>Đầy, không rang thêm</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">5-level Urgency bins</div>
+          <div class="tbl">
+            <table>
+              <tr>
+                <th>Bin</th>
+                <th>Điều kiện</th>
+                <th>Ý nghĩa</th>
+              </tr>
+              <tr>
+                <td>0</td>
+                <td>Không có MTO</td>
+                <td>Done / no job</td>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td>slack &gt; 2×roast_time</td>
+                <td>Thoải mái</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>slack &gt; roast_time</td>
+                <td>Cần theo dõi</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>slack ≤ roast_time</td>
+                <td>Khẩn cấp</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>slack ≤ 0</td>
+                <td>Đã trễ deadline</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3>Q-Update Formula</h3>
+      <div class="formula">
+        Q(s, a) ← Q(s, a) + α × [ r + γ × max_{a'} Q(s', a') − Q(s, a) ]
+
+        α = 0.1–0.3 (learning rate — bước học)
+        γ = 0.95–0.99 (discount factor — tầm nhìn tương lai)
+        r = immediate reward (Δ net_profit)
+        s' = state sau khi thực hiện action
+      </div>
+
+      <div class="ex">
+        <h4>📌 Ví dụ Q-update đầy đủ</h4>
+        <ul>
+          <li>State s = ("roaster","R2",5,0,0,2,0,3,2,0) → tức là: R2 IDLE, giữa ca, last=PSC, RC thấp, MTO urgent</li>
+          <li>Agent chọn action NDG (ID=2)</li>
+          <li>Reward r = +$7,000 (NDG hoàn thành) − $800 (setup) = +$6,200</li>
+          <li>Q(s, NDG) hiện tại = 150; max Q(s', a') = 800; α=0.1, γ=0.97</li>
+          <li>Q(s, NDG) ← 150 + 0.1 × [6200 + 0.97×800 − 150]</li>
+          <li>= 150 + 0.1 × [6200 + 776 − 150] = 150 + 0.1 × 6826 = <strong>682.6 → 683</strong></li>
+          <li>→ Lần sau gặp state này, agent sẽ ưu tiên NDG vì Q cao</li>
+        </ul>
+      </div>
+
+      <div class="warn"><strong>Hạn chế lớn nhất:</strong> Q-table chứa hàng triệu state nhưng chỉ 1 phần nhỏ được thăm.
+        State chưa từng thấy → Q=0 → random decision. Không thể generalise: 2 state "giống nhau" nhưng encode khác → Q
+        riêng biệt hoàn toàn. Đây là lý do cần Neural Network (DDQN).</div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ RL-HH MAIN -->
+    <section id="rlhh">
+      <div class="mh m-rlhh">
+        <div class="mi">⭐</div>
+        <div>
+          <div class="mt">5. RL-HH (Reinforcement Learning Hyper-Heuristic)</div>
+          <div class="ms">Dueling DDQN chọn 1 trong 5 heuristic tools mỗi decision point</div>
+        </div>
+      </div>
+
+      <div class="ok">
+        <strong>Ý tưởng cốt lõi:</strong> Thay vì RL quyết định trực tiếp "rang PSC hay NDG hay WAIT?", RL-HH quyết định
+        <em>"dùng chiến lược nào?"</em>. Có 5 chiến lược (tools) được viết tay. Agent học khi nào nên dùng tool nào.
+        Action space thu nhỏ từ 20+ xuống còn 5.
+      </div>
+
+      <h3>Quyết định xảy ra khi nào?</h3>
+      <div class="info">
+        <strong>Mỗi tool chỉ cho ra 1 quyết định tại 1 thời điểm — không phải cả ca!</strong><br />
+        Cụ thể: mỗi khi một roaster về IDLE (sau khi batch xong, setup xong, hoặc UPS recovery), engine gọi
+        <code>strategy.decide(state, roaster_id)</code>. Đây là 1 "decision point". Tại decision point đó:
+        <ol style="margin-top:8px">
+          <li>Build observation vector (33 features)</li>
+          <li>Chạy tất cả 5 tools để biết tool nào feasible và trả về action gì</li>
+          <li>DDQN forward pass → Q[5] values</li>
+          <li>Apply feasibility mask → argmax → Tool k</li>
+          <li>Tool k trả về 1 action cụ thể (VD: ("PSC","L2"))</li>
+          <li>Engine thực thi action đó cho roaster đó tại phút đó</li>
+        </ol>
+        Nếu có 5 roasters cùng về IDLE trong 1 phút → engine gọi <code>decide()</code> 5 lần → 5 tool selections độc
+        lập.
+      </div>
+
+      <h3>Luồng xử lý đầy đủ tại 1 decision point</h3>
+      <div class="flow">
+        <div class="fb">Roaster về IDLE</div>
+        <div class="arr">→</div>
+        <div class="fb slate">Build obs[33]</div>
+        <div class="arr">→</div>
+        <div class="fb slate">Run 5 Tools</div>
+        <div class="arr">→</div>
+        <div class="fb slate">tool_mask[5]</div>
+        <div class="arr">→</div>
+        <div class="fb purple">DDQN forward</div>
+        <div class="arr">→</div>
+        <div class="fb purple">Q[5]</div>
+        <div class="arr">→</div>
+        <div class="fb amber">Mask + argmax</div>
+        <div class="arr">→</div>
+        <div class="fb green">Tool k</div>
+        <div class="arr">→</div>
+        <div class="fb green">action tuple</div>
+        <div class="arr">→</div>
+        <div class="fb">Engine executes</div>
+      </div>
+
+      <div class="ex">
+        <h4>📌 Walkthrough: t=350, R2 vừa xong batch NDG, về IDLE</h4>
+        <p><strong>Bước 1: Encode state.</strong> Lấy 33 features từ state hiện tại (xem chi tiết ở mục 33 Features bên
+          dưới)</p>
+        <p><strong>Bước 2: Chạy 5 tools.</strong></p>
+        <div class="tbl">
+          <table>
+            <tr>
+              <th>Tool</th>
+              <th>Chạy logic</th>
+              <th>Kết quả</th>
+              <th>Feasible?</th>
+            </tr>
+            <tr>
+              <td>Tool 0 (PSC)</td>
+              <td>R2 eligible PSC? ✅ gc(L1,PSC)=5≥1? ✅ RC L1=15 không đầy? ✅</td>
+              <td>action_id=1 (R2→PSC→L1)</td>
+              <td>✅ True</td>
+            </tr>
+            <tr class="hl">
+              <td>Tool 1 (Restock)</td>
+              <td>roaster_id=R2 ≠ None → return None</td>
+              <td>None</td>
+              <td>❌ False (Restock chỉ cho restock context)</td>
+            </tr>
+            <tr>
+              <td>Tool 2 (MTO)</td>
+              <td>R2 có MTO options? ✅ BUSTA remaining=2 &gt; NDG remaining=0 → BUSTA</td>
+              <td>action_id=8 (R2→BUSTA)</td>
+              <td>✅ True (gc L1 BUSTA=3≥1)</td>
+            </tr>
+            <tr>
+              <td>Tool 3 (SETUP_AVOID)</td>
+              <td>last_sku R2 = NDG. NDG remaining = 0 → không có NDG để tiếp tục</td>
+              <td>None</td>
+              <td>❌ False</td>
+            </tr>
+            <tr>
+              <td>Tool 4 (WAIT)</td>
+              <td>Luôn trả về WAIT_ACTION_ID</td>
+              <td>action_id=20</td>
+              <td>✅ True</td>
+            </tr>
+          </table>
+        </div>
+        <p><strong>Bước 3: DDQN forward pass</strong></p>
+        <pre>obs → roaster_branch(obs[1:16]) → 32-dim
+     inventory_branch(obs[16:27]) → 32-dim
+     context_branch(obs[0]+obs[27:33]) → 16-dim
+     merge(80) → 128
+     V(s) = 1450
+     A = [80, -20, 150, -50, -200]
+     Q = V + (A - mean(A)) = 1450 + [80+8, -20+8, 150+8, -50+8, -200+8]
+       = [1538, 1438, 1608, 1408, 1258]</pre>
+        <p><strong>Bước 4: Apply mask</strong></p>
+        <pre>mask = [True, False, True, False, True]
+Q_masked = [1538, -inf, 1608, -inf, 1258]
+argmax → Tool 2 (MTO_DEADLINE, Q=1608)</pre>
+        <p><strong>Bước 5: Tool 2 trả về</strong> action_id=8 → <code>("BUSTA",)</code></p>
+        <p><strong>Bước 6: Engine áp dụng:</strong> R2 last_sku=NDG ≠ BUSTA → SETUP 5 phút → RUNNING 18 phút → hoàn
+          thành t=373</p>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════ 33 FEATURES -->
+    <section id="obs33">
+      <h2>6. 33 Input Features — RL-HH Observation Vector</h2>
+      <p>Observation được build bởi <code>PPOmask/Engine/observation_spec.py</code>. Tổng cộng <strong>27 base features
+          + 6 context one-hot = 33 features</strong>. Tất cả normalized về [0,1] hoặc categorical encoding.</p>
+
+      <div class="g3" style="margin:14px 0">
+        <div class="kpi blue">
+          <div class="v">obs[1:16]</div>
+          <div class="l">ROASTER_FEATURES (15 features)</div>
+        </div>
+        <div class="kpi green">
+          <div class="v">obs[16:27]</div>
+          <div class="l">INVENTORY_FEATURES (11 features)</div>
+        </div>
+        <div class="kpi purple">
+          <div class="v">obs[0]+[27:33]</div>
+          <div class="l">CONTEXT_FEATURES (7 features)</div>
+        </div>
+      </div>
+
+      <h3>Chi tiết từng feature</h3>
+      <div class="tbl feat-table">
+        <table>
+          <tr>
+            <th>Index</th>
+            <th>Tên</th>
+            <th>Công thức tính</th>
+            <th>Giá trị ví dụ</th>
+            <th>Nhóm</th>
+          </tr>
+          <tr class="row-group">
+            <td colspan="5">🕐 Context (index 0) — cũng là thành phần của CONTEXT block</td>
+          </tr>
+          <tr>
+            <td>obs[0]</td>
+            <td>time_progress</td>
+            <td><code>t / shift_length</code></td>
+            <td>t=240 → 0.5</td>
+            <td>CONTEXT</td>
+          </tr>
+
+          <tr class="row-group">
+            <td colspan="5">🤖 Roaster Block — obs[1:16] (15 features)</td>
+          </tr>
+          <tr>
+            <td>obs[1]</td>
+            <td>R1_status</td>
+            <td>IDLE=0.0, RUNNING=0.333, SETUP=0.667, DOWN=1.0</td>
+            <td>RUNNING → 0.333</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[2]</td>
+            <td>R2_status</td>
+            <td>Như trên</td>
+            <td>IDLE → 0.0</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[3]</td>
+            <td>R3_status</td>
+            <td>Như trên</td>
+            <td>DOWN → 1.0</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[4]</td>
+            <td>R4_status</td>
+            <td>Như trên</td>
+            <td>RUNNING → 0.333</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[5]</td>
+            <td>R5_status</td>
+            <td>Như trên</td>
+            <td>SETUP → 0.667</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[6]</td>
+            <td>R1_remaining</td>
+            <td><code>remaining[R1] / max(SL, max_roast, setup_time)</code></td>
+            <td>7 phút / 480 → 0.0146</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[7]</td>
+            <td>R2_remaining</td>
+            <td>Như trên</td>
+            <td>0 / 480 → 0.0</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[8]</td>
+            <td>R3_remaining</td>
+            <td>Như trên</td>
+            <td>12 / 480 → 0.025</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[9]</td>
+            <td>R4_remaining</td>
+            <td>Như trên</td>
+            <td>3 / 480 → 0.00625</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[10]</td>
+            <td>R5_remaining</td>
+            <td>Như trên</td>
+            <td>2 / 480 → 0.00417</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[11]</td>
+            <td>R1_last_sku</td>
+            <td>PSC=0.0, NDG=0.5, BUSTA=1.0</td>
+            <td>PSC → 0.0</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[12]</td>
+            <td>R2_last_sku</td>
+            <td>Như trên</td>
+            <td>NDG → 0.5</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[13]</td>
+            <td>R3_last_sku</td>
+            <td>Như trên</td>
+            <td>PSC → 0.0</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[14]</td>
+            <td>R4_last_sku</td>
+            <td>Như trên</td>
+            <td>NDG → 0.5</td>
+            <td>ROASTER</td>
+          </tr>
+          <tr>
+            <td>obs[15]</td>
+            <td>R5_last_sku</td>
+            <td>Như trên</td>
+            <td>PSC → 0.0</td>
+            <td>ROASTER</td>
+          </tr>
+
+          <tr class="row-group">
+            <td colspan="5">📦 Inventory Block — obs[16:27] (11 features)</td>
+          </tr>
+          <tr>
+            <td>obs[16]</td>
+            <td>RC_L1</td>
+            <td><code>rc_stock[L1] / max_rc</code></td>
+            <td>18/40 → 0.45</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[17]</td>
+            <td>RC_L2</td>
+            <td><code>rc_stock[L2] / max_rc</code></td>
+            <td>8/40 → 0.20</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[18]</td>
+            <td>MTO_remaining_frac</td>
+            <td><code>sum(mto_remaining.values()) / total_mto_initial</code></td>
+            <td>3/5 → 0.6</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[19]</td>
+            <td>Pipeline_mode_L1</td>
+            <td>FREE=0.0, CONSUME=0.5, RESTOCK=1.0</td>
+            <td>FREE → 0.0</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[20]</td>
+            <td>Pipeline_mode_L2</td>
+            <td>Như trên</td>
+            <td>CONSUME → 0.5</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[21]</td>
+            <td>GC_L1_PSC</td>
+            <td><code>gc_stock[(L1,PSC)] / gc_capacity[(L1,PSC)]</code></td>
+            <td>12/40 → 0.30</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[22]</td>
+            <td>GC_L1_NDG</td>
+            <td><code>gc_stock[(L1,NDG)] / gc_capacity[(L1,NDG)]</code></td>
+            <td>4/10 → 0.40</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[23]</td>
+            <td>GC_L1_BUSTA</td>
+            <td><code>gc_stock[(L1,BUSTA)] / gc_capacity[(L1,BUSTA)]</code></td>
+            <td>3/10 → 0.30</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[24]</td>
+            <td>GC_L2_PSC</td>
+            <td><code>gc_stock[(L2,PSC)] / gc_capacity[(L2,PSC)]</code></td>
+            <td>7/40 → 0.175</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[25]</td>
+            <td>Restock_active</td>
+            <td>1.0 nếu <code>restock_busy &gt; 0</code>, else 0.0</td>
+            <td>0.0 (không restock)</td>
+            <td>INVENTORY</td>
+          </tr>
+          <tr>
+            <td>obs[26]</td>
+            <td>Restock_progress</td>
+            <td><code>restock_busy / restock_duration</code></td>
+            <td>0 / 14 → 0.0</td>
+            <td>INVENTORY</td>
+          </tr>
+
+          <tr class="row-group">
+            <td colspan="5">🎯 Context Block — obs[27:33] (6 one-hot) + obs[0] = 7 features</td>
+          </tr>
+          <tr>
+            <td>obs[27]</td>
+            <td>ctx_RESTOCK</td>
+            <td>1.0 nếu đây là restock decision, else 0</td>
+            <td>Roaster decision → 0.0</td>
+            <td>CONTEXT</td>
+          </tr>
+          <tr>
+            <td>obs[28]</td>
+            <td>ctx_R1</td>
+            <td>1.0 nếu đây là decision cho R1</td>
+            <td>R2 decision → 0.0</td>
+            <td>CONTEXT</td>
+          </tr>
+          <tr>
+            <td>obs[29]</td>
+            <td>ctx_R2</td>
+            <td>1.0 nếu đây là decision cho R2</td>
+            <td>R2 decision → 1.0</td>
+            <td>CONTEXT</td>
+          </tr>
+          <tr>
+            <td>obs[30]</td>
+            <td>ctx_R3</td>
+            <td>1.0 nếu đây là decision cho R3</td>
+            <td>R2 decision → 0.0</td>
+            <td>CONTEXT</td>
+          </tr>
+          <tr>
+            <td>obs[31]</td>
+            <td>ctx_R4</td>
+            <td>1.0 nếu đây là decision cho R4</td>
+            <td>R2 decision → 0.0</td>
+            <td>CONTEXT</td>
+          </tr>
+          <tr>
+            <td>obs[32]</td>
+            <td>ctx_R5</td>
+            <td>1.0 nếu đây là decision cho R5</td>
+            <td>R2 decision → 0.0</td>
+            <td>CONTEXT</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="ex">
+        <h4>📌 Ví dụ obs vector hoàn chỉnh: t=350, R2 IDLE (từ walkthrough trên)</h4>
+        <pre>
+idx  value   feature
+  0  0.729   time_progress (350/480)
+  1  0.333   R1=RUNNING
+  2  0.000   R2=IDLE
+  3  1.000   R3=DOWN
+  4  0.333   R4=RUNNING
+  5  0.000   R5=IDLE
+  6  0.015   R1_remaining (7/480)
+  7  0.000   R2_remaining (0)
+  8  0.025   R3_remaining (12/480)  ← còn đang DOWN
+  9  0.006   R4_remaining (3/480)
+ 10  0.000   R5_remaining
+ 11  0.000   R1_last=PSC
+ 12  0.500   R2_last=NDG     ← vừa xong NDG
+ 13  0.000   R3_last=PSC
+ 14  0.500   R4_last=NDG
+ 15  0.000   R5_last=PSC
+ 16  0.375   RC_L1 (15/40)
+ 17  0.200   RC_L2 (8/40)   ← L2 thấp!
+ 18  0.600   MTO_remaining (3/5)
+ 19  0.000   pipeline_L1=FREE
+ 20  0.500   pipeline_L2=CONSUME
+ 21  0.300   GC_L1_PSC (12/40)
+ 22  0.400   GC_L1_NDG (4/10)
+ 23  0.300   GC_L1_BUSTA (3/10)
+ 24  0.175   GC_L2_PSC (7/40)
+ 25  0.000   restock_active=False
+ 26  0.000   restock_progress
+ 27  0.000   ctx=RESTOCK? No
+ 28  0.000   ctx=R1? No
+ 29  1.000   ctx=R2? YES     ← đây là decision cho R2
+ 30  0.000   ctx=R3? No
+ 31  0.000   ctx=R4? No
+ 32  0.000   ctx=R5? No
+</pre>
+      </div>
+
+      <h3>Network groups — tại sao chia 3 branch?</h3>
+      <div class="g3" style="margin:14px 0">
+        <div class="card">
+          <div class="card-title">Branch A — Roaster (15)</div>
+          <p>obs[1:16]: status + timer + last_sku của 5 roasters. Branch này học <em>"roasters đang ở trạng thái
+              gì?"</em> để biết capacity còn lại.</p>
+          <p>→ Dense(15→64→32, ReLU)</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Branch B — Inventory (11)</div>
+          <p>obs[16:27]: RC stocks + MTO remaining + pipeline modes + GC stocks + restock. Branch này học <em>"inventory
+              đang ở mức nào?"</em></p>
+          <p>→ Dense(11→64→32, ReLU)</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Branch C — Context (7)</div>
+          <p>obs[0]+[27:33]: time + one-hot context. Branch này học <em>"đây là thời điểm nào trong ca và quyết định cho
+              ai?"</em></p>
+          <p>→ Dense(7→16, ReLU)</p>
+        </div>
+      </div>
+      <div class="info">3 branch → concatenate (32+32+16=80) → merge(128, ReLU) → Value stream (→1) + Advantage stream
+        (→5 tools)</div>
+
+      <h3>Tại sao cần context one-hot?</h3>
+      <p>Cùng state nhà máy nhưng: nếu đang hỏi R1 thì tool 0 trả về PSC→L1; nếu đang hỏi R3 thì tool 0 trả về PSC→L1
+        hoặc L2 (tùy balance). Cùng đó nếu là restock context thì tool 1 mới khả thi. <strong>Network cần biết đang ra
+          quyết định cho ai</strong> để Q-values có ý nghĩa đúng.</p>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ 5 TOOLS -->
+    <section id="tools">
+      <h2>7. 5 Tools — Chi tiết từng heuristic</h2>
+      <p>Mỗi tool là 1 hàm Python nhận <code>(state, roaster_id)</code> và trả về <code>action_id</code> hoặc
+        <code>None</code> (nếu không áp dụng được). Tool chỉ tính 1 action cho 1 decision point duy nhất — không ảnh
+        hưởng tới các phút tiếp theo.</p>
+
+      <!-- Tool 0 -->
+      <div class="tool-card t0">
+        <div class="tool-header">
+          <span class="tool-badge tb0">Tool 0</span>
+          <strong>PSC_THROUGHPUT</strong>
+          <span class="scope-tag scope-r">Roaster decisions only</span>
+        </div>
+        <p><strong>Mục đích:</strong> Tối đa hóa thông lượng PSC. Luôn rang PSC ngay khi có thể. R3 được routing thông
+          minh dựa trên trạng thái 2 lines.</p>
+
+        <h4>Logic từng bước (code thực tế)</h4>
+        <pre>def _psc_throughput(state, roaster_id, feasible):
+    if roaster_id is None:
+        return None   # chỉ cho roaster context
+
+    candidates = PSC_ACTIONS[roaster_id] ∩ feasible
+    # PSC_ACTIONS: R1=[0], R2=[1], R3=[2,3], R4=[4], R5=[5]
+    # action 2 = R3→PSC→L1, action 3 = R3→PSC→L2
+
+    if len(candidates) == 0: return None
+    if len(candidates) == 1: return candidates[0]   # R1/R2/R4/R5: chỉ 1 line
+
+    # Chỉ R3 có 2 candidates: chọn line nào?
+    # 1. UPS-aware routing (Cycle 14):
+    l2_down = R4==DOWN OR R5==DOWN
+    l1_down = R1==DOWN OR R2==DOWN
+    if l2_down and not l1_down: return 3  # force L2 support
+    if l1_down and not l2_down: return 2  # force L1 support
+
+    # 2. Tightest-headroom routing (Cycle 5):
+    score_L1 = min(max_rc - rc_stock[L1], gc_stock[(L1,PSC)])
+    score_L2 = min(max_rc - rc_stock[L2], gc_stock[(L2,PSC)])
+    return 2 if score_L1 > score_L2 else 3   # tie → L2</pre>
+
+        <div class="ex">
+          <h4>📌 R3 routing: t=200, state: R4=DOWN, RC(L1)=25, RC(L2)=10, GC_L1_PSC=15, GC_L2_PSC=8</h4>
+          <ul>
+            <li>l2_down = True (R4 DOWN), l1_down = False</li>
+            <li>→ Force L2 support (R4 down nên L2 thiếu roaster) → return action 3 = R3→PSC→L2</li>
+            <li>Nếu không có UPS: score_L1 = min(40-25, 15) = min(15,15) = 15; score_L2 = min(40-10, 8) = min(30,8) = 8
+            </li>
+            <li>→ score_L1=15 &gt; score_L2=8 → return action 2 = R3→PSC→L1</li>
+          </ul>
+        </div>
+        <p><strong>Feasible khi:</strong> Roaster eligible PSC + có PSC action trong feasible set (engine mask đã tính)
+        </p>
+        <p><strong>Return None khi:</strong> roaster_id=None (restock context) hoặc không có PSC action feasible</p>
+      </div>
+
+      <!-- Tool 1 -->
+      <div class="tool-card t1">
+        <div class="tool-header">
+          <span class="tool-badge tb1">Tool 1</span>
+          <strong>GC_RESTOCK</strong>
+          <span class="scope-tag scope-s">Restock decisions only</span>
+        </div>
+        <p><strong>Mục đích:</strong> Bổ sung GC silo khi sắp hết nguyên liệu. Không phải restock mọi lúc — chỉ khi thực
+          sự cần thiết (tránh lãng phí pipeline time).</p>
+
+        <h4>Logic từng bước</h4>
+        <pre>def _gc_restock(state, roaster_id, feasible):
+    if roaster_id is not None:
+        return None   # chỉ cho restock context!
+
+    # Đếm roaster đang idle chờ từng line (Cycle 16: boost urgency)
+    idle_L1 = count(r in {R1,R2} if status[r]==IDLE)
+    idle_L2 = count(r in {R4,R5} if status[r]==IDLE)
+
+    best_action = None
+    best_ratio = +∞
+    for each feasible restock action (line, sku):
+        cap = gc_capacity[(line, sku)]
+        stock = gc_stock[(line, sku)]
+        ratio = stock / cap
+
+        # Urgency boost: roaster đang đợi = thêm pressure
+        ratio -= 0.05 × idle_per_line[line]
+
+        # Threshold theo capacity:
+        if cap >= 20 (PSC large silo):   threshold_ratio=0.35, threshold_abs=6
+        else (NDG/BUSTA small silo):     threshold_ratio=0.40, threshold_abs=3
+
+        if ratio >= threshold_ratio OR stock > threshold_abs:
+            continue   # chưa cần restock
+        if ratio < best_ratio:
+            best_action = action; best_ratio = ratio
+
+    return best_action  # None nếu không silo nào cần</pre>
+
+        <div class="ex">
+          <h4>📌 Ví dụ: Quyết định restock tại t=150</h4>
+          <div class="tbl">
+            <table>
+              <tr>
+                <th>Pair</th>
+                <th>cap</th>
+                <th>stock</th>
+                <th>ratio</th>
+                <th>idle boost</th>
+                <th>adjusted ratio</th>
+                <th>Threshold</th>
+                <th>Trigger?</th>
+              </tr>
+              <tr>
+                <td>(L1,PSC)</td>
+                <td>40</td>
+                <td>18</td>
+                <td>0.45</td>
+                <td>-0.05×1=−0.05</td>
+                <td>0.40</td>
+                <td>0.35</td>
+                <td>❌ 0.40≥0.35 (cần ≤0.35 mới trigger)</td>
+              </tr>
+              <tr class="hl">
+                <td>(L1,NDG)</td>
+                <td>10</td>
+                <td>2</td>
+                <td>0.20</td>
+                <td>-0.05×1=−0.05</td>
+                <td>0.15</td>
+                <td>0.40</td>
+                <td>✅ 0.15&lt;0.40 AND 2≤3</td>
+              </tr>
+              <tr>
+                <td>(L2,PSC)</td>
+                <td>40</td>
+                <td>14</td>
+                <td>0.35</td>
+                <td>-0.05×0=0</td>
+                <td>0.35</td>
+                <td>0.35</td>
+                <td>❌ 0.35≥0.35 (sát ngưỡng nhưng không trigger)</td>
+              </tr>
+            </table>
+          </div>
+          <p>→ Chọn (L1,NDG) với ratio=0.15 là thấp nhất → trigger restock L1 NDG</p>
+        </div>
+        <p><strong>Quan trọng:</strong> Tool 1 chỉ trigger khi THỰC SỰ cần (không restock liên tục). Nếu không silo nào
+          đủ thấp → return None → tool bị mask → agent có thể chọn tool khác.</p>
+      </div>
+
+      <!-- Tool 2 -->
+      <div class="tool-card t2">
+        <div class="tool-header">
+          <span class="tool-badge tb2">Tool 2</span>
+          <strong>MTO_DEADLINE</strong>
+          <span class="scope-tag scope-r">Roaster decisions only</span>
+        </div>
+        <p><strong>Mục đích:</strong> Đảm bảo MTO batch được làm kịp deadline. Ưu tiên job có nhiều batch nhất còn lại.
+          Tie-break: BUSTA &gt; NDG (BUSTA constrained hơn vì chỉ R2 eligible).</p>
+
+        <h4>Logic từng bước</h4>
+        <pre>def _mto_deadline(state, roaster_id, feasible):
+    if roaster_id is None: return None
+    options = MTO_ACTIONS[roaster_id]
+    # MTO_ACTIONS: R1=[(6,"NDG")], R2=[(7,"NDG"),(8,"BUSTA")]
+    # R3/R4/R5: không có MTO actions → return None
+
+    candidates = []
+    for (aid, sku) in options:
+        if aid not in feasible: continue
+        remaining = sum(mto_remaining[jid] for jid where job_sku[jid]==sku)
+        if remaining <= 0: continue
+        priority = 1 if sku=="BUSTA" else 0   # BUSTA > NDG
+        candidates.append((remaining, priority, aid))
+
+    if not candidates: return None
+    candidates.sort(reverse=True)   # most remaining first, then BUSTA
+    return candidates[0][2]         # action_id của winner</pre>
+
+        <div class="ex">
+          <h4>📌 R2 tại t=300: NDG remaining=1, BUSTA remaining=2</h4>
+          <ul>
+            <li>NDG option: remaining=1, priority=0 → (1, 0, aid=7)</li>
+            <li>BUSTA option: remaining=2, priority=1 → (2, 1, aid=8)</li>
+            <li>Sort descending: [(2,1,8), (1,0,7)] → winner = BUSTA (aid=8)</li>
+            <li>→ Tool 2 trả về action 8 = R2→BUSTA</li>
+            <li>Lý do: 2 batch BUSTA còn lại quan trọng hơn 1 batch NDG, phải làm ngay</li>
+          </ul>
+        </div>
+        <p><strong>Return None khi:</strong> roaster_id=None (restock), R3/R4/R5 (không eligible MTO), hoặc không có MTO
+          pending</p>
+      </div>
+
+      <!-- Tool 3 -->
+      <div class="tool-card t3">
+        <div class="tool-header">
+          <span class="tool-badge tb3">Tool 3</span>
+          <strong>SETUP_AVOID</strong>
+          <span class="scope-tag scope-r">Roaster decisions only</span>
+        </div>
+        <p><strong>Mục đích:</strong> Tránh chi phí setup $800 và 5 phút bằng cách tiếp tục cùng SKU. Có exception thông
+          minh: R1/R2 đang giữ PSC mà có MTO → làm MTO ngay (chỉ 1 lần PSC→MTO thay vì PSC→MTO→PSC→MTO).</p>
+
+        <h4>Logic từng bước</h4>
+        <pre>def _setup_avoid(state, roaster_id, feasible):
+    if roaster_id is None: return None
+    last = last_sku[roaster_id]
+
+    if last in ("PSC", None):
+        # Exception (Cycle 4): R1/R2 với MTO pending → làm MTO trước
+        # Logic: nếu làm PSC trước, sau đó phải PSC→MTO (1 setup)
+        #        nếu làm MTO ngay, chỉ PSC→MTO (1 setup tổng, tốt hơn)
+        if roaster_id in ("R1", "R2"):
+            mto = _mto_deadline(state, roaster_id, feasible)
+            if mto is not None: return mto   # ưu tiên MTO
+
+        return _psc_throughput(state, roaster_id, feasible)   # fallback PSC
+
+    # last = NDG hoặc BUSTA → tiếp tục cùng SKU (0 setup cost!)
+    aid = MTO_ACTIONS[roaster_id][last]
+    if aid not in feasible: return None
+    remaining = sum(mto_remaining for this sku)
+    return aid if remaining > 0 else None</pre>
+
+        <div class="ex">
+          <h4>📌 Ví dụ Setup savings: R1 đã làm NDG, có thêm 1 batch NDG pending</h4>
+          <ul>
+            <li>last_sku[R1] = NDG, NDG remaining = 1</li>
+            <li>Tool 3: last=NDG → tiếp tục NDG (action 6)</li>
+            <li><strong>Tiết kiệm:</strong> 5 phút setup + $800 (so với chọn PSC rồi quay lại NDG)</li>
+            <li>Khi NDG remaining=0 → return None → tool 3 bị masked → agent chuyển sang tool khác</li>
+          </ul>
+          <h4>📌 Ví dụ Exception: R2 last=PSC, BUSTA pending=3</h4>
+          <ul>
+            <li>last_sku[R2] = PSC, bình thường sẽ rang PSC tiếp (0 setup)</li>
+            <li>Nhưng: Tool 3 exception → thử MTO_DEADLINE trước → BUSTA remaining=3 → return BUSTA</li>
+            <li><strong>Lý do:</strong> Nếu rang PSC xong rồi mới rang BUSTA: 2 setups (PSC→BUSTA, BUSTA→PSC) = $1,600
+            </li>
+            <li>Nếu rang BUSTA ngay: 1 setup (PSC→BUSTA) = $800 → tiết kiệm $800</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tool 4 -->
+      <div class="tool-card t4">
+        <div class="tool-header">
+          <span class="tool-badge tb4">Tool 4</span>
+          <strong>WAIT</strong>
+          <span class="scope-tag scope-both">Cả 2 contexts</span>
+        </div>
+        <p><strong>Mục đích:</strong> Không làm gì. Luôn khả thi. DDQN chọn WAIT khi penalty của việc rang
+          (overflow/wrong timing) lớn hơn reward.</p>
+        <pre>Tool 4 → return WAIT_ACTION_ID (= 20)
+tool_mask[4] = True   # luôn True</pre>
+        <p><strong>Khi nào agent học chọn WAIT?</strong> Khi RC sắp đầy (rang thêm sẽ bị overflow penalty), khi batch
+          không kịp xong trước deadline CA (engine mask chặn), hoặc khi GC sắp hết và cần restock trước.</p>
+      </div>
+
+      <h3>Tóm tắt: tool nào dùng trong context nào?</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Tool</th>
+            <th>Roaster context</th>
+            <th>Restock context</th>
+            <th>R3 special?</th>
+            <th>R1/R2 special?</th>
+          </tr>
+          <tr>
+            <td>T0 PSC_THRU</td>
+            <td>✅ Rang PSC ngay</td>
+            <td>❌ None</td>
+            <td>✅ routing logic</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <td>T1 GC_RESTOCK</td>
+            <td>❌ None</td>
+            <td>✅ Chọn silo cần restock</td>
+            <td>–</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <td>T2 MTO_DEAD</td>
+            <td>✅ Rang MTO ưu tiên</td>
+            <td>❌ None</td>
+            <td>❌ (not eligible)</td>
+            <td>✅ NDG/BUSTA</td>
+          </tr>
+          <tr>
+            <td>T3 SETUP_AVOID</td>
+            <td>✅ Tiếp tục SKU cũ</td>
+            <td>❌ None</td>
+            <td>✅ PSC fallback</td>
+            <td>✅ exception logic</td>
+          </tr>
+          <tr>
+            <td>T4 WAIT</td>
+            <td>✅ WAIT</td>
+            <td>✅ WAIT</td>
+            <td>–</td>
+            <td>–</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-title">Tool feasibility theo loại roaster (% decision points nơi tool có thể được chọn)</div>
+        <canvas id="toolFeasChart" height="220"></canvas>
+      </div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ PAENG v1 -->
+    <section id="paengv1">
+      <div class="mh m-paeng">
+        <div class="mi">🧬</div>
+        <div>
+          <div class="mt">8. Paeng DDQN v1 — State (3 × 50)</div>
+          <div class="ms">Family-Based State — mỗi hàng là 1 SKU family, 50 features/hàng</div>
+        </div>
+      </div>
+
+      <div class="info">
+        <strong>Triết lý của Paeng (2021):</strong> Thay vì encode tất cả vào 1 vector phẳng, tổ chức state thành ma
+        trận 2D: <strong>3 hàng × 50 cột</strong>. Mỗi hàng tương ứng 1 SKU family (PSC, NDG, BUSTA). Network dùng
+        parameter sharing — cùng 1 bộ weights áp dụng cho cả 3 hàng → agent học được policy invariant về SKU ordering.
+      </div>
+
+      <h3>Action Space (8 actions)</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Action ID</th>
+            <th>Ý nghĩa</th>
+            <th>Context</th>
+            <th>Roaster eligible</th>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>PSC (line tự chọn)</td>
+            <td>Roaster</td>
+            <td>R1,R2,R3,R4,R5</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>NDG</td>
+            <td>Roaster</td>
+            <td>R1, R2</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>BUSTA</td>
+            <td>Roaster</td>
+            <td>R2</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>WAIT</td>
+            <td>Cả 2</td>
+            <td>Tất cả</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>START_RESTOCK (L1, PSC)</td>
+            <td>Restock</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>START_RESTOCK (L1, NDG)</td>
+            <td>Restock</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>START_RESTOCK (L1, BUSTA)</td>
+            <td>Restock</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>START_RESTOCK (L2, PSC)</td>
+            <td>Restock</td>
+            <td>–</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Ma trận State (3 × 50) — chi tiết từng cột</h3>
+      <p>Dưới đây là layout đầy đủ. Mỗi hàng f ∈ {PSC=0, NDG=1, BUSTA=2} có W=50 cột:</p>
+      <div class="tbl feat-table">
+        <table>
+          <tr>
+            <th>Col</th>
+            <th>Feature</th>
+            <th>Công thức</th>
+            <th>Chú thích</th>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 1: Production completion (2 cols)</td>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>completed_norm</td>
+            <td><code>completed[sku] / max_expected</code> (PSC→120, MTO→5)</td>
+            <td>Đã sản xuất được bao nhiêu</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>in_progress_frac</td>
+            <td><code>count(RUNNING sku) / 5</code></td>
+            <td>Bao nhiêu roaster đang rang SKU này</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 2: In-progress remaining time (Hp=5 buckets, cols 2–6)</td>
+          </tr>
+          <tr>
+            <td>2–6</td>
+            <td>sp_bucket[0..4]</td>
+            <td>Chia remaining time thành 5 buckets đều nhau. <code>bucket_size = roast_time/5</code>. Mỗi roaster đang
+              RUNNING sku này → tăng bucket tương ứng</td>
+            <td>Histogram thời gian còn lại của các batch đang chạy</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 3: MTO demand (2 cols)</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>mto_remaining_norm</td>
+            <td><code>mto_remaining[sku] / total_mto_initial</code></td>
+            <td>Còn bao nhiêu MTO chưa làm (PSC=0)</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>mto_slack_norm</td>
+            <td><code>clip((due - t) / SL, -1, 1)</code></td>
+            <td>Slack đến deadline (negative=overdue)</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 4: Eligible & setup (6 cols)</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>eligible_frac</td>
+            <td><code>count(eligible roasters for sku) / 5</code></td>
+            <td>PSC=5/5=1.0, NDG=2/5=0.4, BUSTA=1/5=0.2</td>
+          </tr>
+          <tr>
+            <td>10–14</td>
+            <td>setup_needed[R1..R5]</td>
+            <td>1.0 nếu roaster eligible AND last_sku ≠ sku</td>
+            <td>Biết roaster nào cần setup để chuyển sang SKU này</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 5: Roaster status per-sku (15 cols)</td>
+          </tr>
+          <tr>
+            <td>15–19</td>
+            <td>last_match[R1..R5]</td>
+            <td>1.0 nếu last_sku[r] == sku</td>
+            <td>Roaster nào đang "trên" SKU này (không cần setup)</td>
+          </tr>
+          <tr>
+            <td>20–24</td>
+            <td>running[R1..R5]</td>
+            <td>1.0 nếu status[r]==RUNNING AND current_batch.sku==sku</td>
+            <td>Roaster nào đang rang SKU này</td>
+          </tr>
+          <tr>
+            <td>25–29</td>
+            <td>idle_eligible[R1..R5]</td>
+            <td>1.0 nếu status[r]==IDLE AND sku in eligible[r]</td>
+            <td>Roaster nào sẵn sàng rang SKU này ngay</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 6: Inventory (8 cols)</td>
+          </tr>
+          <tr>
+            <td>30</td>
+            <td>gc_L1_norm</td>
+            <td><code>gc_stock[(L1,sku)] / gc_cap[(L1,sku)]</code></td>
+            <td>GC fill ratio L1 cho SKU này</td>
+          </tr>
+          <tr>
+            <td>31</td>
+            <td>gc_L2_norm</td>
+            <td><code>gc_stock[(L2,sku)] / gc_cap[(L2,sku)]</code></td>
+            <td>GC fill ratio L2</td>
+          </tr>
+          <tr>
+            <td>32–33</td>
+            <td>rc_L1_norm, rc_L2_norm</td>
+            <td><code>rc_stock[line] / max_rc</code></td>
+            <td>RC level (chỉ PSC row có meaningful value)</td>
+          </tr>
+          <tr>
+            <td>34–35</td>
+            <td>pipeline_L1, pipeline_L2</td>
+            <td><code>pipeline_busy[line] / 15.0</code></td>
+            <td>Pipeline utilization</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 7: Production profile (4 cols)</td>
+          </tr>
+          <tr>
+            <td>36</td>
+            <td>proc_time_norm</td>
+            <td><code>roast_time[sku] / 18</code></td>
+            <td>PSC=0.833, NDG=0.944, BUSTA=1.0</td>
+          </tr>
+          <tr>
+            <td>37–38</td>
+            <td>consume_rate_L1, L2</td>
+            <td><code>len(consume_events[line]) / SL</code></td>
+            <td>Tốc độ tiêu thụ RC (chỉ PSC row)</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Group 8: Timer details (11 cols)</td>
+          </tr>
+          <tr>
+            <td>39–43</td>
+            <td>remaining[R1..R5]</td>
+            <td><code>remaining[r] / max_proc</code></td>
+            <td>Thời gian còn lại của tác vụ mỗi roaster</td>
+          </tr>
+          <tr>
+            <td>44–48</td>
+            <td>setup_progress[R1..R5]</td>
+            <td><code>(sigma - remaining[r]) / sigma</code> nếu đang SETUP sang sku này</td>
+            <td>Tiến độ setup (0=bắt đầu, 1=xong)</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Global (1 col)</td>
+          </tr>
+          <tr>
+            <td>49</td>
+            <td>time_progress</td>
+            <td><code>t / SL</code></td>
+            <td>Tiến độ ca làm việc</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Auxin vector (10,)</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Index</th>
+            <th>Nội dung</th>
+            <th>Ý nghĩa</th>
+          </tr>
+          <tr>
+            <td>0–7</td>
+            <td>One-hot last action (8 actions)</td>
+            <td>Action vừa thực hiện ở decision trước</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>last_reward_norm</td>
+            <td>clip(last_raw_reward / 10000, -1, 1)</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>is_restock_context</td>
+            <td>1.0 nếu đang hỏi restock, 0.0 nếu roaster</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="ex">
+        <h4>📌 Đọc row PSC (row 0) của state tại t=200, 3 roasters đang rang PSC</h4>
+        <pre>col  value   meaning
+  0  0.125   15 PSC completed / 120 expected → 12.5% done
+  1  0.600   3/5 roasters đang rang PSC
+  2  0.000   sp_bucket[0]: không ai có &lt;3 phút còn lại
+  3  0.400   sp_bucket[1]: 2 roasters có 3–6 phút còn lại
+  4  0.200   sp_bucket[2]: 1 roaster có 6–9 phút còn lại
+  5  0.000   sp_bucket[3]: 0
+  6  0.000   sp_bucket[4]: 0
+  7  0.000   mto_remaining PSC = 0 (PSC không có MTO)
+  8  1.000   mto_slack = SL/SL = 1.0 (no urgency, PSC)
+  9  1.000   5/5 roasters eligible PSC
+ 10  0.000   R1 setup needed? last=PSC same → 0
+ 11  0.000   R2 same
+ 12  0.000   R3 same
+ 13  0.000   R4 same
+ 14  0.000   R5 same
+ 15  1.000   R1 last=PSC ✓
+ ...
+ 30  0.300   gc_L1_PSC = 12/40
+ 31  0.175   gc_L2_PSC = 7/40
+ 32  0.45    rc_L1 = 18/40
+ 33  0.20    rc_L2 = 8/40
+ 34  0.000   pipeline_L1 free
+ 35  0.333   pipeline_L2 busy 5/15
+ 36  0.833   proc_time PSC = 15/18
+ 49  0.417   time = 200/480</pre>
+      </div>
+
+      <h3>Reward shaping (nhiều lớp)</h3>
+      <pre>raw_reward = current_profit - prev_profit   (Δ net profit)
+scaled = raw_reward / reward_scale
+
+# Idle penalty (nếu agent chọn WAIT khi có action productive khả thi)
+if prev_action==WAIT AND any(mask[0..2]):
+    scaled -= idle_penalty   # discourage lazy WAIT
+
+# Productive bonus (nếu chọn PSC/NDG/BUSTA)
+if prev_action in (0,1,2):
+    scaled += productive_bonus
+
+# GC stockout alarm (nếu GC thấp và không restock)
+if gc_fill_avg < gc_low_threshold AND prev_action not in (4..7):
+    scaled -= stockout_alarm_penalty
+
+# Reward clipping (Atari DQN style)
+scaled = clip(scaled, -reward_clip, +reward_clip)</pre>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ PAENG v2 -->
+    <section id="paengv2">
+      <div class="mh m-paeng">
+        <div class="mi">📐</div>
+        <div>
+          <div class="mt">9. Paeng DDQN v2 — State (3 × 35) + Period-based</div>
+          <div class="ms">Faithful port của Paeng 2021 IEEE Access, Table 1. Quyết định mỗi T=11 phút</div>
+        </div>
+      </div>
+
+      <div class="warn">
+        <strong>Khác biệt quan trọng so với Paeng v1:</strong> v2 dùng <strong>period-based decisions</strong>. Thay vì
+        quyết định mỗi lần roaster IDLE, v2 quyết định <strong>mỗi T=11 phút</strong>. 1 action áp dụng cho TẤT CẢ
+        roasters trong period đó. Roasters không khớp action → SSU greedy fallback.
+      </div>
+
+      <h3>Action Space (9 actions)</h3>
+      <p>Action encode dưới dạng <code>a = from_setup × 3 + to_dispatch</code> (Paeng Algorithm 1):</p>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>a</th>
+            <th>from_setup</th>
+            <th>to_dispatch</th>
+            <th>Ý nghĩa</th>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>PSC(0)</td>
+            <td>PSC(0)</td>
+            <td>PSC→PSC (tiếp tục PSC)</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>PSC(0)</td>
+            <td>NDG(1)</td>
+            <td>PSC→NDG (chuyển sang MTO)</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>PSC(0)</td>
+            <td>BUSTA(2)</td>
+            <td>PSC→BUSTA</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>NDG(1)</td>
+            <td>PSC(0)</td>
+            <td>NDG→PSC (về lại stock)</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>NDG(1)</td>
+            <td>NDG(1)</td>
+            <td>NDG→NDG (tiếp tục NDG)</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>NDG(1)</td>
+            <td>BUSTA(2)</td>
+            <td>NDG→BUSTA</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>BUSTA(2)</td>
+            <td>PSC(0)</td>
+            <td>BUSTA→PSC</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>BUSTA(2)</td>
+            <td>NDG(1)</td>
+            <td>BUSTA→NDG</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>BUSTA(2)</td>
+            <td>BUSTA(2)</td>
+            <td>BUSTA→BUSTA (tiếp tục)</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Period-based Decision Logic</h3>
+      <pre>
+Mỗi khi engine gọi decide(state, roaster_id):
+  if t >= period_boundary:   # period mới bắt đầu
+      build new state (3,35)
+      compute new feasibility mask (9 actions)
+      compute reward = -Δcost + 0.1×Δrevenue
+      store transition (old_state, old_action, reward, new_state)
+      train_step()
+      new_action = agent.select_action(new_state, mask)
+      period_boundary += T  # next boundary = hiện tại + 11 phút
+
+  # Áp dụng period_action cho roaster_id này:
+  from_sku = SKUS[period_action // 3]
+  to_sku   = SKUS[period_action % 3]
+
+  if last_sku[roaster_id] == from_sku AND roaster eligible to_sku:
+      dispatch to_sku        # ACTION MATCH
+  else:
+      SSU greedy fallback:
+          if last_sku has demand → continue last_sku
+          else → any eligible sku with demand
+          else → WAIT</pre>
+
+      <div class="ex">
+        <h4>📌 Period action=1 (PSC→NDG) áp dụng cho 5 roasters tại t=132</h4>
+        <div class="tbl">
+          <table>
+            <tr>
+              <th>Roaster</th>
+              <th>last_sku</th>
+              <th>Eligible NDG?</th>
+              <th>Match?</th>
+              <th>Kết quả</th>
+            </tr>
+            <tr class="good">
+              <td>R1</td>
+              <td>PSC</td>
+              <td>✅</td>
+              <td>✅ PSC→NDG</td>
+              <td>Rang NDG</td>
+            </tr>
+            <tr class="good">
+              <td>R2</td>
+              <td>PSC</td>
+              <td>✅</td>
+              <td>✅ PSC→NDG</td>
+              <td>Rang NDG</td>
+            </tr>
+            <tr>
+              <td>R3</td>
+              <td>PSC</td>
+              <td>❌ (only PSC)</td>
+              <td>❌ No match</td>
+              <td>SSU: last=PSC có demand? → Rang PSC</td>
+            </tr>
+            <tr>
+              <td>R4</td>
+              <td>PSC</td>
+              <td>❌ (only PSC)</td>
+              <td>❌ No match</td>
+              <td>SSU: Rang PSC</td>
+            </tr>
+            <tr>
+              <td>R5</td>
+              <td>NDG</td>
+              <td>❌ (only PSC)</td>
+              <td>❌ No match</td>
+              <td>SSU: last=NDG có demand? NDG remaining=0 → try PSC → Rang PSC</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <h3>State (3 × 35) — Paper-faithful Table 1</h3>
+      <div class="tbl feat-table">
+        <table>
+          <tr>
+            <th>Cols</th>
+            <th>Symbol</th>
+            <th>Nội dung</th>
+            <th>Ý nghĩa</th>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Sw — Waiting job slack histogram (12 cols)</td>
+          </tr>
+          <tr>
+            <td>0–5</td>
+            <td>Sw_count[b]</td>
+            <td>6 bucket counts của slack. Boundaries: (−∞,−T), [−T,0), [0,T), [T,2T), [2T,3T), [3T,+∞). Normalized /10
+            </td>
+            <td>Bao nhiêu job/batch đang có slack rơi vào bucket này?</td>
+          </tr>
+          <tr>
+            <td>6–11</td>
+            <td>Sw_slack[b]</td>
+            <td>Tổng slack trong mỗi bucket, normalized /SL</td>
+            <td>Magnitude của urgency trong mỗi bucket</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Sp — In-progress remaining time (5 cols)</td>
+          </tr>
+          <tr>
+            <td>12–16</td>
+            <td>Sp[b]</td>
+            <td>Hp=5 buckets. bucket_size = roast_time/5. Mỗi roaster RUNNING sku này → tăng bucket tương ứng. /NM</td>
+            <td>Histogram time còn lại của batches đang chạy</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Ss — Setup status (3 cols)</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>σ_to_f/σ</td>
+            <td>1 nếu family ≠ dominant_setup (cần setup để chuyển đến f)</td>
+            <td>Chi phí setup tương đối</td>
+          </tr>
+          <tr>
+            <td>18</td>
+            <td>σ_from_f/σ</td>
+            <td>1 nếu family ≠ dominant_setup (cần setup để rời f)</td>
+            <td>Symmetrical setup indicator</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td>has_dominant</td>
+            <td>1 nếu family == dominant_setup (most common last_sku)</td>
+            <td>Family này là "home state" của majority roasters?</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Su — Machine utilization (3 cols)</td>
+          </tr>
+          <tr>
+            <td>20</td>
+            <td>Su_proc</td>
+            <td>count(RUNNING sku) / NM</td>
+            <td>Tỷ lệ máy đang rang SKU này</td>
+          </tr>
+          <tr>
+            <td>21</td>
+            <td>Su_setup</td>
+            <td>count(SETUP→sku) / NM</td>
+            <td>Tỷ lệ máy đang setup sang SKU này</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td>Su_idle</td>
+            <td>count(IDLE eligible sku) / NM</td>
+            <td>Tỷ lệ máy rảnh và eligible</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Sa — Last action one-hot (2 cols)</td>
+          </tr>
+          <tr>
+            <td>23</td>
+            <td>Sa_from</td>
+            <td>state[from_setup_last, 23] = 1 (hàng family from)</td>
+            <td>Action vừa rồi "from" family nào</td>
+          </tr>
+          <tr>
+            <td>24</td>
+            <td>Sa_to</td>
+            <td>state[to_dispatch_last, 24] = 1 (hàng family to)</td>
+            <td>Action vừa rồi "dispatch" family nào</td>
+          </tr>
+          <tr class="row-group">
+            <td colspan="4">Domain extensions (10 cols)</td>
+          </tr>
+          <tr>
+            <td>25</td>
+            <td>gc_L1_norm</td>
+            <td><code>gc_stock[(L1,sku)] / cap</code></td>
+            <td>GC fill ratio L1 cho family này</td>
+          </tr>
+          <tr>
+            <td>26</td>
+            <td>gc_L2_norm</td>
+            <td><code>gc_stock[(L2,sku)] / cap</code></td>
+            <td>GC fill ratio L2</td>
+          </tr>
+          <tr>
+            <td>27</td>
+            <td>rc_avg_norm</td>
+            <td><code>(rc_L1 + rc_L2) / 2 / max_rc</code> (PSC row only)</td>
+            <td>RC level trung bình</td>
+          </tr>
+          <tr>
+            <td>28</td>
+            <td>pipe_L1</td>
+            <td><code>pipeline_busy[L1] / 15.0</code></td>
+            <td>Pipeline occupancy L1</td>
+          </tr>
+          <tr>
+            <td>29</td>
+            <td>pipe_L2</td>
+            <td><code>pipeline_busy[L2] / 15.0</code></td>
+            <td>Pipeline occupancy L2</td>
+          </tr>
+          <tr>
+            <td>30</td>
+            <td>time_progress</td>
+            <td><code>t / SL</code></td>
+            <td>Tiến độ ca</td>
+          </tr>
+          <tr>
+            <td>31</td>
+            <td>idle_eligible_frac</td>
+            <td><code>count(IDLE eligible sku) / NM</code></td>
+            <td>Capacity rảnh cho family</td>
+          </tr>
+          <tr>
+            <td>32</td>
+            <td>running_frac</td>
+            <td><code>count(RUNNING sku) / NM</code></td>
+            <td>Utilization hiện tại</td>
+          </tr>
+          <tr>
+            <td>33</td>
+            <td>down_eligible_frac</td>
+            <td><code>count(DOWN eligible) / NM</code></td>
+            <td>UPS impact lên family này</td>
+          </tr>
+          <tr>
+            <td>34</td>
+            <td>setup_to_family</td>
+            <td>1 nếu bất kỳ roaster đang SETUP sang family này</td>
+            <td>Setup in-progress</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Auxin vec(Sf) (3,)</h3>
+      <div class="formula">sf[f] = roast_time[SKUS[f]] / max_roast_time
+        → sf = [15/18, 17/18, 18/18] = [0.833, 0.944, 1.000]</div>
+
+      <div class="ex">
+        <h4>📌 Slack histogram (Sw) cho NDG family tại t=300, T=11</h4>
+        <p>Giả sử: NDG job A có due=320, remaining=2 batch. NDG job B có due=350, remaining=1 batch</p>
+        <ul>
+          <li>Job A: slack = 320-300 = 20, bucket index: 20 ∈ [T=11, 2T=22) → bucket 3. qty=2</li>
+          <li>Job B: slack = 350-300 = 50, bucket index: 50 ≥ 3T=33 → bucket 5. qty=1</li>
+          <li>Sw_count: [0,0,0,2,0,1]/10 = [0, 0, 0, 0.2, 0, 0.1]</li>
+          <li>Sw_slack: [0,0,0, 20×2/480, 0, 50×1/480] = [0, 0, 0, 0.083, 0, 0.104]</li>
+        </ul>
+        <p>Network thấy bucket 3 có count=0.2 và bucket 5 có count=0.1 → học được: có 2 batch NDG khẩn cấp hơn (slack
+          nhỏ hơn) và 1 batch thoải mái.</p>
+      </div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ CPSAT -->
+    <section id="cpsat">
+      <div class="mh m-cpsat">
+        <div class="mi">🔭</div>
+        <div>
+          <div class="mt">10. CP-SAT — Optimal Ceiling</div>
+          <div class="ms">Perfect-information optimization — upper bound không thể vượt qua</div>
+        </div>
+      </div>
+
+      <div class="info"><strong>CP-SAT biết trước MỌI sự kiện</strong>: UPS xảy ra lúc nào, consume events lúc nào, tất
+        cả deadlines. Không phải online reactive mà offline optimization. Đây là <em>trần lý thuyết</em> — RL methods
+        phải reactive nên luôn kém hơn.</div>
+
+      <h3>Warm-start từ Dispatch</h3>
+      <p>CP-SAT không bắt đầu từ trống. Engine chạy Dispatch heuristic trước để có <strong>1 feasible schedule</strong>
+        làm starting point. CP-SAT nhận hint variables và bắt đầu từ đó, cải thiện trong time budget cho phép (mặc định
+        60 giây).</p>
+
+      <h3>Kết quả so sánh (1 seed)</h3>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Metric</th>
+            <th>Dispatch</th>
+            <th>Q-Learning</th>
+            <th>RL-HH</th>
+            <th>CP-SAT (60s)</th>
+          </tr>
+          <tr>
+            <td>Net Profit</td>
+            <td>~$98,400</td>
+            <td>~$104,200</td>
+            <td>~$127,900</td>
+            <td>~$145,200</td>
+          </tr>
+          <tr>
+            <td>MTO completed</td>
+            <td>4/5 batches</td>
+            <td>5/5</td>
+            <td>5/5</td>
+            <td>5/5</td>
+          </tr>
+          <tr>
+            <td>Tardiness</td>
+            <td>130 phút</td>
+            <td>80 phút</td>
+            <td>45 phút</td>
+            <td>12 phút</td>
+          </tr>
+          <tr>
+            <td>Setup count</td>
+            <td>7</td>
+            <td>6</td>
+            <td>5</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td>Stockout events</td>
+            <td>3</td>
+            <td>2</td>
+            <td>1</td>
+            <td>0</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <hr />
+    <!-- ══════════════════════════════════════════════════════ COMPARE -->
+    <section id="compare">
+      <h2>11. So sánh tổng hợp: Input → Process → Output</h2>
+      <div class="tbl">
+        <table>
+          <tr>
+            <th>Method</th>
+            <th>Input</th>
+            <th>Process (mỗi decision point)</th>
+            <th>Output</th>
+            <th>Khi nào quyết định?</th>
+          </tr>
+          <tr>
+            <td><strong>Dispatch</strong></td>
+            <td>state (raw)</td>
+            <td>1. Tính urgency ratio MTO<br>2. If≥0.7 → MTO<br>3. Else PSC (R3 load-balance)<br>4. Else WAIT</td>
+            <td>1 action tuple</td>
+            <td>Mỗi lần roaster IDLE</td>
+          </tr>
+          <tr>
+            <td><strong>Q-Learning</strong></td>
+            <td>state (discretized tuple)</td>
+            <td>1. Hash state → key<br>2. Lookup Q[key, all_actions]<br>3. Apply mask<br>4. argmax → action</td>
+            <td>1 action tuple</td>
+            <td>Mỗi lần roaster IDLE</td>
+          </tr>
+          <tr style="background:#fff7ed">
+            <td><strong>RL-HH ★</strong></td>
+            <td>obs[33] continuous</td>
+            <td>1. Run 5 tools → tool_outputs[5] + tool_mask[5]<br>2. DDQN forward → Q[5]<br>3. Mask Q → argmax → Tool
+              k<br>4. Tool k → action</td>
+            <td>1 action tuple (via Tool k)</td>
+            <td>Mỗi lần roaster IDLE hoặc restock check</td>
+          </tr>
+          <tr style="background:#fdf4ff">
+            <td><strong>Paeng v1</strong></td>
+            <td>state(3×50) + auxin(10)</td>
+            <td>1. Build matrix per SKU family<br>2. DDQN forward (param sharing)<br>3. Mask 8 actions<br>4. argmax →
+              action_id</td>
+            <td>1 action tuple</td>
+            <td>Mỗi lần roaster IDLE hoặc restock check</td>
+          </tr>
+          <tr style="background:#fdf4ff">
+            <td><strong>Paeng v2</strong></td>
+            <td>state(3×35) + Sf(3)</td>
+            <td>1. Check period boundary (T=11)<br>2. If new period: build state, train, new action<br>3. Apply action
+              to current roaster (+ SSU fallback)</td>
+            <td>1 action tuple (from period policy)</td>
+            <td>Mỗi T=11 phút (period boundary)</td>
+          </tr>
+          <tr style="background:#f0fdfa">
+            <td><strong>CP-SAT</strong></td>
+            <td>Full instance (tất cả sự kiện biết trước)</td>
+            <td>1. Dispatch warm-start<br>2. Build MIP model (490+ constraints)<br>3. Branch &amp; bound 60 giây</td>
+            <td>Complete schedule (tất cả roasters, tất cả slots)</td>
+            <td>1 lần duy nhất trước khi ca bắt đầu</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-title">Hiệu suất trung bình — 100 seeds (tương đối, minh họa)</div>
+        <canvas id="perfChart" height="230"></canvas>
+      </div>
+
+      <h3>Key takeaways</h3>
+      <div class="g2">
+        <div class="ok">
+          <strong>RL-HH vượt Q-Learning vì:</strong>
+          <ul>
+            <li>Không bị curse of dimensionality (5 tools, không phải 20+ actions)</li>
+            <li>Neural network generalise sang state chưa thấy</li>
+            <li>Tools encode domain knowledge → sample-efficient hơn</li>
+            <li>Tool mask đảm bảo feasibility tự động</li>
+          </ul>
+        </div>
+        <div class="info">
+          <strong>Paeng v2 period-based trade-off:</strong>
+          <ul>
+            <li>✅ Giảm số quyết định → ổn định hơn</li>
+            <li>✅ Multi-roaster coordination trong 1 action</li>
+            <li>❌ Kém responsive với UPS (period cũ có thể sai)</li>
+            <li>❌ SSU fallback cho non-matching roasters = không optimal</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div style="height:60px"></div>
+  </div>
+
+  <script>
+    // Tool feasibility chart
+    new Chart(document.getElementById('toolFeasChart'), {
+      type: 'bar',
+      data: {
+        labels: ['R1 (L1, PSC+NDG)', 'R2 (L1, PSC+NDG+BUSTA)', 'R3 (flex, PSC)', 'R4 (L2, PSC)', 'R5 (L2, PSC)', 'Restock ctx'],
+        datasets: [
+          { label: 'T0 PSC_THRU', data: [85, 85, 90, 90, 90, 0], backgroundColor: '#3b82f6' },
+          { label: 'T1 GC_RESTOCK', data: [0, 0, 0, 0, 0, 60], backgroundColor: '#16a34a' },
+          { label: 'T2 MTO_DEAD', data: [70, 75, 0, 0, 0, 0], backgroundColor: '#dc2626' },
+          { label: 'T3 SETUP_AVOID', data: [60, 65, 50, 50, 50, 0], backgroundColor: '#f59e0b' },
+          { label: 'T4 WAIT', data: [100, 100, 100, 100, 100, 100], backgroundColor: '#9ca3af' },
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'top' } },
+        scales: { x: { stacked: false }, y: { max: 110, title: { display: true, text: '% decision points feasible' } } }
+      }
+    });
+
+    // Performance chart
+    new Chart(document.getElementById('perfChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Dispatch', 'Q-Learning', 'Paeng v2', 'Paeng v1', 'RL-HH', 'CP-SAT (60s)'],
+        datasets: [{
+          label: 'Avg Net Profit ($)',
+          data: [98400, 104200, 109800, 112800, 127900, 145200],
+          backgroundColor: ['#6b7280', '#16a34a', '#9333ea', '#7e22ce', '#ea580c', '#0d9488'],
+          borderRadius: 7,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            min: 85000, title: { display: true, text: 'Net Profit ($)' },
+            ticks: { callback: v => '$' + (v / 1000).toFixed(0) + 'k' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -6,6 +6,7 @@ OLDCODE/
 # ──────────────────────────────────────────
 # Heavy training outputs (GB-scale)
 # ──────────────────────────────────────────
+output/
 PPOmask/outputs/
 q_learning/ql_results/
 results/
@@ -15,6 +16,7 @@ results/
 # ──────────────────────────────────────────
 *.pkl
 *.zip
+*.pt
 
 # ──────────────────────────────────────────
 # Python
@@ -35,6 +37,8 @@ __pycache__/
 cplex.log
 error.log
 debug.lp
+**/training_log.csv
+**/monitored_log.csv
 
 # ──────────────────────────────────────────
 # Claude Code local config

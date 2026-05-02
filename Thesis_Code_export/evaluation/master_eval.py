@@ -31,7 +31,7 @@ METHOD_LABELS = {
     "cpsat": ("CPSAT", "CP-SAT (optimal ceiling)"),
     "ql": ("QLearning", "Q-Learning (tabular)"),
     "rlhh": ("RLHH", "RL-HH (Dueling DDQN)"),
-    "paengv2": ("PaengDDQNv2", "Paeng DDQN v2 (in dev)"),
+    "paengv2": ("PaengDDQNv2", "Paeng DDQN v2 (period-based)"),
 }
 
 
@@ -67,7 +67,8 @@ def _run_method(method: str, run_name: str, time_budget: int, seed: int) -> dict
     elif method == "paengv2":
         cmd = [
             sys.executable, "-m", "paeng_ddqn_v2.train",
-            "--name", sub_run, "--time", str(time_budget), "--seed", str(seed),
+            "--name", sub_run, "--time-sec", str(time_budget),
+            "--seed-base", str(seed),
         ]
     else:
         print(f"[master] Unknown method '{method}' — skipping", file=sys.stderr)
@@ -185,11 +186,6 @@ def main(argv: list[str] | None = None) -> int:
         methods = args.only
     else:
         methods = [m for m in methods if m not in args.skip]
-
-    # paeng_ddqn_v2 is a stub — skip by default unless --only
-    if not args.only and "paengv2" not in args.skip:
-        methods = [m for m in methods if m != "paengv2"]
-        print("[master] paengv2 is a stub; skipping. Pass --only paengv2 to test the stub.")
 
     results: dict[str, dict | None] = {}
     for m in methods:

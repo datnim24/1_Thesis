@@ -45,7 +45,7 @@ GC_PAIR_COLORS = {
 ROOT_DIR = Path(__file__).resolve().parent
 _RESULT_SEARCH_ROOTS = (
     ROOT_DIR / "results",
-    ROOT_DIR / "Reactive_CPSAT" / "results",
+    ROOT_DIR / "OLDCODE" / "Reactive_CPSAT" / "results",  # archived 2026-04-28
     ROOT_DIR / "env" / "export_output",
     ROOT_DIR / "env" / "env" / "export_output",
     ROOT_DIR / "MILP_Test_v5",

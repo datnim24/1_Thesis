@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>Scheduling Method Comparison Report</title>
+<style>
+      body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color: #222; }
+      h1 { margin-bottom: 4px; }
+      h2 { border-bottom: 2px solid #ddd; padding-bottom: 4px; margin-top: 32px; }
+      h3 { margin-top: 20px; }
+      .meta { background: #f5f5f7; padding: 12px 16px; border-radius: 6px; font-size: 0.92em; }
+      .meta code { background: #fff; padding: 1px 5px; border-radius: 3px; }
+      table { border-collapse: collapse; margin: 8px 0; font-size: 0.92em; }
+      th, td { padding: 6px 10px; border: 1px solid #d0d0d5; vertical-align: top; }
+      th { background: #efefef; text-align: left; }
+      table.summary td, table.summary th { min-width: 140px; }
+      table.per-seed td.winner { background: #d8f4d6; font-weight: bold; }
+      table.per-seed tr.wins-row { background: #eef4ff; }
+      table.csv { font-size: 0.85em; }
+      table.csv th, table.csv td { padding: 3px 6px; }
+      .muted { color: #777; font-size: 0.84em; }
+      details { margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px; background: #fafafa; }
+      details > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
+      details[open] > summary { margin-bottom: 8px; }
+      details.seed-plots { border-color: #b0c4de; background: #f4f8fc; }
+      details.method-plots { border-color: #d3d3d3; background: #fff; margin-left: 18px; }
+      details.hp-block pre { background: #1e1e1e; color: #dcdcdc; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 0.86em; }
+      iframe.plot-frame { width: 100%; height: 1200px; border: 1px solid #ccc; border-radius: 4px; }
+      .winner-tag { display: inline-block; background: #4caf50; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+<h1>Scheduling Method Comparison Report</h1>
+<div class='meta'><strong>Generated:</strong> 2026-04-21 22:47:49<br><strong>Seeds:</strong> 1..2 (2 runs)<br><strong>UPS:</strong> λ=5.0 events/shift, μ=20.0 min<br><strong>Shift length:</strong> 480 min<br><strong>Input dir:</strong> <code>C:\Local Folder\CODE\1_Thesis\Input_data</code><br><strong>Q-Learning model:</strong> <code>C:\Local Folder\CODE\1_Thesis\q_learning\ql_results\19_04_2026_1527_ep9738_a01000_g09900_master_profit249556\q_table_master.pkl</code><br><strong>RL-HH (Dueling DDQN) model:</strong> <code>C:\Local Folder\CODE\1_Thesis\rl_hh\outputs\rlhh_overall_best.pt</code><br><strong>MaskedPPO model:</strong> <code>C:\Local Folder\CODE\1_Thesis\PPOmask\outputs\20260421_104749_c27_mto_per_batch_bonus\checkpoints\best_training_profit_model.zip</code><br><strong>Total wall time:</strong> 9.6s</div>
+
+<h2>1. Aggregate Comparison</h2>
+<p>Averages and dispersion across <strong>2 runs</strong>. Each seed feeds the
+<strong>identical UPS realization</strong> to every method.</p>
+<table class='summary'><thead><tr><th>Metric (avg across N runs)</th><th>Q-Learning</th><th>RL-HH (Dueling DDQN)</th><th>MaskedPPO</th></tr></thead><tbody><tr><td><strong>Net Profit ($)</strong></td><td>-$192,500<br><span class='muted'>σ=$522,410 &middot; min=-$561,900 &middot; max=$176,900</span></td><td>$239,400<br><span class='muted'>σ=$91,358 &middot; min=$174,800 &middot; max=$304,000</span></td><td>$416,900<br><span class='muted'>σ=$71,983 &middot; min=$366,000 &middot; max=$467,800</span></td></tr><tr><td><strong>Revenue ($)</strong></td><td>$391,500<br><span class='muted'>σ=$48,790 &middot; min=$357,000 &middot; max=$426,000</span></td><td>$456,000<br><span class='muted'>σ=$8,485 &middot; min=$450,000 &middot; max=$462,000</span></td><td>$498,000<br><span class='muted'>σ=$16,971 &middot; min=$486,000 &middot; max=$510,000</span></td></tr><tr><td><strong>Tardiness Cost ($)</strong></td><td>$328,000<br><span class='muted'>σ=$425,678 &middot; min=$27,000 &middot; max=$629,000</span></td><td>$58,000<br><span class='muted'>σ=$82,024 &middot; min=$0 &middot; max=$116,000</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td></tr><tr><td><strong>Setup Cost ($)</strong></td><td>$28,400<br><span class='muted'>σ=$8,485 &middot; min=$22,400 &middot; max=$34,400</span></td><td>$13,200<br><span class='muted'>σ=$5,091 &middot; min=$9,600 &middot; max=$16,800</span></td><td>$4,800<br><span class='muted'>σ=$0 &middot; min=$4,800 &middot; max=$4,800</span></td></tr><tr><td><strong>Idle Cost ($)</strong></td><td>$179,600<br><span class='muted'>σ=$37,335 &middot; min=$153,200 &middot; max=$206,000</span></td><td>$145,400<br><span class='muted'>σ=$4,243 &middot; min=$142,400 &middot; max=$148,400</span></td><td>$76,300<br><span class='muted'>σ=$55,013 &middot; min=$37,400 &middot; max=$115,200</span></td></tr><tr><td><strong>Stockout Cost ($)</strong></td><td>$48,000<br><span class='muted'>σ=$2,121 &middot; min=$46,500 &middot; max=$49,500</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td></tr><tr><td><strong>Over-capacity Cost ($)</strong></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td><td>$0<br><span class='muted'>σ=$0 &middot; min=$0 &middot; max=$0</span></td></tr><tr><td><strong>PSC Batches</strong></td><td>83.0<br><span class='muted'>σ=8.5 &middot; min=77.0 &middot; max=89.0</span></td><td>96.5<br><span class='muted'>σ=2.1 &middot; min=95.0 &middot; max=98.0</span></td><td>107.0<br><span class='muted'>σ=4.2 &middot; min=104.0 &middot; max=110.0</span></td></tr><tr><td><strong>NDG Batches</strong></td><td>3.5<br><span class='muted'>σ=2.1 &middot; min=2.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td></tr><tr><td><strong>BUSTA Batches</strong></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td><td>5.0<br><span class='muted'>σ=0.0 &middot; min=5.0 &middot; max=5.0</span></td></tr><tr><td><strong>Setup Events</strong></td><td>35.5<br><span class='muted'>σ=10.6 &middot; min=28.0 &middot; max=43.0</span></td><td>16.5<br><span class='muted'>σ=6.4 &middot; min=12.0 &middot; max=21.0</span></td><td>6.0<br><span class='muted'>σ=0.0 &middot; min=6.0 &middot; max=6.0</span></td></tr><tr><td><strong>Restock Operations</strong></td><td>14.0<br><span class='muted'>σ=1.4 &middot; min=13.0 &middot; max=15.0</span></td><td>26.0<br><span class='muted'>σ=0.0 &middot; min=26.0 &middot; max=26.0</span></td><td>18.0<br><span class='muted'>σ=1.4 &middot; min=17.0 &middot; max=19.0</span></td></tr><tr><td><strong>J1 Tardiness (min)</strong></td><td>113.5<br><span class='muted'>σ=160.5 &middot; min=0.0 &middot; max=227.0</span></td><td>0.0<br><span class='muted'>σ=0.0 &middot; min=0.0 &middot; max=0.0</span></td><td>0.0<br><span class='muted'>σ=0.0 &middot; min=0.0 &middot; max=0.0</span></td></tr><tr><td><strong>J2 Tardiness (min)</strong></td><td>64.5<br><span class='muted'>σ=53.0 &middot; min=27.0 &middot; max=102.0</span></td><td>58.0<br><span class='muted'>σ=82.0 &middot; min=0.0 &middot; max=116.0</span></td><td>0.0<br><span class='muted'>σ=0.0 &middot; min=0.0 &middot; max=0.0</span></td></tr></tbody></table>
+
+<h2>2. Per-Seed Breakdown (Net Profit)</h2>
+<p>Winner highlighted in green. Bottom row tallies wins.</p>
+<table class='per-seed'><thead><tr><th>Seed</th><th>Q-Learning</th><th>RL-HH (Dueling DDQN)</th><th>MaskedPPO</th><th>Winner</th></tr></thead><tbody><tr><td>1</td><td class=''>-$561,900</td><td class=''>$174,800</td><td class='winner'>$366,000</td><td>MaskedPPO</td></tr><tr><td>2</td><td class=''>$176,900</td><td class=''>$304,000</td><td class='winner'>$467,800</td><td>MaskedPPO</td></tr><tr class='wins-row'><td><strong>Wins</strong></td><td><strong>0/2</strong></td><td><strong>0/2</strong></td><td><strong>2/2</strong></td><td>—</td></tr></tbody></table>
+
+<h2>3. Method Hyperparameters</h2>
+<details class='hp-block'><summary><strong>Q-Learning</strong> hyperparameters</summary><pre>{
+  &quot;name&quot;: &quot;master&quot;,
+  &quot;episodes&quot;: 9738,
+  &quot;alpha&quot;: 0.1,
+  &quot;gamma&quot;: 0.99,
+  &quot;epsilon_start&quot;: 1.0,
+  &quot;epsilon_end&quot;: 0.05,
+  &quot;epsilon_schedule&quot;: &quot;linear (reaches eps_end at 70% of budget)&quot;,
+  &quot;final_epsilon&quot;: 0.05,
+  &quot;state_formulation&quot;: &quot;roaster_tabular_with_heuristic_restock&quot;,
+  &quot;ups_mode&quot;: &quot;env_default&quot;,
+  &quot;ups_lambda&quot;: 5.0,
+  &quot;ups_mu&quot;: 20.0,
+  &quot;elapsed_seconds&quot;: 180.0,
+  &quot;stop_reason&quot;: &quot;time limit (180s)&quot;,
+  &quot;q_table_entries&quot;: 6187,
+  &quot;final_avg_profit_1000&quot;: 249555.8,
+  &quot;q_table_file&quot;: &quot;q_table_master.pkl&quot;,
+  &quot;training_log_file&quot;: &quot;training_log_master.pkl&quot;,
+  &quot;timestamp&quot;: &quot;2026-04-19T15:27:18.117829&quot;
+}</pre></details>
+<details class='hp-block'><summary><strong>RL-HH (Dueling DDQN)</strong> hyperparameters</summary><pre>{
+  &quot;model_path&quot;: &quot;C:\\Local Folder\\CODE\\1_Thesis\\rl_hh\\outputs\\rlhh_overall_best.pt&quot;,
+  &quot;epsilon&quot;: 0.05,
+  &quot;has_optimizer_state&quot;: true
+}</pre></details>
+<details class='hp-block'><summary><strong>MaskedPPO</strong> hyperparameters</summary><pre>{
+  &quot;timestamp&quot;: &quot;2026-04-21T18:47:56.289101&quot;,
+  &quot;run_dir&quot;: &quot;C:\\Local Folder\\CODE\\1_Thesis\\PPOmask\\outputs\\20260421_104749_c27_mto_per_batch_bonus&quot;,
+  &quot;seed&quot;: 42,
+  &quot;timesteps_requested&quot;: 200000000,
+  &quot;timesteps_actual&quot;: 114320008,
+  &quot;elapsed_seconds&quot;: 28801.040699199977,
+  &quot;n_envs&quot;: 8,
+  &quot;learning_rate&quot;: 0.0005,
+  &quot;gamma&quot;: 0.99,
+  &quot;n_steps&quot;: 4096,
+  &quot;batch_size&quot;: 128,
+  &quot;n_epochs&quot;: 3,
+  &quot;gae_lambda&quot;: 0.95,
+  &quot;vf_coef&quot;: 0.5,
+  &quot;max_grad_norm&quot;: 0.5,
+  &quot;net_arch&quot;: {
+    &quot;pi&quot;: [
+      256,
+      256
+    ],
+    &quot;vf&quot;: [
+      256,
+      256
+    ]
+  },
+  &quot;ent_coef&quot;: 0.05,
+  &quot;clip_range&quot;: 0.3,
+  &quot;ups_lambda&quot;: 5.0,
+  &quot;ups_mu&quot;: 20.0,
+  &quot;violation_penalty&quot;: 50000.0,
+  &quot;episode_termination_on_violation&quot;: true,
+  &quot;rc_maintenance_bonus&quot;: 50.0,
+  &quot;completion_bonus&quot;: 100000.0,
+  &quot;mto_completion_bonus&quot;: 30000.0,
+  &quot;completed_episodes&quot;: 118796,
+  &quot;best_profit&quot;: 901255.0,
+  &quot;final_avg_reward_1000&quot;: 765652.325,
+  &quot;violation_terminations&quot;: 5904,
+  &quot;violation_rate_last100&quot;: 0.01,
+  &quot;violation_counts&quot;: {
+    &quot;rc_negative_L1&quot;: 4863,
+    &quot;rc_negative_L2&quot;: 1041
+  },
+  &quot;action_distribution&quot;: {
+    &quot;13&quot;: 606337,
+    &quot;6&quot;: 817797,
+    &quot;8&quot;: 738584,
+    &quot;2&quot;: 1164066,
+    &quot;20&quot;: 97354149,
+    &quot;4&quot;: 2729308,
+    &quot;1&quot;: 2517616,
+    &quot;5&quot;: 2621080,
+    &quot;7&quot;: 43016,
+    &quot;0&quot;: 2663656,
+    &quot;14&quot;: 149547,
+    &quot;3&quot;: 1644625,
+    &quot;15&quot;: 11168,
+    &quot;16&quot;: 1255601
+  },
+  &quot;early_termination_rate&quot;: 0.01,
+  &quot;stop_reason&quot;: &quot;time budget (28800s)&quot;
+}</pre></details>
+
+<h2>4. Plots Per Seed Per Method</h2>
+<p>Click to expand. Each method report contains Roasting Schedule (Gantt), RC Stock,
+GC Stock, Restock Operations, Pipeline Utilization, Cost Waterfall and R3 Routing.</p>
+<details class='seed-plots'><summary>Seed 1</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_01/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_01/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_01/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+<details class='seed-plots'><summary>Seed 2</summary><details class='method-plots'><summary>Q-Learning</summary><iframe src='seed_02/ql_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>RL-HH (Dueling DDQN)</summary><iframe src='seed_02/rlhh_report.html' loading='lazy' class='plot-frame'></iframe></details>
+<details class='method-plots'><summary>MaskedPPO</summary><iframe src='seed_02/ppo_report.html' loading='lazy' class='plot-frame'></iframe></details></details>
+
+<h2>5. Input Parameters</h2>
+<details class='csv-block' open><summary><code>jobs.csv</code> (2 rows)</summary><table class='csv'><thead><tr><th>job_id</th><th>sku</th><th>required_batches</th><th>due_time_min</th><th>release_time_min</th></tr></thead><tbody><tr><td>J1</td><td>NDG</td><td>5</td><td>240</td><td>0</td></tr><tr><td>J2</td><td>BUSTA</td><td>5</td><td>240</td><td>0</td></tr></tbody></table></details>
+<h4>manual_disruptions_template.csv</h4><p><em>empty</em></p>
+<h4>planned_downtime.csv</h4><p><em>empty</em></p>
+<details class='csv-block' open><summary><code>roasters.csv</code> (5 rows)</summary><table class='csv'><thead><tr><th>roaster_id</th><th>line_id</th><th>pipeline_line</th><th>can_process_psc</th><th>can_process_ndg</th><th>can_process_busta</th><th>can_output_l1</th><th>can_output_l2</th><th>process_time_min</th><th>consume_time_min</th><th>initial_last_sku</th><th>is_active</th></tr></thead><tbody><tr><td>R1</td><td>L1</td><td>L1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R2</td><td>L1</td><td>L1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R3</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R4</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr><tr><td>R5</td><td>L2</td><td>L2</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>15</td><td>3</td><td>PSC</td><td>1</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>shift_parameters.csv</code> (31 rows)</summary><table class='csv'><thead><tr><th>parameter</th><th>value</th><th>note</th></tr></thead><tbody><tr><td>shift_length_min</td><td>480</td><td>Total shift duration in minutes. Time slots: 0 to 479.</td></tr><tr><td>time_step_min</td><td>1</td><td>Resolution of the time horizon (1-minute slots).</td></tr><tr><td>max_rc_batches_per_line</td><td>40</td><td>RC buffer capacity per line in batch units (20000 kg / 500 kg per batch).</td></tr><tr><td>safety_stock_batches</td><td>20</td><td>Safety stock threshold (theta_SS). Idle penalty active when B_l &lt; this value.</td></tr><tr><td>setup_time_diff_sku_min</td><td>5</td><td>Setup time (sigma) required when switching between different SKU types on the same roaster.</td></tr><tr><td>psc_pool_size_per_roaster</td><td>32</td><td>Max PSC batches schedulable per roaster per shift = floor(shift_length_min / process_time_min) = floor(480/15) = 32. Total PSC pool = 5 roasters x 32 = 160 candidate batches.</td></tr><tr><td>initial_rc_l1</td><td>12</td><td>Starting RC stock on Line 1 at shift start (batch units).</td></tr><tr><td>initial_rc_l2</td><td>15</td><td>Starting RC stock on Line 2 at shift start (batch units).</td></tr><tr><td>psc_consume_rate_l1_min_per_batch</td><td>9.1</td><td>Line 1 packaging consumes 1 RC batch every 9.1 minutes (rho_L1). (Changed from 8.1) </td></tr><tr><td>psc_consume_rate_l2_min_per_batch</td><td>8.8</td><td>Line 2 packaging consumes 1 RC batch every 8.8 minutes (rho_L2). (Changed from 7.8) </td></tr><tr><td>stockout_cost_per_event_per_line</td><td>1500</td><td>Penalty per consumption event where B_l &lt; 0 (strictly negative). Applied in reactive mode only — stockout is a hard constraint in deterministic mode. NOT a per-minute rate.</td></tr><tr><td>tardiness_cost_per_min</td><td>1000</td><td>Penalty per minute an MTO job finishes after due_time_min (slot 240).</td></tr><tr><td>idle_cost_per_min_per_roaster</td><td>200</td><td>Penalty per minute a roaster is idle (not busy and not in planned downtime) while B_l &lt; safety_stock_batches on its line.</td></tr><tr><td>setup_cost_per_event</td><td>800</td><td>Lump-sum penalty per SKU changeover event on a roaster. Incurred once when roaster enters SETUP state (e.g. PSC-&gt;NDG). Separate from setup time cost.</td></tr><tr><td>overflow_idle_cost_per_min_per_roaster</td><td>50</td><td>Penalty per minute a roaster is idle because its output line RC buffer is full (= max_rc_batches_per_line). For R3 (flexible): both lines must be full.</td></tr><tr><td>ups_lambda</td><td>5</td><td>Expected number of UPS events per shift (Poisson arrival rate). Used as default for Q-learning training and evaluation. (Changed from 2 to 5)</td></tr><tr><td>ups_mu</td><td>20</td><td>Mean UPS repair duration in minutes (Exponential distribution). Used as default for Q-learning training and evaluation.</td></tr><tr><td>gc_capacity_l1_psc</td><td>40</td><td>GC silo capacity for (L1 PSC) in batch-units.</td></tr><tr><td>gc_capacity_l1_ndg</td><td>10</td><td>GC silo capacity for (L1 NDG) in batch-units.</td></tr><tr><td>gc_capacity_l1_busta</td><td>10</td><td>GC silo capacity for (L1 BUSTA) in batch-units.</td></tr><tr><td>gc_capacity_l2_psc</td><td>40</td><td>GC silo capacity for (L2 PSC) in batch-units.</td></tr><tr><td>gc_initial_l1_psc</td><td>20</td><td>Initial GC stock for (L1 PSC) in batch-units.</td></tr><tr><td>gc_initial_l1_ndg</td><td>5</td><td>Initial GC stock for (L1 NDG) in batch-units.</td></tr><tr><td>gc_initial_l1_busta</td><td>5</td><td>Initial GC stock for (L1 BUSTA) in batch-units.</td></tr><tr><td>gc_initial_l2_psc</td><td>20</td><td>Initial GC stock for (L2 PSC) in batch-units.</td></tr><tr><td>restock_duration_min</td><td>15</td><td>Duration of one GC restock operation in minutes </td></tr><tr><td>restock_qty_batches</td><td>5</td><td>GC batch-units added per completed restock.</td></tr><tr><td>violation_penalty</td><td>50000</td><td>Large penalty applied when a hard constraint is violated. Episode terminates immediately.</td></tr><tr><td>episode_termination_on_violation</td><td>1</td><td>If 1 the episode ends on any hard constraint breach. If 0 violations are penalized but episode continues.</td></tr><tr><td>rc_maintenance_bonus</td><td>0</td><td>Reward added per slot per line where rc_stock &gt;= safety_stock. Dense shaping signal to encourage restocking. Set to 0 to disable.</td></tr><tr><td>mto_skip_penalty_per_batch</td><td>100000</td><td>Penalty per MTO batch not completed by end of shift. Per mathematical model c_skip = $100000 (Changed from 50000).</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>skus.csv</code> (3 rows)</summary><table class='csv'><thead><tr><th>sku</th><th>is_mto</th><th>credits_rc_stock</th><th>revenue_per_batch_usd</th><th>default_due_time_min</th><th>batch_size_kg</th><th>roast_time_min</th></tr></thead><tbody><tr><td>PSC</td><td>0</td><td>1</td><td>4000</td><td></td><td>500</td><td>15</td></tr><tr><td>NDG</td><td>1</td><td>0</td><td>7000</td><td>240</td><td>500</td><td>17</td></tr><tr><td>BUSTA</td><td>1</td><td>0</td><td>7000</td><td>240</td><td>500</td><td>18</td></tr></tbody></table></details>
+<details class='csv-block' open><summary><code>solver_config.csv</code> (6 rows)</summary><table class='csv'><thead><tr><th>parameter</th><th>value</th><th>note</th></tr></thead><tbody><tr><td>solver_name</td><td>CBC</td><td>Free open-source solver bundled with PuLP. Use HiGHS for better performance (pip install highspy).</td></tr><tr><td>time_limit_sec</td><td>30</td><td>Maximum solve time in seconds before returning best found solution.</td></tr><tr><td>mip_gap_target</td><td>0.01</td><td>Stop when gap between best integer solution and LP bound is below 1%.</td></tr><tr><td>enable_gui</td><td>1</td><td>1 = enable Flask GUI interface.</td></tr><tr><td>enable_disruptions</td><td>0</td><td>0 = ignore manual_disruptions_template.csv (deterministic baseline). Set to 1 ONLY when GUI has submitted explicit disruption events.</td></tr><tr><td>allow_r3_flexible_output</td><td>1</td><td>1 = R3 output routing is a free decision variable (y_b in {0</td></tr></tbody></table></details>
+
+<p class='muted' style='margin-top:32px'>Generated by <code>scripts/compare_methods.py</code>.
+Edit the CONFIG block at the top of the file to adjust seeds, methods, UPS parameters,
+or CP-SAT budget for sensitivity analysis.</p>
+</body>
+</html>

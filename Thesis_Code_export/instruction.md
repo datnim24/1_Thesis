@@ -33,7 +33,7 @@ budget in seconds) or `--seed`.
 | CP-SAT      | `python -m cpsat_pure.runner --name MyCPSAT --time 600 --seed 42`              |
 | Q-Learning  | `python -m q_learning.train --name MyQL --time 600`                            |
 | RL-HH       | `python -m rl_hh.train --name MyRLHH cycle --cycle 1 --time-sec 600`           |
-| paeng_ddqn_v2 | `python -m paeng_ddqn_v2.train --name V2Smoke --time 60 --seed 42` *(stub)*  |
+| paeng_ddqn_v2 | `python -m paeng_ddqn_v2.train --name V2Smoke --time-sec 60 --seed-base 42`   |
 
 Examples:
 

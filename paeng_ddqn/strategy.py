@@ -26,6 +26,7 @@ in `rl_hh/tools.py`. No separate action dim needed.
 
 from __future__ import annotations
 
+import random
 import sys
 from pathlib import Path
 
@@ -346,6 +347,7 @@ class PaengStrategy:
 
     def __init__(self, agent: PaengAgent, data, training: bool = False):
         from env.simulation_engine import SimulationEngine
+        from dispatch.dispatching_heuristic import DispatchingHeuristic
 
         self.agent = agent
         self.data = data
@@ -355,6 +357,10 @@ class PaengStrategy:
         # since SimulationEngine is mostly stateless wrt mask checks).
         params = data.to_env_params() if hasattr(data, "to_env_params") else data
         self._engine = SimulationEngine(params)
+        # Cycle 41 (2026-04-29): delegate restock decisions to dispatching heuristic
+        # (matches Q-learning's q_learning_train.py pattern). Reduces effective action
+        # space from 8 -> 4 and decision count by ~50%, mirroring tabular Q-learning.
+        self._restock_heuristic = DispatchingHeuristic(params)
 
         # Rolling state for reward computation
         self._prev_state: np.ndarray | None = None
@@ -363,6 +369,12 @@ class PaengStrategy:
         self._prev_mask: np.ndarray | None = None
         self._prev_profit: float = 0.0
         self._prev_reward_norm: float = 0.0
+        self._prev_gc_low: bool = False  # Cycle 36: tracks if previous decision had GC silos below threshold
+        # Cycle 16: curriculum — penalty only after N episodes. Train.py increments via reset_episode().
+        self._episode_idx: int = 0
+        # Cycle 36: cache GC capacities for low-threshold check.
+        params = data.to_env_params() if hasattr(data, "to_env_params") else data
+        self._gc_capacity = params.get("gc_capacity", {})
         # KPI handle is set externally if available; else we approximate from state.completed_batches
         self.kpi_ref = None
 
@@ -377,6 +389,9 @@ class PaengStrategy:
         return self._step(sim_state, context={"kind": "roaster", "roaster_id": roaster_id})
 
     def decide_restock(self, sim_state) -> tuple:
+        # Cycle 41/45: optionally delegate restock to dispatching heuristic.
+        if self.agent.cfg.delegate_restock:
+            return self._restock_heuristic.decide_restock(sim_state)
         return self._step(sim_state, context={"kind": "restock", "roaster_id": None})
 
     # -- internals ---------------------------------------------------------
@@ -390,6 +405,29 @@ class PaengStrategy:
         state_arr, auxin_arr = build_paeng_state(self.data, sim_state, context_full)
         mask = compute_feasibility_mask(self._engine, sim_state, context_full)
 
+        # Cycle 36: compute current GC-low flag (avg fill across all silos < threshold).
+        gc_low_now = False
+        if self.agent.cfg.stockout_alarm_penalty > 0.0:
+            total_fill, total_cap = 0.0, 0.0
+            for (line, sku), cap in self._gc_capacity.items():
+                if cap > 0:
+                    total_fill += float(sim_state.gc_stock.get((line, sku), 0))
+                    total_cap += float(cap)
+            if total_cap > 0:
+                gc_low_now = (total_fill / total_cap) < self.agent.cfg.gc_low_threshold
+
+        # Cycle 25 (2026-04-28): force productive — with probability p, mask out WAIT
+        # whenever any productive action (0,1,2) is feasible. Training-only.
+        # Forces productive experiences into replay buffer.
+        if (
+            self.training
+            and self.agent.cfg.force_productive_prob > 0.0
+            and (mask[0] or mask[1] or mask[2])
+            and random.random() < self.agent.cfg.force_productive_prob
+        ):
+            mask = mask.copy()
+            mask[3] = False
+
         action_id = self.agent.select_action(state_arr, auxin_arr, mask, training=self.training)
         self.action_counts[action_id] = self.action_counts.get(action_id, 0) + 1
 
@@ -400,6 +438,35 @@ class PaengStrategy:
             current_profit = self._compute_profit(sim_state)
             raw_reward = current_profit - self._prev_profit
             scaled_reward = raw_reward / self.agent.cfg.reward_scale
+            # Cycle 4 (2026-04-28): penalize WAIT chosen while productive was feasible.
+            # Cycle 8 reverted: restock-WAIT extension regressed in 100-seed mean.
+            # Cycle 16 (2026-04-28): curriculum — only apply penalty after warmup episodes.
+            if (
+                self._prev_action == 3
+                and self._prev_mask is not None
+                and (bool(self._prev_mask[0]) or bool(self._prev_mask[1]) or bool(self._prev_mask[2]))
+                and self._episode_idx >= self.agent.cfg.curriculum_warmup_episodes
+            ):
+                scaled_reward -= self.agent.cfg.idle_penalty
+            # Cycle 29 (2026-04-29): productive-action bonus (symmetric to idle penalty).
+            if (
+                self._prev_action in (0, 1, 2)
+                and self.agent.cfg.productive_bonus > 0.0
+                and self._episode_idx >= self.agent.cfg.curriculum_warmup_episodes
+            ):
+                scaled_reward += self.agent.cfg.productive_bonus
+            # Cycle 36 (2026-04-29): stockout-prevention. If avg GC fill < threshold and agent
+            # didn't restock (action 4-7), apply stockout_alarm_penalty.
+            if (
+                self.agent.cfg.stockout_alarm_penalty > 0.0
+                and self._prev_action not in (4, 5, 6, 7)
+                and self._episode_idx >= self.agent.cfg.curriculum_warmup_episodes
+                and self._prev_gc_low
+            ):
+                scaled_reward -= self.agent.cfg.stockout_alarm_penalty
+            # Cycle 22 (2026-04-28): reward clipping for Q-stability (Atari DQN style).
+            if self.agent.cfg.reward_clip > 0:
+                scaled_reward = float(np.clip(scaled_reward, -self.agent.cfg.reward_clip, self.agent.cfg.reward_clip))
             # Reward normalization for auxin (cap at ±10k per decision raw)
             self._prev_reward_norm = float(np.clip(raw_reward / 10_000.0, -1.0, 1.0))
             self.agent.store_transition(
@@ -418,6 +485,7 @@ class PaengStrategy:
         self._prev_auxin = auxin_arr.copy()
         self._prev_action = action_id
         self._prev_mask = mask.copy()
+        self._prev_gc_low = gc_low_now  # Cycle 36
 
         return self._action_to_env_tuple(action_id, context, sim_state)
 
@@ -431,6 +499,17 @@ class PaengStrategy:
             return
         raw_reward = final_profit - self._prev_profit
         reward = raw_reward / self.agent.cfg.reward_scale
+        if self.agent.cfg.reward_clip > 0:
+            reward = float(np.clip(reward, -self.agent.cfg.reward_clip, self.agent.cfg.reward_clip))
+        # Cycle 4: terminal-step idle penalty for symmetry with _step (reverted to productive-only after cycle 8 regression).
+        # Cycle 16: curriculum guard.
+        if (
+            self._prev_action == 3
+            and self._prev_mask is not None
+            and (bool(self._prev_mask[0]) or bool(self._prev_mask[1]) or bool(self._prev_mask[2]))
+            and self._episode_idx >= self.agent.cfg.curriculum_warmup_episodes
+        ):
+            reward -= self.agent.cfg.idle_penalty
         # Terminal next-state: zeros (mask all-WAIT-only)
         zeros = np.zeros_like(self._prev_state)
         zeros_aux = np.zeros_like(self._prev_auxin)
@@ -455,6 +534,8 @@ class PaengStrategy:
         self._prev_action = -1
         self._prev_profit = 0.0
         self._prev_reward_norm = 0.0
+        self._prev_gc_low = False
+        self._episode_idx += 1
         # Don't reset action_counts — it's per-evaluation-batch by convention,
         # caller can clear manually for diagnostics.
 
@@ -507,16 +588,20 @@ class PaengStrategy:
     # -- profit reward source ----------------------------------------------
 
     def _compute_profit(self, sim_state) -> float:
-        """Best-effort profit for reward computation.
+        """Per-decision reward source.
 
-        If the strategy was given a `kpi_ref` by the runner, we use it.
-        Otherwise approximate from completed_batches (good enough for
-        intra-episode reward shaping; the final-episode reward in
-        ``end_episode`` always uses the true KPI net_profit).
+        When ``cfg.use_kpi_for_reward=True`` (and ``kpi_ref`` is wired by the
+        engine), returns the live ``kpi.net_profit()`` — the semantically
+        correct profit signal including idle/setup/stockout/tardiness costs.
+
+        When ``cfg.use_kpi_for_reward=False`` (default after cycle 44), returns
+        the revenue-only approximation from completed_batches. This matches the
+        signal cycle 13 trained under (the kpi_ref bug pre-fix) and produced
+        the +$45k checkpoint. The terminal transition in ``end_episode`` still
+        uses the true ``final_profit`` so the agent eventually sees costs.
         """
-        if self.kpi_ref is not None:
+        if self.agent.cfg.use_kpi_for_reward and self.kpi_ref is not None:
             return float(self.kpi_ref.net_profit())
-        # Approximation: revenue per batch by SKU, no penalty terms
         revenue_per_sku = {"PSC": 4000.0, "NDG": 7000.0, "BUSTA": 7000.0}
         rev = sum(revenue_per_sku.get(b.sku, 0.0) for b in sim_state.completed_batches)
         return rev

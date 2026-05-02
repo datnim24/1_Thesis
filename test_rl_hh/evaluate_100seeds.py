@@ -36,6 +36,7 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import sys
@@ -54,7 +55,7 @@ from PPOmask.Engine.data_loader import load_data
 
 
 TOOL_NAMES = ["PSC_THROUGHPUT", "GC_RESTOCK", "MTO_DEADLINE", "SETUP_AVOID", "WAIT"]
-SUPPORTED_PACKAGES = ("rl_hh", "test_rl_hh", "q_learning", "dispatching", "paeng_ddqn")
+SUPPORTED_PACKAGES = ("rl_hh", "test_rl_hh", "q_learning", "dispatching", "paeng_ddqn", "paeng_ddqn_v2")
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +121,21 @@ def _build_factory(package: str, data, params, checkpoint_path: str | Path | Non
 
         return factory, extract_tool_counts
 
+    if package == "paeng_ddqn_v2":
+        # Faithful rebuild of Paeng 2021 paper.
+        v2_strategy_mod = importlib.import_module("paeng_ddqn_v2.strategy_v2")
+        v2_agent_mod = importlib.import_module("paeng_ddqn_v2.agent_v2")
+        agent = v2_agent_mod.PaengAgentV2.from_checkpoint(checkpoint_path)
+        agent.epsilon = 0.0
+
+        def factory(_seed: int):
+            return v2_strategy_mod.PaengStrategyV2(agent, data, training=False, params=params)
+
+        def extract_tool_counts(_strategy) -> list[int]:
+            return [0] * 5  # Paeng v2 has no tool layer
+
+        return factory, extract_tool_counts
+
     raise ValueError(f"Unknown package: {package}; supported: {SUPPORTED_PACKAGES}")
 
 
@@ -159,6 +175,10 @@ def evaluate_100_seeds(
     for seed in seeds:
         strategy = factory(seed)
         ups = generate_ups_events(ups_lambda, ups_mu, seed, shift_length, roasters)
+        # Block-B paired-seed receipt: hash the UPS event tuples so the
+        # aggregator can assert per-(cell, seed) identity across methods.
+        ups_repr = repr(tuple((int(e.t), str(e.roaster_id), int(e.duration)) for e in ups)).encode()
+        ups_hash = hashlib.sha256(ups_repr).hexdigest()[:16]
         kpi, state = engine.run(strategy, ups)
 
         p = float(kpi.net_profit())
@@ -178,6 +198,8 @@ def evaluate_100_seeds(
             "setup_events": int(k["setup_events"]),
             "restock_count": int(k["restock_count"]),
             "idle_min": int(k["idle_min"]),
+            "ups_event_hash": ups_hash,
+            "n_ups_events": len(ups),
         })
         for tid, cnt in enumerate(extract_tool_counts(strategy)):
             tool_counts_total[tid] += cnt

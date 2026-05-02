@@ -1,0 +1,3941 @@
+{
+  "metadata": {
+    "solver_engine": "paeng_ddqn_v2",
+    "solver_name": "Paeng DDQN v2 (3,35 state, faithful to 2021 paper + domain extension)",
+    "status": "Completed",
+    "solve_time_sec": 0.0,
+    "total_compute_ms": 0.0,
+    "num_resolves": 0,
+    "obj_value": null,
+    "best_bound": null,
+    "gap_pct": null,
+    "allow_r3_flex": true,
+    "timestamp": "2026-05-01T00:36:06+00:00",
+    "input_dir": "Input_data",
+    "notes": "Paeng DDQN v2: 8090 episodes, best train profit $317200.0, final epsilon 0.1798  action_dist={\"0\": 31, \"1\": 0, \"2\": 1, \"3\": 0, \"4\": 4, \"5\": 0, \"6\": 0, \"7\": 1, \"8\": 4}",
+    "model_path": "paeng_ddqn_v2\\outputs\\cycle9_validation\\paeng_v2_best_rolling.pt",
+    "training_run_dir": "paeng_ddqn_v2\\outputs\\cycle9_validation",
+    "lambda_mult": 1.0,
+    "mu_mult": 1.0,
+    "ups_lambda_used": 5.0,
+    "ups_mu_used": 20.0
+  },
+  "experiment": {
+    "lambda_rate": 5.0,
+    "mu_mean": 20.0,
+    "seed": 42,
+    "replication": null,
+    "scenario_label": "paeng_v2_single"
+  },
+  "kpi": {
+    "net_profit": 278000.0,
+    "total_revenue": 442000.0,
+    "total_costs": 164000.0,
+    "psc_count": 93,
+    "ndg_count": 5,
+    "busta_count": 5,
+    "total_batches": 103,
+    "revenue_psc": 372000.0,
+    "revenue_ndg": 35000.0,
+    "revenue_busta": 35000.0,
+    "tardiness_min": {
+      "J1": 0.0,
+      "J2": 0.0
+    },
+    "tard_cost": 0.0,
+    "setup_events": 4,
+    "setup_cost": 3200.0,
+    "stockout_events": {
+      "L1": 0,
+      "L2": 0
+    },
+    "stockout_duration": {
+      "L1": 3,
+      "L2": 0
+    },
+    "stockout_cost": 0.0,
+    "idle_min": 804.0,
+    "idle_min_per_roaster": {
+      "R1": 0.0,
+      "R2": 0.0,
+      "R3": 0.0,
+      "R4": 0.0,
+      "R5": 0.0
+    },
+    "idle_cost": 160800.0,
+    "over_min": 0.0,
+    "over_min_per_roaster": {
+      "R1": 0.0,
+      "R2": 0.0,
+      "R3": 0.0,
+      "R4": 0.0,
+      "R5": 0.0
+    },
+    "over_cost": 0.0,
+    "restock_count": 16,
+    "total_compute_ms": 0.0,
+    "num_resolves": 0
+  },
+  "schedule": [
+    {
+      "batch_id": "('J1', 0)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 5,
+      "end": 22,
+      "pipeline": "L1",
+      "pipeline_start": 5,
+      "pipeline_end": 8,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J2', 0)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 8,
+      "end": 26,
+      "pipeline": "L1",
+      "pipeline_start": 8,
+      "pipeline_end": 11,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J1', 1)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 22,
+      "end": 39,
+      "pipeline": "L1",
+      "pipeline_start": 22,
+      "pipeline_end": 25,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J2', 1)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 26,
+      "end": 44,
+      "pipeline": "L1",
+      "pipeline_start": 26,
+      "pipeline_end": 29,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J1', 2)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 39,
+      "end": 56,
+      "pipeline": "L1",
+      "pipeline_start": 39,
+      "pipeline_end": 42,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J1', 3)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 57,
+      "end": 74,
+      "pipeline": "L1",
+      "pipeline_start": 57,
+      "pipeline_end": 60,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J2', 2)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 60,
+      "end": 78,
+      "pipeline": "L1",
+      "pipeline_start": 60,
+      "pipeline_end": 63,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J1', 4)",
+      "job_id": "J1",
+      "sku": "NDG",
+      "roaster": "R1",
+      "start": 74,
+      "end": 91,
+      "pipeline": "L1",
+      "pipeline_start": 74,
+      "pipeline_end": 77,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J2', 3)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 78,
+      "end": 96,
+      "pipeline": "L1",
+      "pipeline_start": 78,
+      "pipeline_end": 81,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 0)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 88,
+      "end": 103,
+      "pipeline": "L2",
+      "pipeline_start": 88,
+      "pipeline_end": 91,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 0)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 91,
+      "end": 106,
+      "pipeline": "L2",
+      "pipeline_start": 91,
+      "pipeline_end": 94,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 0)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 96,
+      "end": 111,
+      "pipeline": "L1",
+      "pipeline_start": 96,
+      "pipeline_end": 99,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 1)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 97,
+      "end": 112,
+      "pipeline": "L2",
+      "pipeline_start": 97,
+      "pipeline_end": 100,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('J2', 4)",
+      "job_id": "J2",
+      "sku": "BUSTA",
+      "roaster": "R2",
+      "start": 99,
+      "end": 117,
+      "pipeline": "L1",
+      "pipeline_start": 99,
+      "pipeline_end": 102,
+      "output_line": "L1",
+      "is_mto": true,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 1)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 103,
+      "end": 118,
+      "pipeline": "L2",
+      "pipeline_start": 103,
+      "pipeline_end": 106,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 1)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 106,
+      "end": 121,
+      "pipeline": "L2",
+      "pipeline_start": 106,
+      "pipeline_end": 109,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 2)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 112,
+      "end": 127,
+      "pipeline": "L2",
+      "pipeline_start": 112,
+      "pipeline_end": 115,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 2)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 118,
+      "end": 133,
+      "pipeline": "L2",
+      "pipeline_start": 118,
+      "pipeline_end": 121,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 2)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 121,
+      "end": 136,
+      "pipeline": "L2",
+      "pipeline_start": 121,
+      "pipeline_end": 124,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 0)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 122,
+      "end": 137,
+      "pipeline": "L1",
+      "pipeline_start": 122,
+      "pipeline_end": 125,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 2)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 126,
+      "end": 141,
+      "pipeline": "L1",
+      "pipeline_start": 126,
+      "pipeline_end": 129,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 3)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 127,
+      "end": 142,
+      "pipeline": "L2",
+      "pipeline_start": 127,
+      "pipeline_end": 130,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 3)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 133,
+      "end": 148,
+      "pipeline": "L2",
+      "pipeline_start": 133,
+      "pipeline_end": 136,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 3)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 136,
+      "end": 151,
+      "pipeline": "L2",
+      "pipeline_start": 136,
+      "pipeline_end": 139,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 1)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 137,
+      "end": 152,
+      "pipeline": "L1",
+      "pipeline_start": 137,
+      "pipeline_end": 140,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 3)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 141,
+      "end": 156,
+      "pipeline": "L1",
+      "pipeline_start": 141,
+      "pipeline_end": 144,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 4)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 142,
+      "end": 157,
+      "pipeline": "L2",
+      "pipeline_start": 142,
+      "pipeline_end": 145,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 4)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 148,
+      "end": 163,
+      "pipeline": "L2",
+      "pipeline_start": 148,
+      "pipeline_end": 151,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 4)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 151,
+      "end": 166,
+      "pipeline": "L2",
+      "pipeline_start": 151,
+      "pipeline_end": 154,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 2)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 152,
+      "end": 167,
+      "pipeline": "L1",
+      "pipeline_start": 152,
+      "pipeline_end": 155,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 4)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 156,
+      "end": 171,
+      "pipeline": "L1",
+      "pipeline_start": 156,
+      "pipeline_end": 159,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 5)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 157,
+      "end": 172,
+      "pipeline": "L2",
+      "pipeline_start": 157,
+      "pipeline_end": 160,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 3)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 167,
+      "end": 182,
+      "pipeline": "L1",
+      "pipeline_start": 167,
+      "pipeline_end": 170,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 5)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 171,
+      "end": 186,
+      "pipeline": "L1",
+      "pipeline_start": 171,
+      "pipeline_end": 174,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 6)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 175,
+      "end": 190,
+      "pipeline": "L2",
+      "pipeline_start": 175,
+      "pipeline_end": 178,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 5)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 178,
+      "end": 193,
+      "pipeline": "L2",
+      "pipeline_start": 178,
+      "pipeline_end": 181,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 5)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 181,
+      "end": 196,
+      "pipeline": "L2",
+      "pipeline_start": 181,
+      "pipeline_end": 184,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 4)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 182,
+      "end": 197,
+      "pipeline": "L1",
+      "pipeline_start": 182,
+      "pipeline_end": 185,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 6)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 186,
+      "end": 201,
+      "pipeline": "L1",
+      "pipeline_start": 186,
+      "pipeline_end": 189,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 7)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 190,
+      "end": 205,
+      "pipeline": "L2",
+      "pipeline_start": 190,
+      "pipeline_end": 193,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 6)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 193,
+      "end": 208,
+      "pipeline": "L2",
+      "pipeline_start": 193,
+      "pipeline_end": 196,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 5)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 197,
+      "end": 212,
+      "pipeline": "L1",
+      "pipeline_start": 197,
+      "pipeline_end": 200,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 7)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 201,
+      "end": 216,
+      "pipeline": "L1",
+      "pipeline_start": 201,
+      "pipeline_end": 204,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 8)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 211,
+      "end": 226,
+      "pipeline": "L2",
+      "pipeline_start": 211,
+      "pipeline_end": 214,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 6)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 212,
+      "end": 227,
+      "pipeline": "L1",
+      "pipeline_start": 212,
+      "pipeline_end": 215,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 7)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 214,
+      "end": 229,
+      "pipeline": "L2",
+      "pipeline_start": 214,
+      "pipeline_end": 217,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 8)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 216,
+      "end": 231,
+      "pipeline": "L1",
+      "pipeline_start": 216,
+      "pipeline_end": 219,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 6)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 217,
+      "end": 232,
+      "pipeline": "L2",
+      "pipeline_start": 217,
+      "pipeline_end": 220,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 9)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 226,
+      "end": 241,
+      "pipeline": "L2",
+      "pipeline_start": 226,
+      "pipeline_end": 229,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 7)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 227,
+      "end": 242,
+      "pipeline": "L1",
+      "pipeline_start": 227,
+      "pipeline_end": 230,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 8)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 229,
+      "end": 244,
+      "pipeline": "L2",
+      "pipeline_start": 229,
+      "pipeline_end": 232,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 7)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 232,
+      "end": 247,
+      "pipeline": "L2",
+      "pipeline_start": 232,
+      "pipeline_end": 235,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 10)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 241,
+      "end": 256,
+      "pipeline": "L2",
+      "pipeline_start": 241,
+      "pipeline_end": 244,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 9)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 244,
+      "end": 259,
+      "pipeline": "L2",
+      "pipeline_start": 244,
+      "pipeline_end": 247,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 8)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 245,
+      "end": 260,
+      "pipeline": "L1",
+      "pipeline_start": 245,
+      "pipeline_end": 248,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 9)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 260,
+      "end": 275,
+      "pipeline": "L1",
+      "pipeline_start": 260,
+      "pipeline_end": 263,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 11)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 262,
+      "end": 277,
+      "pipeline": "L2",
+      "pipeline_start": 262,
+      "pipeline_end": 265,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 10)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 265,
+      "end": 280,
+      "pipeline": "L2",
+      "pipeline_start": 265,
+      "pipeline_end": 268,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 10)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 275,
+      "end": 290,
+      "pipeline": "L1",
+      "pipeline_start": 275,
+      "pipeline_end": 278,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 9)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 278,
+      "end": 293,
+      "pipeline": "L1",
+      "pipeline_start": 278,
+      "pipeline_end": 281,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 12)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 283,
+      "end": 298,
+      "pipeline": "L2",
+      "pipeline_start": 283,
+      "pipeline_end": 286,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 11)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 286,
+      "end": 301,
+      "pipeline": "L2",
+      "pipeline_start": 286,
+      "pipeline_end": 289,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 8)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 289,
+      "end": 304,
+      "pipeline": "L2",
+      "pipeline_start": 289,
+      "pipeline_end": 292,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 11)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 290,
+      "end": 305,
+      "pipeline": "L1",
+      "pipeline_start": 290,
+      "pipeline_end": 293,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 13)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 298,
+      "end": 313,
+      "pipeline": "L2",
+      "pipeline_start": 298,
+      "pipeline_end": 301,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 12)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 301,
+      "end": 316,
+      "pipeline": "L2",
+      "pipeline_start": 301,
+      "pipeline_end": 304,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 9)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 304,
+      "end": 319,
+      "pipeline": "L2",
+      "pipeline_start": 304,
+      "pipeline_end": 307,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 12)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 311,
+      "end": 326,
+      "pipeline": "L1",
+      "pipeline_start": 311,
+      "pipeline_end": 314,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 11)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 319,
+      "end": 334,
+      "pipeline": "L1",
+      "pipeline_start": 319,
+      "pipeline_end": 322,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 14)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 323,
+      "end": 338,
+      "pipeline": "L2",
+      "pipeline_start": 323,
+      "pipeline_end": 326,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 13)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 326,
+      "end": 341,
+      "pipeline": "L1",
+      "pipeline_start": 326,
+      "pipeline_end": 329,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 13)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 326,
+      "end": 341,
+      "pipeline": "L2",
+      "pipeline_start": 326,
+      "pipeline_end": 329,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 10)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 329,
+      "end": 344,
+      "pipeline": "L2",
+      "pipeline_start": 329,
+      "pipeline_end": 332,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 15)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 338,
+      "end": 353,
+      "pipeline": "L2",
+      "pipeline_start": 338,
+      "pipeline_end": 341,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 14)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 341,
+      "end": 356,
+      "pipeline": "L2",
+      "pipeline_start": 341,
+      "pipeline_end": 344,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 11)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 344,
+      "end": 359,
+      "pipeline": "L2",
+      "pipeline_start": 344,
+      "pipeline_end": 347,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 14)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 352,
+      "end": 367,
+      "pipeline": "L1",
+      "pipeline_start": 352,
+      "pipeline_end": 355,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 13)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 355,
+      "end": 370,
+      "pipeline": "L1",
+      "pipeline_start": 355,
+      "pipeline_end": 358,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 15)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 367,
+      "end": 382,
+      "pipeline": "L1",
+      "pipeline_start": 367,
+      "pipeline_end": 370,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 16)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 367,
+      "end": 382,
+      "pipeline": "L2",
+      "pipeline_start": 367,
+      "pipeline_end": 370,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 14)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 370,
+      "end": 385,
+      "pipeline": "L1",
+      "pipeline_start": 370,
+      "pipeline_end": 373,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 15)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 370,
+      "end": 385,
+      "pipeline": "L2",
+      "pipeline_start": 370,
+      "pipeline_end": 373,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 12)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 373,
+      "end": 388,
+      "pipeline": "L2",
+      "pipeline_start": 373,
+      "pipeline_end": 376,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 16)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 382,
+      "end": 397,
+      "pipeline": "L1",
+      "pipeline_start": 382,
+      "pipeline_end": 385,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 15)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 385,
+      "end": 400,
+      "pipeline": "L1",
+      "pipeline_start": 385,
+      "pipeline_end": 388,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 17)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 391,
+      "end": 406,
+      "pipeline": "L2",
+      "pipeline_start": 391,
+      "pipeline_end": 394,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 16)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 394,
+      "end": 409,
+      "pipeline": "L2",
+      "pipeline_start": 394,
+      "pipeline_end": 397,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 13)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 397,
+      "end": 412,
+      "pipeline": "L2",
+      "pipeline_start": 397,
+      "pipeline_end": 400,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 16)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 406,
+      "end": 421,
+      "pipeline": "L1",
+      "pipeline_start": 406,
+      "pipeline_end": 409,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 18)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 406,
+      "end": 421,
+      "pipeline": "L2",
+      "pipeline_start": 406,
+      "pipeline_end": 409,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 17)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 409,
+      "end": 424,
+      "pipeline": "L1",
+      "pipeline_start": 409,
+      "pipeline_end": 412,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 17)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 409,
+      "end": 424,
+      "pipeline": "L2",
+      "pipeline_start": 409,
+      "pipeline_end": 412,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 17)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 421,
+      "end": 436,
+      "pipeline": "L1",
+      "pipeline_start": 421,
+      "pipeline_end": 424,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 18)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 424,
+      "end": 439,
+      "pipeline": "L1",
+      "pipeline_start": 424,
+      "pipeline_end": 427,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 19)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 427,
+      "end": 442,
+      "pipeline": "L2",
+      "pipeline_start": 427,
+      "pipeline_end": 430,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 18)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 430,
+      "end": 445,
+      "pipeline": "L2",
+      "pipeline_start": 430,
+      "pipeline_end": 433,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 18)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 442,
+      "end": 457,
+      "pipeline": "L1",
+      "pipeline_start": 442,
+      "pipeline_end": 445,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R3', 20)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 442,
+      "end": 457,
+      "pipeline": "L2",
+      "pipeline_start": 442,
+      "pipeline_end": 445,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 19)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 445,
+      "end": 460,
+      "pipeline": "L1",
+      "pipeline_start": 445,
+      "pipeline_end": 448,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R4', 19)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R4",
+      "start": 445,
+      "end": 460,
+      "pipeline": "L2",
+      "pipeline_start": 445,
+      "pipeline_end": 448,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R5', 14)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R5",
+      "start": 448,
+      "end": 463,
+      "pipeline": "L2",
+      "pipeline_start": 448,
+      "pipeline_end": 451,
+      "output_line": "L2",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R1', 19)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 457,
+      "end": 472,
+      "pipeline": "L1",
+      "pipeline_start": 457,
+      "pipeline_end": 460,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    },
+    {
+      "batch_id": "('R2', 20)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R2",
+      "start": 460,
+      "end": 475,
+      "pipeline": "L1",
+      "pipeline_start": 460,
+      "pipeline_end": 463,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "completed",
+      "cancel_time": null
+    }
+  ],
+  "cancelled_batches": [
+    {
+      "batch_id": "('R3', 0)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R3",
+      "start": 85,
+      "end": 100,
+      "pipeline": "L2",
+      "pipeline_start": 85,
+      "pipeline_end": 88,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "cancelled",
+      "cancel_time": 97
+    },
+    {
+      "batch_id": "('R1', 1)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 111,
+      "end": 126,
+      "pipeline": "L1",
+      "pipeline_start": 111,
+      "pipeline_end": 114,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "cancelled",
+      "cancel_time": 124
+    },
+    {
+      "batch_id": "('R1', 10)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 308,
+      "end": 323,
+      "pipeline": "L1",
+      "pipeline_start": 308,
+      "pipeline_end": 311,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "cancelled",
+      "cancel_time": 319
+    },
+    {
+      "batch_id": "('R1', 12)",
+      "job_id": null,
+      "sku": "PSC",
+      "roaster": "R1",
+      "start": 334,
+      "end": 349,
+      "pipeline": "L1",
+      "pipeline_start": 334,
+      "pipeline_end": 337,
+      "output_line": "L1",
+      "is_mto": false,
+      "setup": "No",
+      "status": "cancelled",
+      "cancel_time": 342
+    }
+  ],
+  "ups_events": [
+    {
+      "t": 97,
+      "roaster_id": "R3",
+      "duration": 1
+    },
+    {
+      "t": 124,
+      "roaster_id": "R1",
+      "duration": 3
+    },
+    {
+      "t": 233,
+      "roaster_id": "R1",
+      "duration": 45
+    },
+    {
+      "t": 319,
+      "roaster_id": "R1",
+      "duration": 1
+    },
+    {
+      "t": 342,
+      "roaster_id": "R1",
+      "duration": 14
+    },
+    {
+      "t": 421,
+      "roaster_id": "R5",
+      "duration": 25
+    },
+    {
+      "t": 473,
+      "roaster_id": "R3",
+      "duration": 7
+    }
+  ],
+  "restocks": [
+    {
+      "line_id": "L1",
+      "sku": "NDG",
+      "start": 42,
+      "end": 57,
+      "qty": 5,
+      "pair": "L1_NDG"
+    },
+    {
+      "line_id": "L1",
+      "sku": "BUSTA",
+      "start": 81,
+      "end": 96,
+      "qty": 5,
+      "pair": "L1_BUSTA"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 160,
+      "end": 175,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 196,
+      "end": 211,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L1",
+      "sku": "PSC",
+      "start": 230,
+      "end": 245,
+      "qty": 5,
+      "pair": "L1_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 247,
+      "end": 262,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 268,
+      "end": 283,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L1",
+      "sku": "PSC",
+      "start": 293,
+      "end": 308,
+      "qty": 5,
+      "pair": "L1_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 308,
+      "end": 323,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L1",
+      "sku": "PSC",
+      "start": 337,
+      "end": 352,
+      "qty": 5,
+      "pair": "L1_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 352,
+      "end": 367,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 376,
+      "end": 391,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L1",
+      "sku": "PSC",
+      "start": 391,
+      "end": 406,
+      "qty": 5,
+      "pair": "L1_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 412,
+      "end": 427,
+      "qty": 5,
+      "pair": "L2_PSC"
+    },
+    {
+      "line_id": "L1",
+      "sku": "PSC",
+      "start": 427,
+      "end": 442,
+      "qty": 5,
+      "pair": "L1_PSC"
+    },
+    {
+      "line_id": "L2",
+      "sku": "PSC",
+      "start": 451,
+      "end": 466,
+      "qty": 5,
+      "pair": "L2_PSC"
+    }
+  ],
+  "parameters": {
+    "P": 15,
+    "DC": 3,
+    "sigma": 5,
+    "SL": 480,
+    "MS": 465,
+    "max_rc": 40,
+    "safety_stock": 20,
+    "rc_init": {
+      "L1": 12,
+      "L2": 15
+    },
+    "consume_rate": {
+      "L1": 9.1,
+      "L2": 8.8
+    },
+    "sku_revenue": {
+      "BUSTA": 7000.0,
+      "NDG": 7000.0,
+      "PSC": 4000.0
+    },
+    "roast_time_by_sku": {
+      "PSC": 15,
+      "NDG": 17,
+      "BUSTA": 18
+    },
+    "c_tard": 1000.0,
+    "c_stock": 1500.0,
+    "c_idle": 200.0,
+    "c_over": 50.0,
+    "c_setup": 800.0,
+    "gc_capacity": {
+      "L1_PSC": 40,
+      "L1_NDG": 10,
+      "L1_BUSTA": 10,
+      "L2_PSC": 40
+    },
+    "gc_init": {
+      "L1_PSC": 20,
+      "L1_NDG": 5,
+      "L1_BUSTA": 5,
+      "L2_PSC": 20
+    },
+    "restock_duration": 15,
+    "restock_qty": 5,
+    "feasible_gc_pairs": [
+      "L1_PSC",
+      "L1_NDG",
+      "L1_BUSTA",
+      "L2_PSC"
+    ],
+    "roasters": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5"
+    ],
+    "lines": [
+      "L1",
+      "L2"
+    ],
+    "R_line": {
+      "R1": "L1",
+      "R2": "L1",
+      "R3": "L2",
+      "R4": "L2",
+      "R5": "L2"
+    },
+    "R_pipe": {
+      "R1": "L1",
+      "R2": "L1",
+      "R3": "L2",
+      "R4": "L2",
+      "R5": "L2"
+    },
+    "R_out": {
+      "R1": [
+        "L1"
+      ],
+      "R2": [
+        "L1"
+      ],
+      "R3": [
+        "L1",
+        "L2"
+      ],
+      "R4": [
+        "L2"
+      ],
+      "R5": [
+        "L2"
+      ]
+    },
+    "R_elig_skus": {
+      "R1": [
+        "PSC",
+        "NDG"
+      ],
+      "R2": [
+        "PSC",
+        "NDG",
+        "BUSTA"
+      ],
+      "R3": [
+        "PSC"
+      ],
+      "R4": [
+        "PSC"
+      ],
+      "R5": [
+        "PSC"
+      ]
+    },
+    "roaster_initial_sku": {
+      "R1": "PSC",
+      "R2": "PSC",
+      "R3": "PSC",
+      "R4": "PSC",
+      "R5": "PSC"
+    },
+    "allow_r3_flex": true,
+    "consume_events": {
+      "L1": [
+        9,
+        18,
+        27,
+        36,
+        45,
+        54,
+        63,
+        72,
+        81,
+        91,
+        100,
+        109,
+        118,
+        127,
+        136,
+        145,
+        154,
+        163,
+        172,
+        182,
+        191,
+        200,
+        209,
+        218,
+        227,
+        236,
+        245,
+        254,
+        263,
+        273,
+        282,
+        291,
+        300,
+        309,
+        318,
+        327,
+        336,
+        345,
+        354,
+        364,
+        373,
+        382,
+        391,
+        400,
+        409,
+        418,
+        427,
+        436,
+        445,
+        455,
+        464,
+        473
+      ],
+      "L2": [
+        8,
+        17,
+        26,
+        35,
+        44,
+        52,
+        61,
+        70,
+        79,
+        88,
+        96,
+        105,
+        114,
+        123,
+        132,
+        140,
+        149,
+        158,
+        167,
+        176,
+        184,
+        193,
+        202,
+        211,
+        220,
+        228,
+        237,
+        246,
+        255,
+        264,
+        272,
+        281,
+        290,
+        299,
+        308,
+        316,
+        325,
+        334,
+        343,
+        352,
+        360,
+        369,
+        378,
+        387,
+        396,
+        404,
+        413,
+        422,
+        431,
+        440,
+        448,
+        457,
+        466,
+        475
+      ]
+    },
+    "downtime_slots": {
+      "R1": [],
+      "R2": [],
+      "R3": [],
+      "R4": [],
+      "R5": []
+    },
+    "jobs": [
+      "J1",
+      "J2"
+    ],
+    "job_batches": {
+      "J1": 5,
+      "J2": 5
+    },
+    "job_sku": {
+      "J1": "NDG",
+      "J2": "BUSTA"
+    },
+    "mto_batches": [
+      [
+        "J1",
+        0
+      ],
+      [
+        "J1",
+        1
+      ],
+      [
+        "J1",
+        2
+      ],
+      [
+        "J1",
+        3
+      ],
+      [
+        "J1",
+        4
+      ],
+      [
+        "J2",
+        0
+      ],
+      [
+        "J2",
+        1
+      ],
+      [
+        "J2",
+        2
+      ],
+      [
+        "J2",
+        3
+      ],
+      [
+        "J2",
+        4
+      ]
+    ],
+    "batch_sku": {
+      "J1_0": "NDG",
+      "J1_1": "NDG",
+      "J1_2": "NDG",
+      "J1_3": "NDG",
+      "J1_4": "NDG",
+      "J2_0": "BUSTA",
+      "J2_1": "BUSTA",
+      "J2_2": "BUSTA",
+      "J2_3": "BUSTA",
+      "J2_4": "BUSTA",
+      "R1_0": "PSC",
+      "R1_1": "PSC",
+      "R1_2": "PSC",
+      "R1_3": "PSC",
+      "R1_4": "PSC",
+      "R1_5": "PSC",
+      "R1_6": "PSC",
+      "R1_7": "PSC",
+      "R1_8": "PSC",
+      "R1_9": "PSC",
+      "R1_10": "PSC",
+      "R1_11": "PSC",
+      "R1_12": "PSC",
+      "R1_13": "PSC",
+      "R1_14": "PSC",
+      "R1_15": "PSC",
+      "R1_16": "PSC",
+      "R1_17": "PSC",
+      "R1_18": "PSC",
+      "R1_19": "PSC",
+      "R1_20": "PSC",
+      "R1_21": "PSC",
+      "R1_22": "PSC",
+      "R1_23": "PSC",
+      "R1_24": "PSC",
+      "R1_25": "PSC",
+      "R1_26": "PSC",
+      "R1_27": "PSC",
+      "R1_28": "PSC",
+      "R1_29": "PSC",
+      "R1_30": "PSC",
+      "R1_31": "PSC",
+      "R2_0": "PSC",
+      "R2_1": "PSC",
+      "R2_2": "PSC",
+      "R2_3": "PSC",
+      "R2_4": "PSC",
+      "R2_5": "PSC",
+      "R2_6": "PSC",
+      "R2_7": "PSC",
+      "R2_8": "PSC",
+      "R2_9": "PSC",
+      "R2_10": "PSC",
+      "R2_11": "PSC",
+      "R2_12": "PSC",
+      "R2_13": "PSC",
+      "R2_14": "PSC",
+      "R2_15": "PSC",
+      "R2_16": "PSC",
+      "R2_17": "PSC",
+      "R2_18": "PSC",
+      "R2_19": "PSC",
+      "R2_20": "PSC",
+      "R2_21": "PSC",
+      "R2_22": "PSC",
+      "R2_23": "PSC",
+      "R2_24": "PSC",
+      "R2_25": "PSC",
+      "R2_26": "PSC",
+      "R2_27": "PSC",
+      "R2_28": "PSC",
+      "R2_29": "PSC",
+      "R2_30": "PSC",
+      "R2_31": "PSC",
+      "R3_0": "PSC",
+      "R3_1": "PSC",
+      "R3_2": "PSC",
+      "R3_3": "PSC",
+      "R3_4": "PSC",
+      "R3_5": "PSC",
+      "R3_6": "PSC",
+      "R3_7": "PSC",
+      "R3_8": "PSC",
+      "R3_9": "PSC",
+      "R3_10": "PSC",
+      "R3_11": "PSC",
+      "R3_12": "PSC",
+      "R3_13": "PSC",
+      "R3_14": "PSC",
+      "R3_15": "PSC",
+      "R3_16": "PSC",
+      "R3_17": "PSC",
+      "R3_18": "PSC",
+      "R3_19": "PSC",
+      "R3_20": "PSC",
+      "R3_21": "PSC",
+      "R3_22": "PSC",
+      "R3_23": "PSC",
+      "R3_24": "PSC",
+      "R3_25": "PSC",
+      "R3_26": "PSC",
+      "R3_27": "PSC",
+      "R3_28": "PSC",
+      "R3_29": "PSC",
+      "R3_30": "PSC",
+      "R3_31": "PSC",
+      "R4_0": "PSC",
+      "R4_1": "PSC",
+      "R4_2": "PSC",
+      "R4_3": "PSC",
+      "R4_4": "PSC",
+      "R4_5": "PSC",
+      "R4_6": "PSC",
+      "R4_7": "PSC",
+      "R4_8": "PSC",
+      "R4_9": "PSC",
+      "R4_10": "PSC",
+      "R4_11": "PSC",
+      "R4_12": "PSC",
+      "R4_13": "PSC",
+      "R4_14": "PSC",
+      "R4_15": "PSC",
+      "R4_16": "PSC",
+      "R4_17": "PSC",
+      "R4_18": "PSC",
+      "R4_19": "PSC",
+      "R4_20": "PSC",
+      "R4_21": "PSC",
+      "R4_22": "PSC",
+      "R4_23": "PSC",
+      "R4_24": "PSC",
+      "R4_25": "PSC",
+      "R4_26": "PSC",
+      "R4_27": "PSC",
+      "R4_28": "PSC",
+      "R4_29": "PSC",
+      "R4_30": "PSC",
+      "R4_31": "PSC",
+      "R5_0": "PSC",
+      "R5_1": "PSC",
+      "R5_2": "PSC",
+      "R5_3": "PSC",
+      "R5_4": "PSC",
+      "R5_5": "PSC",
+      "R5_6": "PSC",
+      "R5_7": "PSC",
+      "R5_8": "PSC",
+      "R5_9": "PSC",
+      "R5_10": "PSC",
+      "R5_11": "PSC",
+      "R5_12": "PSC",
+      "R5_13": "PSC",
+      "R5_14": "PSC",
+      "R5_15": "PSC",
+      "R5_16": "PSC",
+      "R5_17": "PSC",
+      "R5_18": "PSC",
+      "R5_19": "PSC",
+      "R5_20": "PSC",
+      "R5_21": "PSC",
+      "R5_22": "PSC",
+      "R5_23": "PSC",
+      "R5_24": "PSC",
+      "R5_25": "PSC",
+      "R5_26": "PSC",
+      "R5_27": "PSC",
+      "R5_28": "PSC",
+      "R5_29": "PSC",
+      "R5_30": "PSC",
+      "R5_31": "PSC"
+    },
+    "batch_is_mto": {
+      "J1_0": true,
+      "J1_1": true,
+      "J1_2": true,
+      "J1_3": true,
+      "J1_4": true,
+      "J2_0": true,
+      "J2_1": true,
+      "J2_2": true,
+      "J2_3": true,
+      "J2_4": true,
+      "R1_0": false,
+      "R1_1": false,
+      "R1_2": false,
+      "R1_3": false,
+      "R1_4": false,
+      "R1_5": false,
+      "R1_6": false,
+      "R1_7": false,
+      "R1_8": false,
+      "R1_9": false,
+      "R1_10": false,
+      "R1_11": false,
+      "R1_12": false,
+      "R1_13": false,
+      "R1_14": false,
+      "R1_15": false,
+      "R1_16": false,
+      "R1_17": false,
+      "R1_18": false,
+      "R1_19": false,
+      "R1_20": false,
+      "R1_21": false,
+      "R1_22": false,
+      "R1_23": false,
+      "R1_24": false,
+      "R1_25": false,
+      "R1_26": false,
+      "R1_27": false,
+      "R1_28": false,
+      "R1_29": false,
+      "R1_30": false,
+      "R1_31": false,
+      "R2_0": false,
+      "R2_1": false,
+      "R2_2": false,
+      "R2_3": false,
+      "R2_4": false,
+      "R2_5": false,
+      "R2_6": false,
+      "R2_7": false,
+      "R2_8": false,
+      "R2_9": false,
+      "R2_10": false,
+      "R2_11": false,
+      "R2_12": false,
+      "R2_13": false,
+      "R2_14": false,
+      "R2_15": false,
+      "R2_16": false,
+      "R2_17": false,
+      "R2_18": false,
+      "R2_19": false,
+      "R2_20": false,
+      "R2_21": false,
+      "R2_22": false,
+      "R2_23": false,
+      "R2_24": false,
+      "R2_25": false,
+      "R2_26": false,
+      "R2_27": false,
+      "R2_28": false,
+      "R2_29": false,
+      "R2_30": false,
+      "R2_31": false,
+      "R3_0": false,
+      "R3_1": false,
+      "R3_2": false,
+      "R3_3": false,
+      "R3_4": false,
+      "R3_5": false,
+      "R3_6": false,
+      "R3_7": false,
+      "R3_8": false,
+      "R3_9": false,
+      "R3_10": false,
+      "R3_11": false,
+      "R3_12": false,
+      "R3_13": false,
+      "R3_14": false,
+      "R3_15": false,
+      "R3_16": false,
+      "R3_17": false,
+      "R3_18": false,
+      "R3_19": false,
+      "R3_20": false,
+      "R3_21": false,
+      "R3_22": false,
+      "R3_23": false,
+      "R3_24": false,
+      "R3_25": false,
+      "R3_26": false,
+      "R3_27": false,
+      "R3_28": false,
+      "R3_29": false,
+      "R3_30": false,
+      "R3_31": false,
+      "R4_0": false,
+      "R4_1": false,
+      "R4_2": false,
+      "R4_3": false,
+      "R4_4": false,
+      "R4_5": false,
+      "R4_6": false,
+      "R4_7": false,
+      "R4_8": false,
+      "R4_9": false,
+      "R4_10": false,
+      "R4_11": false,
+      "R4_12": false,
+      "R4_13": false,
+      "R4_14": false,
+      "R4_15": false,
+      "R4_16": false,
+      "R4_17": false,
+      "R4_18": false,
+      "R4_19": false,
+      "R4_20": false,
+      "R4_21": false,
+      "R4_22": false,
+      "R4_23": false,
+      "R4_24": false,
+      "R4_25": false,
+      "R4_26": false,
+      "R4_27": false,
+      "R4_28": false,
+      "R4_29": false,
+      "R4_30": false,
+      "R4_31": false,
+      "R5_0": false,
+      "R5_1": false,
+      "R5_2": false,
+      "R5_3": false,
+      "R5_4": false,
+      "R5_5": false,
+      "R5_6": false,
+      "R5_7": false,
+      "R5_8": false,
+      "R5_9": false,
+      "R5_10": false,
+      "R5_11": false,
+      "R5_12": false,
+      "R5_13": false,
+      "R5_14": false,
+      "R5_15": false,
+      "R5_16": false,
+      "R5_17": false,
+      "R5_18": false,
+      "R5_19": false,
+      "R5_20": false,
+      "R5_21": false,
+      "R5_22": false,
+      "R5_23": false,
+      "R5_24": false,
+      "R5_25": false,
+      "R5_26": false,
+      "R5_27": false,
+      "R5_28": false,
+      "R5_29": false,
+      "R5_30": false,
+      "R5_31": false
+    },
+    "job_due": {
+      "J1": 240,
+      "J2": 240
+    },
+    "psc_pool": [
+      [
+        "R1",
+        0
+      ],
+      [
+        "R1",
+        1
+      ],
+      [
+        "R1",
+        2
+      ],
+      [
+        "R1",
+        3
+      ],
+      [
+        "R1",
+        4
+      ],
+      [
+        "R1",
+        5
+      ],
+      [
+        "R1",
+        6
+      ],
+      [
+        "R1",
+        7
+      ],
+      [
+        "R1",
+        8
+      ],
+      [
+        "R1",
+        9
+      ],
+      [
+        "R1",
+        10
+      ],
+      [
+        "R1",
+        11
+      ],
+      [
+        "R1",
+        12
+      ],
+      [
+        "R1",
+        13
+      ],
+      [
+        "R1",
+        14
+      ],
+      [
+        "R1",
+        15
+      ],
+      [
+        "R1",
+        16
+      ],
+      [
+        "R1",
+        17
+      ],
+      [
+        "R1",
+        18
+      ],
+      [
+        "R1",
+        19
+      ],
+      [
+        "R1",
+        20
+      ],
+      [
+        "R1",
+        21
+      ],
+      [
+        "R1",
+        22
+      ],
+      [
+        "R1",
+        23
+      ],
+      [
+        "R1",
+        24
+      ],
+      [
+        "R1",
+        25
+      ],
+      [
+        "R1",
+        26
+      ],
+      [
+        "R1",
+        27
+      ],
+      [
+        "R1",
+        28
+      ],
+      [
+        "R1",
+        29
+      ],
+      [
+        "R1",
+        30
+      ],
+      [
+        "R1",
+        31
+      ],
+      [
+        "R2",
+        0
+      ],
+      [
+        "R2",
+        1
+      ],
+      [
+        "R2",
+        2
+      ],
+      [
+        "R2",
+        3
+      ],
+      [
+        "R2",
+        4
+      ],
+      [
+        "R2",
+        5
+      ],
+      [
+        "R2",
+        6
+      ],
+      [
+        "R2",
+        7
+      ],
+      [
+        "R2",
+        8
+      ],
+      [
+        "R2",
+        9
+      ],
+      [
+        "R2",
+        10
+      ],
+      [
+        "R2",
+        11
+      ],
+      [
+        "R2",
+        12
+      ],
+      [
+        "R2",
+        13
+      ],
+      [
+        "R2",
+        14
+      ],
+      [
+        "R2",
+        15
+      ],
+      [
+        "R2",
+        16
+      ],
+      [
+        "R2",
+        17
+      ],
+      [
+        "R2",
+        18
+      ],
+      [
+        "R2",
+        19
+      ],
+      [
+        "R2",
+        20
+      ],
+      [
+        "R2",
+        21
+      ],
+      [
+        "R2",
+        22
+      ],
+      [
+        "R2",
+        23
+      ],
+      [
+        "R2",
+        24
+      ],
+      [
+        "R2",
+        25
+      ],
+      [
+        "R2",
+        26
+      ],
+      [
+        "R2",
+        27
+      ],
+      [
+        "R2",
+        28
+      ],
+      [
+        "R2",
+        29
+      ],
+      [
+        "R2",
+        30
+      ],
+      [
+        "R2",
+        31
+      ],
+      [
+        "R3",
+        0
+      ],
+      [
+        "R3",
+        1
+      ],
+      [
+        "R3",
+        2
+      ],
+      [
+        "R3",
+        3
+      ],
+      [
+        "R3",
+        4
+      ],
+      [
+        "R3",
+        5
+      ],
+      [
+        "R3",
+        6
+      ],
+      [
+        "R3",
+        7
+      ],
+      [
+        "R3",
+        8
+      ],
+      [
+        "R3",
+        9
+      ],
+      [
+        "R3",
+        10
+      ],
+      [
+        "R3",
+        11
+      ],
+      [
+        "R3",
+        12
+      ],
+      [
+        "R3",
+        13
+      ],
+      [
+        "R3",
+        14
+      ],
+      [
+        "R3",
+        15
+      ],
+      [
+        "R3",
+        16
+      ],
+      [
+        "R3",
+        17
+      ],
+      [
+        "R3",
+        18
+      ],
+      [
+        "R3",
+        19
+      ],
+      [
+        "R3",
+        20
+      ],
+      [
+        "R3",
+        21
+      ],
+      [
+        "R3",
+        22
+      ],
+      [
+        "R3",
+        23
+      ],
+      [
+        "R3",
+        24
+      ],
+      [
+        "R3",
+        25
+      ],
+      [
+        "R3",
+        26
+      ],
+      [
+        "R3",
+        27
+      ],
+      [
+        "R3",
+        28
+      ],
+      [
+        "R3",
+        29
+      ],
+      [
+        "R3",
+        30
+      ],
+      [
+        "R3",
+        31
+      ],
+      [
+        "R4",
+        0
+      ],
+      [
+        "R4",
+        1
+      ],
+      [
+        "R4",
+        2
+      ],
+      [
+        "R4",
+        3
+      ],
+      [
+        "R4",
+        4
+      ],
+      [
+        "R4",
+        5
+      ],
+      [
+        "R4",
+        6
+      ],
+      [
+        "R4",
+        7
+      ],
+      [
+        "R4",
+        8
+      ],
+      [
+        "R4",
+        9
+      ],
+      [
+        "R4",
+        10
+      ],
+      [
+        "R4",
+        11
+      ],
+      [
+        "R4",
+        12
+      ],
+      [
+        "R4",
+        13
+      ],
+      [
+        "R4",
+        14
+      ],
+      [
+        "R4",
+        15
+      ],
+      [
+        "R4",
+        16
+      ],
+      [
+        "R4",
+        17
+      ],
+      [
+        "R4",
+        18
+      ],
+      [
+        "R4",
+        19
+      ],
+      [
+        "R4",
+        20
+      ],
+      [
+        "R4",
+        21
+      ],
+      [
+        "R4",
+        22
+      ],
+      [
+        "R4",
+        23
+      ],
+      [
+        "R4",
+        24
+      ],
+      [
+        "R4",
+        25
+      ],
+      [
+        "R4",
+        26
+      ],
+      [
+        "R4",
+        27
+      ],
+      [
+        "R4",
+        28
+      ],
+      [
+        "R4",
+        29
+      ],
+      [
+        "R4",
+        30
+      ],
+      [
+        "R4",
+        31
+      ],
+      [
+        "R5",
+        0
+      ],
+      [
+        "R5",
+        1
+      ],
+      [
+        "R5",
+        2
+      ],
+      [
+        "R5",
+        3
+      ],
+      [
+        "R5",
+        4
+      ],
+      [
+        "R5",
+        5
+      ],
+      [
+        "R5",
+        6
+      ],
+      [
+        "R5",
+        7
+      ],
+      [
+        "R5",
+        8
+      ],
+      [
+        "R5",
+        9
+      ],
+      [
+        "R5",
+        10
+      ],
+      [
+        "R5",
+        11
+      ],
+      [
+        "R5",
+        12
+      ],
+      [
+        "R5",
+        13
+      ],
+      [
+        "R5",
+        14
+      ],
+      [
+        "R5",
+        15
+      ],
+      [
+        "R5",
+        16
+      ],
+      [
+        "R5",
+        17
+      ],
+      [
+        "R5",
+        18
+      ],
+      [
+        "R5",
+        19
+      ],
+      [
+        "R5",
+        20
+      ],
+      [
+        "R5",
+        21
+      ],
+      [
+        "R5",
+        22
+      ],
+      [
+        "R5",
+        23
+      ],
+      [
+        "R5",
+        24
+      ],
+      [
+        "R5",
+        25
+      ],
+      [
+        "R5",
+        26
+      ],
+      [
+        "R5",
+        27
+      ],
+      [
+        "R5",
+        28
+      ],
+      [
+        "R5",
+        29
+      ],
+      [
+        "R5",
+        30
+      ],
+      [
+        "R5",
+        31
+      ]
+    ],
+    "all_batches": [
+      [
+        "J1",
+        0
+      ],
+      [
+        "J1",
+        1
+      ],
+      [
+        "J1",
+        2
+      ],
+      [
+        "J1",
+        3
+      ],
+      [
+        "J1",
+        4
+      ],
+      [
+        "J2",
+        0
+      ],
+      [
+        "J2",
+        1
+      ],
+      [
+        "J2",
+        2
+      ],
+      [
+        "J2",
+        3
+      ],
+      [
+        "J2",
+        4
+      ],
+      [
+        "R1",
+        0
+      ],
+      [
+        "R1",
+        1
+      ],
+      [
+        "R1",
+        2
+      ],
+      [
+        "R1",
+        3
+      ],
+      [
+        "R1",
+        4
+      ],
+      [
+        "R1",
+        5
+      ],
+      [
+        "R1",
+        6
+      ],
+      [
+        "R1",
+        7
+      ],
+      [
+        "R1",
+        8
+      ],
+      [
+        "R1",
+        9
+      ],
+      [
+        "R1",
+        10
+      ],
+      [
+        "R1",
+        11
+      ],
+      [
+        "R1",
+        12
+      ],
+      [
+        "R1",
+        13
+      ],
+      [
+        "R1",
+        14
+      ],
+      [
+        "R1",
+        15
+      ],
+      [
+        "R1",
+        16
+      ],
+      [
+        "R1",
+        17
+      ],
+      [
+        "R1",
+        18
+      ],
+      [
+        "R1",
+        19
+      ],
+      [
+        "R1",
+        20
+      ],
+      [
+        "R1",
+        21
+      ],
+      [
+        "R1",
+        22
+      ],
+      [
+        "R1",
+        23
+      ],
+      [
+        "R1",
+        24
+      ],
+      [
+        "R1",
+        25
+      ],
+      [
+        "R1",
+        26
+      ],
+      [
+        "R1",
+        27
+      ],
+      [
+        "R1",
+        28
+      ],
+      [
+        "R1",
+        29
+      ],
+      [
+        "R1",
+        30
+      ],
+      [
+        "R1",
+        31
+      ],
+      [
+        "R2",
+        0
+      ],
+      [
+        "R2",
+        1
+      ],
+      [
+        "R2",
+        2
+      ],
+      [
+        "R2",
+        3
+      ],
+      [
+        "R2",
+        4
+      ],
+      [
+        "R2",
+        5
+      ],
+      [
+        "R2",
+        6
+      ],
+      [
+        "R2",
+        7
+      ],
+      [
+        "R2",
+        8
+      ],
+      [
+        "R2",
+        9
+      ],
+      [
+        "R2",
+        10
+      ],
+      [
+        "R2",
+        11
+      ],
+      [
+        "R2",
+        12
+      ],
+      [
+        "R2",
+        13
+      ],
+      [
+        "R2",
+        14
+      ],
+      [
+        "R2",
+        15
+      ],
+      [
+        "R2",
+        16
+      ],
+      [
+        "R2",
+        17
+      ],
+      [
+        "R2",
+        18
+      ],
+      [
+        "R2",
+        19
+      ],
+      [
+        "R2",
+        20
+      ],
+      [
+        "R2",
+        21
+      ],
+      [
+        "R2",
+        22
+      ],
+      [
+        "R2",
+        23
+      ],
+      [
+        "R2",
+        24
+      ],
+      [
+        "R2",
+        25
+      ],
+      [
+        "R2",
+        26
+      ],
+      [
+        "R2",
+        27
+      ],
+      [
+        "R2",
+        28
+      ],
+      [
+        "R2",
+        29
+      ],
+      [
+        "R2",
+        30
+      ],
+      [
+        "R2",
+        31
+      ],
+      [
+        "R3",
+        0
+      ],
+      [
+        "R3",
+        1
+      ],
+      [
+        "R3",
+        2
+      ],
+      [
+        "R3",
+        3
+      ],
+      [
+        "R3",
+        4
+      ],
+      [
+        "R3",
+        5
+      ],
+      [
+        "R3",
+        6
+      ],
+      [
+        "R3",
+        7
+      ],
+      [
+        "R3",
+        8
+      ],
+      [
+        "R3",
+        9
+      ],
+      [
+        "R3",
+        10
+      ],
+      [
+        "R3",
+        11
+      ],
+      [
+        "R3",
+        12
+      ],
+      [
+        "R3",
+        13
+      ],
+      [
+        "R3",
+        14
+      ],
+      [
+        "R3",
+        15
+      ],
+      [
+        "R3",
+        16
+      ],
+      [
+        "R3",
+        17
+      ],
+      [
+        "R3",
+        18
+      ],
+      [
+        "R3",
+        19
+      ],
+      [
+        "R3",
+        20
+      ],
+      [
+        "R3",
+        21
+      ],
+      [
+        "R3",
+        22
+      ],
+      [
+        "R3",
+        23
+      ],
+      [
+        "R3",
+        24
+      ],
+      [
+        "R3",
+        25
+      ],
+      [
+        "R3",
+        26
+      ],
+      [
+        "R3",
+        27
+      ],
+      [
+        "R3",
+        28
+      ],
+      [
+        "R3",
+        29
+      ],
+      [
+        "R3",
+        30
+      ],
+      [
+        "R3",
+        31
+      ],
+      [
+        "R4",
+        0
+      ],
+      [
+        "R4",
+        1
+      ],
+      [
+        "R4",
+        2
+      ],
+      [
+        "R4",
+        3
+      ],
+      [
+        "R4",
+        4
+      ],
+      [
+        "R4",
+        5
+      ],
+      [
+        "R4",
+        6
+      ],
+      [
+        "R4",
+        7
+      ],
+      [
+        "R4",
+        8
+      ],
+      [
+        "R4",
+        9
+      ],
+      [
+        "R4",
+        10
+      ],
+      [
+        "R4",
+        11
+      ],
+      [
+        "R4",
+        12
+      ],
+      [
+        "R4",
+        13
+      ],
+      [
+        "R4",
+        14
+      ],
+      [
+        "R4",
+        15
+      ],
+      [
+        "R4",
+        16
+      ],
+      [
+        "R4",
+        17
+      ],
+      [
+        "R4",
+        18
+      ],
+      [
+        "R4",
+        19
+      ],
+      [
+        "R4",
+        20
+      ],
+      [
+        "R4",
+        21
+      ],
+      [
+        "R4",
+        22
+      ],
+      [
+        "R4",
+        23
+      ],
+      [
+        "R4",
+        24
+      ],
+      [
+        "R4",
+        25
+      ],
+      [
+        "R4",
+        26
+      ],
+      [
+        "R4",
+        27
+      ],
+      [
+        "R4",
+        28
+      ],
+      [
+        "R4",
+        29
+      ],
+      [
+        "R4",
+        30
+      ],
+      [
+        "R4",
+        31
+      ],
+      [
+        "R5",
+        0
+      ],
+      [
+        "R5",
+        1
+      ],
+      [
+        "R5",
+        2
+      ],
+      [
+        "R5",
+        3
+      ],
+      [
+        "R5",
+        4
+      ],
+      [
+        "R5",
+        5
+      ],
+      [
+        "R5",
+        6
+      ],
+      [
+        "R5",
+        7
+      ],
+      [
+        "R5",
+        8
+      ],
+      [
+        "R5",
+        9
+      ],
+      [
+        "R5",
+        10
+      ],
+      [
+        "R5",
+        11
+      ],
+      [
+        "R5",
+        12
+      ],
+      [
+        "R5",
+        13
+      ],
+      [
+        "R5",
+        14
+      ],
+      [
+        "R5",
+        15
+      ],
+      [
+        "R5",
+        16
+      ],
+      [
+        "R5",
+        17
+      ],
+      [
+        "R5",
+        18
+      ],
+      [
+        "R5",
+        19
+      ],
+      [
+        "R5",
+        20
+      ],
+      [
+        "R5",
+        21
+      ],
+      [
+        "R5",
+        22
+      ],
+      [
+        "R5",
+        23
+      ],
+      [
+        "R5",
+        24
+      ],
+      [
+        "R5",
+        25
+      ],
+      [
+        "R5",
+        26
+      ],
+      [
+        "R5",
+        27
+      ],
+      [
+        "R5",
+        28
+      ],
+      [
+        "R5",
+        29
+      ],
+      [
+        "R5",
+        30
+      ],
+      [
+        "R5",
+        31
+      ]
+    ],
+    "sku_credits_rc": {
+      "PSC": true,
+      "NDG": false,
+      "BUSTA": false
+    },
+    "rev_psc": 4000.0,
+    "rev_ndg": 7000.0,
+    "rev_busta": 7000.0,
+    "c_skip_mto": 100000.0,
+    "ups_lambda": 5.0,
+    "ups_mu": 20.0
+  }
+}

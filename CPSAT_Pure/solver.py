@@ -460,17 +460,34 @@ def solve(
         job_id: float(max(0, solver.Value(cp_vars["tard"][job_id])))
         for job_id in d["jobs"]
     }
-    tard_cost = sum(tardiness_min.values()) * float(d["cost_tardiness"])
+    tard_cost_pure = sum(tardiness_min.values()) * float(d["cost_tardiness"])
     setup_cost = setup_events * float(d["cost_setup"])
     idle_cost = idle_min * float(d["cost_idle"])
     over_cost = over_min * float(d["cost_overflow"])
-    total_costs = tard_cost + setup_cost + idle_cost + over_cost
+
+    stockout_events = {line_id: 0 for line_id in d["lines"]}
+    for (line_id, t), bv in cp_vars.get("stockout", {}).items():
+        if solver.Value(bv) == 1:
+            stockout_events[line_id] += 1
+    stockout_total = sum(stockout_events.values())
+    stockout_cost = float(stockout_total) * float(d["cost_stockout"])
+
+    mto_skipped = int(sum(solver.Value(bv) for bv in cp_vars.get("skipped", {}).values()))
+    skip_cost = float(mto_skipped) * float(d["cost_skip_mto"])
+
+    # Engine convention: kpi.tard_cost contains BOTH pure tardiness AND MTO skip penalty.
+    tard_cost = tard_cost_pure + skip_cost
+    total_costs = tard_cost + setup_cost + idle_cost + over_cost + stockout_cost
     exact_profit = total_revenue - total_costs
 
     rc_timeline = _extract_model_rc_timeline(solver, d, cp_vars)
     gc_timeline = _build_gc_timeline(schedule, restocks, d)
     rc_final = {
         line_id: int(levels[-1]) if levels else int(d["rc_init"][line_id])
+        for line_id, levels in rc_timeline.items()
+    }
+    stockout_duration = {
+        line_id: int(sum(1 for v in levels if v < 0))
         for line_id, levels in rc_timeline.items()
     }
     gc_final = {
@@ -527,6 +544,12 @@ def solve(
         "revenue_busta": round(revenue_busta, 2),
         "tardiness_min": {job_id: round(value, 2) for job_id, value in tardiness_min.items()},
         "tard_cost": round(tard_cost, 2),
+        "tard_cost_pure": round(tard_cost_pure, 2),
+        "skip_cost": round(skip_cost, 2),
+        "mto_skipped": int(mto_skipped),
+        "stockout_events": dict(stockout_events),
+        "stockout_duration": dict(stockout_duration),
+        "stockout_cost": round(stockout_cost, 2),
         "setup_events": int(setup_events),
         "setup_cost": round(setup_cost, 2),
         "idle_min": round(float(idle_min), 2),
@@ -543,6 +566,8 @@ def solve(
         "cost_idle": float(d["cost_idle"]),
         "cost_overflow": float(d["cost_overflow"]),
         "cost_setup": float(d["cost_setup"]),
+        "cost_stockout": float(d["cost_stockout"]),
+        "cost_skip_mto": float(d["cost_skip_mto"]),
         "roast_time_by_sku": dict(d["roast_time_by_sku"]),
         "gc_init": {f"{pair[0]}_{pair[1]}": int(value) for pair, value in d["gc_init"].items()},
         "gc_final": gc_final,

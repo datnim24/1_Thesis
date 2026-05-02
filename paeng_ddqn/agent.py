@@ -42,15 +42,15 @@ class PaengConfig:
     action_dim: int = 8               # 3 SKUs + WAIT + 4 restock variants
 
     # Network architecture --------------------------------------------------
-    hid_dims: tuple[int, ...] = (64, 32, 16)   # Paeng's default hidden block
+    hid_dims: tuple[int, ...] = (64, 32, 16)   # Cycle 13 (2026-04-28): reverted from (128,64,32) — bigger net collapsed in cycle 12
     is_double: bool = True            # Paeng's --is_double=True
-    is_duel: bool = False             # Phase 5 standard DDQN; dueling stays in rl_hh
+    is_duel: bool = True              # Cycle 49 (2026-04-29): enable dueling head. The audit and run-seed sweep showed standard DDQN plateaus around +$45k; testing dueling on Paeng's parameter-sharing isolates the contribution.
 
     # Optimization ----------------------------------------------------------
-    lr: float = 0.0025                # Paeng's default
-    gamma: float = 0.99               # OVERRIDE: Paeng uses 1.0 for pure tardiness
-    batch_size: int = 32
-    buffer_size: int = 100_000
+    lr: float = 0.0025                # Cycle 8 (2026-04-28): reverted from 0.0010 (cycle 7 regressed)
+    gamma: float = 0.99               # Cycle 43 (2026-04-29): reverted from 0.999 — too long horizon caused instability.
+    batch_size: int = 32               # Cycle 29 (2026-04-29): reverted from 128 (cycle 28 didn't help)
+    buffer_size: int = 10_000          # Cycle 29 (2026-04-29): reverted from 3k
     huber_delta: float = 0.5
 
     # Exploration / target sync --------------------------------------------
@@ -72,6 +72,36 @@ class PaengConfig:
     # `reward_scale` divides the per-decision profit-delta before storing.
     # Cycle 1 (2026-04-28): introduced reward_scale=1000 to fix the WAIT-collapse.
     reward_scale: float = 1000.0
+    # Cycle 4 (2026-04-28): per-decision penalty subtracted from scaled reward when
+    # WAIT (action 3) was chosen but a productive action (PSC=0/NDG=1/BUSTA=2) was
+    # feasible. 0.05 in scaled units = $50 raw. ~1,300 decisions/episode → max ~$65k.
+    idle_penalty: float = 0.05    # Cycle 43 (2026-04-29): re-enabled. Even with kpi_ref fix, the synthetic penalty helps break Q(WAIT) anchor at decision time (cycle 4's mechanism still applies).
+    # Cycle 44 (2026-04-29): when False (default), per-decision reward in training uses
+    # the revenue-only approximation from completed_batches (cycle 13's accidentally-effective
+    # signal — sparse positive completions with no intra-episode cost noise). Function-approx
+    # noise from full per-step Δprofit was destabilizing post-cycle-38 training. The terminal
+    # transition still uses the true final net_profit so the agent learns total-cost behavior
+    # via the long-horizon signal.
+    use_kpi_for_reward: bool = False
+    # Cycle 45 (2026-04-29): when True, decide_restock is delegated to DispatchingHeuristic
+    # (matches q_learning_train.py pattern). When False, the agent learns restock too.
+    # Cycle 55 (2026-04-29): reverted to False — cycle 54 dropped 100-seed mean from $182k to $97k
+    # vs cycle 52 (agent-learned restock). The heuristic helped L1 supply but didn't compose
+    # with dueling agent's roaster decisions on harder seeds.
+    delegate_restock: bool = False
+    # Cycle 16 reverted (2026-04-28): curriculum caused WAIT-only collapse; setting to 0 disables.
+    curriculum_warmup_episodes: int = 0
+    # Cycle 45 (2026-04-29): reverted to 0 since use_kpi_for_reward is now False — magnitudes
+    # are back to cycle-13 range, no clipping needed.
+    reward_clip: float = 0.0
+    # Cycle 34: combo (lever A + lever E) regressed. Both reverted to 0 for cycle 36.
+    force_productive_prob: float = 0.0
+    productive_bonus: float = 0.0
+    # Cycle 36 reverted (2026-04-29): stockout shaping fired too often and distorted policy.
+    gc_low_threshold: float = 0.20
+    stockout_alarm_penalty: float = 0.0
+    # Cycle 37 (2026-04-29): switch optimizer RMSprop → Adam. Adam often finds flatter minima.
+    use_adam: bool = True
 
     # Bookkeeping -----------------------------------------------------------
     device: str = "cpu"
@@ -223,7 +253,10 @@ class PaengAgent:
         self.target_net.eval()
 
         # Paeng uses RMSProp (`tf.train.RMSPropOptimizer`). Match here.
-        self.optimizer = torch.optim.RMSprop(self.online_net.parameters(), lr=self.cfg.lr)
+        if self.cfg.use_adam:
+            self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=self.cfg.lr)
+        else:
+            self.optimizer = torch.optim.RMSprop(self.online_net.parameters(), lr=self.cfg.lr)
 
         self.replay = ReplayBuffer(self.cfg.buffer_size, self.cfg)
         self.timestep = 0

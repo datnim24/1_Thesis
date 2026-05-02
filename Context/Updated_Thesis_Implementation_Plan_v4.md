@@ -43,7 +43,7 @@
 
 The thesis evaluates scheduling strategies across two layers:
 
-1. **Layer A — Deterministic Benchmark:** Compare **MILP vs CP-SAT** on the no-UPS problem. CP-SAT establishes the theoretical performance ceiling.
+1. **Layer A — Exact-Solver Benchmark:** Compare **MILP vs CP-SAT on identical instances at $\\lambda = 0$** using the unified soft model (`UPS_Mathematical_Model.md`). At $\\lambda = 0$ no UPS events are generated, so the soft model degenerates to its deterministic special case (stockout = 0, all MTO scheduled). CP-SAT additionally serves as a perfect-information ceiling at $\\lambda > 0$ by pre-merging UPS events as planned downtime.
 2. **Layer B — Reactive Scheduling:** Compare **4 reactive strategies** under UPS, organized as a clean architectural progression:
    - **Dispatching Heuristic** — operator baseline, no learning
    - **Tabular Q-Learning** — lineage of Zhang (2007) LBF-Q and the tabular baselines used by Luo (2020) and Paeng (2021)
@@ -101,8 +101,8 @@ All documents must reflect the v4 direction:
 | `RLHH_Papersv2.md` → v3 | Promote Paeng (2021) IEEE Access to primary key reference. Demote Ren & Liu (2024) to supporting role (architectural justification for Dueling). Update Q1 verification table accordingly. |
 | `RL_HH_Philosophy.md` → v3 | Update §1 literature foundation to put Paeng (2021) front. Remove Section "Why NOT PPO for Meta-Agent" (PPO no longer in scope). Update §5.1 architectural justification. |
 | `event_simulation_logic_complete.md` | **No changes needed** — simulation engine is strategy-agnostic. |
-| `mathematical_model_complete.md` | **No changes needed** — model unchanged. |
-| `UPS_Mathematical_Model.md` | **No changes needed** — reactive model unchanged. |
+| `mathematical_model_complete.md` | **REMOVED** — the separate deterministic formulation was retired when CPSAT_Pure adopted the soft cost model. The unified soft model in `UPS_Mathematical_Model.md` covers both cases ($\\lambda = 0$ is the deterministic special case). |
+| `UPS_Mathematical_Model.md` | **Canonical math model now** — unified soft formulation used by both MILP and CP-SAT for all instances. |
 | `cost.md` | **No changes needed** — cost structure unchanged. |
 
 ---

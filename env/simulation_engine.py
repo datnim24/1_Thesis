@@ -96,6 +96,12 @@ class SimulationEngine:
         state = self._initialize_state()
 
         kpi = self._make_kpi_tracker()
+        # Strategies that need access to live KPI for per-decision reward shaping
+        # (e.g. PaengStrategy) read it via `self.kpi_ref`. Set it here so the
+        # strategy's training loop sees real net_profit instead of falling back
+        # to a revenue-only approximation. No-op for strategies without the attr.
+        if strategy is not None and hasattr(strategy, "kpi_ref"):
+            strategy.kpi_ref = kpi
         self._ups_by_time.clear()
         for ev in sorted(ups_events, key=lambda e: (e.t, e.roaster_id, e.duration)):
             self._ups_by_time[ev.t].append(ev)

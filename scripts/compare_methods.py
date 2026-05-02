@@ -57,16 +57,19 @@ CONFIG = {
 
     # Method toggles — set False to skip a method
     "methods_enabled": {
-        "cpsat": True,
+        "cpsat": False,         # off by default (slow); enable via CLI if wanted
+        "dispatching": True,    # heuristic baseline
         "ql": True,
         "rlhh": True,
-        "ppo": True,
+        "paeng_v2": True,       # Paeng DDQN v2 (cycle10 final)
+        "ppo": False,           # off by default
     },
 
     # Model overrides — None = auto-discover latest-best
     "model_overrides": {
         "ql_qtable": None,      # path to q_table_master.pkl
         "rlhh_ckpt": None,      # path to rlhh_best.pt
+        "paeng_v2_ckpt": None,  # path to paeng_v2_final.pt (defaults to cycle10/paeng_v2_final.pt)
         "ppo_model": None,      # path to best_training_profit_model.zip
     },
 
@@ -91,6 +94,29 @@ CONFIG = {
 
 
 # =============================================================================
+# CP-SAT REFERENCE RESULTS (single-seed, pre-computed — no re-run needed)
+# Key: (ups_lambda, ups_mu) rounded to 1 decimal
+# =============================================================================
+
+CPSAT_REFERENCE: dict[tuple[float, float], dict] = {
+    (5.0, 20.0): {   # UPS enabled — seed 69 only
+        "net_profit": 443_400, "revenue": 486_000, "tard_cost": 0,
+        "setup_cost": 4_000, "idle_cost": 38_600, "stockout_cost": 0,
+        "over_cost": 0, "psc": 104.0, "ndg": 5.0, "busta": 5.0,
+        "setup_events": 5.0, "restocks": 14.0, "j1_late": 0.0, "j2_late": 0.0,
+        "seed": 69, "note": "seed 69 only",
+    },
+    (0.0, 0.0): {    # No UPS — seed 69 only
+        "net_profit": 481_200, "revenue": 518_000, "tard_cost": 0,
+        "setup_cost": 4_000, "idle_cost": 32_800, "stockout_cost": 0,
+        "over_cost": 0, "psc": 112.0, "ndg": 5.0, "busta": 5.0,
+        "setup_events": 5.0, "restocks": 15.0, "j1_late": 0.0, "j2_late": 0.0,
+        "seed": 69, "note": "seed 69 only",
+    },
+}
+
+
+# =============================================================================
 # ARG PARSING — CLI overrides CONFIG
 # =============================================================================
 
@@ -105,14 +131,19 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--meta-seed", type=int, default=CONFIG["meta_seed"],
                    help=f"Meta-seed for --random reproducibility (default {CONFIG['meta_seed']})")
     p.add_argument("--skip", nargs="*", default=[],
-                   choices=["cpsat", "ql", "rlhh", "ppo"],
+                   choices=["cpsat", "dispatching", "ql", "rlhh", "paeng_v2", "ppo"],
                    help="Methods to skip (space separated)")
+    p.add_argument("--enable", nargs="*", default=[],
+                   choices=["cpsat", "dispatching", "ql", "rlhh", "paeng_v2", "ppo"],
+                   help="Methods to enable (overrides default off in CONFIG)")
     p.add_argument("--ppo-model", type=str, default=None,
                    help="Override path to PPO .zip model")
     p.add_argument("--ql-qtable", type=str, default=None,
                    help="Override path to Q-Learning q_table_master.pkl")
     p.add_argument("--rlhh-ckpt", type=str, default=None,
                    help="Override path to RL-HH rlhh_best.pt")
+    p.add_argument("--paeng-v2-ckpt", type=str, default=None,
+                   help="Override path to paeng_v2 final.pt (default: paeng_ddqn_v2/outputs/cycle10/paeng_v2_final.pt)")
     p.add_argument("--ups-lambda", type=float, default=None,
                    help="Override UPS Poisson rate (events/shift)")
     p.add_argument("--ups-mu", type=float, default=None,
@@ -123,6 +154,11 @@ def parse_args() -> argparse.Namespace:
                    help="Custom output directory (default: results/method_comparison/<timestamp>)")
     p.add_argument("--no-plots", action="store_true",
                    help="Skip per-seed plot HTML generation (faster, lighter report)")
+    p.add_argument("--plot-seeds", type=int, default=5,
+                   help="Number of seeds (from the start of the list) to generate plots for, "
+                        "in addition to seed 69. Default 5. Use 0 for seed-69-only, -1 for all.")
+    p.add_argument("--name", type=str, default=None,
+                   help="Human-readable run name (shown in report title and used as output folder suffix)")
     p.add_argument("--rescue", type=str, default=None,
                    help="Re-render report from a previous run's saved per-seed JSONs "
                         "(pass the run directory, e.g. results/method_comparison/20260421_235532)")
@@ -134,10 +170,19 @@ def parse_args() -> argparse.Namespace:
 # =============================================================================
 
 def find_latest_ql_qtable(root: Path) -> Path | None:
-    """Scan q_learning/ql_results/*/q_table_master.pkl. Prefer the run with the most
-    training episodes (epNNNN in the dir name) — long training generalizes better
-    than a short run with a high training-profit label."""
-    candidates = list((root / "q_learning" / "ql_results").glob("*/q_table_master.pkl"))
+    """Scan q_learning/ql_results/*/q_table*.pkl (any q_table*.pkl, since some runs use
+    custom suffixes). Skip TestQL_DontUseThis. Prefer the run with the most training
+    episodes (epNNNNN in the dir name)."""
+    base = root / "q_learning" / "ql_results"
+    candidates: list[Path] = []
+    for d in base.glob("*"):
+        if not d.is_dir() or "DontUseThis" in d.name or d.name.startswith("_"):
+            continue
+        for pkl in d.glob("q_table*.pkl"):
+            # Skip training_log pkls
+            if "training_log" in pkl.name:
+                continue
+            candidates.append(pkl)
     if not candidates:
         return None
     def _episodes(p: Path) -> int:
@@ -167,6 +212,25 @@ def find_latest_ppo_model(root: Path) -> Path | None:
     if not candidates:
         return None
     candidates.sort(key=lambda p: p.parent.parent.stat().st_mtime, reverse=True)
+    return candidates[0]
+
+
+def find_latest_paeng_v2_ckpt(root: Path) -> Path | None:
+    """Default to paeng_ddqn_v2/outputs/cycle10/paeng_v2_final.pt (current best);
+    fall back to highest-numbered cycleN final.pt if cycle10 not present."""
+    canon = root / "paeng_ddqn_v2" / "outputs" / "cycle10" / "paeng_v2_final.pt"
+    if canon.exists():
+        return canon
+    candidates = list((root / "paeng_ddqn_v2" / "outputs").glob("cycle*/paeng_v2_final.pt"))
+    if not candidates:
+        return None
+    def _cyc_num(p: Path) -> int:
+        name = p.parent.name
+        for tok in name.split("cycle"):
+            if tok and tok[0].isdigit():
+                return int(tok.split("_")[0])
+        return -1
+    candidates.sort(key=_cyc_num, reverse=True)
     return candidates[0]
 
 
@@ -236,6 +300,34 @@ def get_cpsat_hyperparams(cfg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def get_paeng_v2_hyperparams(ckpt_path: Path) -> dict[str, Any]:
+    info: dict[str, Any] = {"model_path": str(ckpt_path)}
+    summary_path = ckpt_path.parent / "training_summary.json"
+    if summary_path.exists():
+        try:
+            tsum = json.loads(summary_path.read_text(encoding="utf-8"))
+            info.update({
+                "episodes": tsum.get("episodes"),
+                "best_train_profit": tsum.get("best_profit"),
+                "best_rolling_mean": tsum.get("best_rolling_mean"),
+                "final_epsilon": tsum.get("final_epsilon"),
+                "n_restores": tsum.get("n_restores"),
+                "config": tsum.get("config", {}),
+            })
+        except Exception as exc:
+            info["probe_error"] = str(exc)
+    info["description"] = "Paeng DDQN v2 (3,35 state, faithful Algorithm 1, dueling double DQN)."
+    return info
+
+
+def get_dispatching_hyperparams() -> dict[str, Any]:
+    return {
+        "solver": "DispatchingHeuristic",
+        "description": "Hand-coded dispatch rules: tardiness-priority MTO + GC/RC pressure heuristic.",
+        "model_path": "(no learned model — pure heuristic)",
+    }
+
+
 # =============================================================================
 # METHOD RUNNERS — uniform signature: (seed, ups, params, data, engine, ...) -> result dict
 # =============================================================================
@@ -273,6 +365,21 @@ def run_ppo(seed: int, ups: list, params: dict, data: Any, engine: Any, model_pa
     from sb3_contrib import MaskablePPO
     model = MaskablePPO.load(str(model_path))
     strategy = PPOStrategy(data, model, deterministic=True)
+    return engine.run(strategy, list(ups))
+
+
+def run_paeng_v2(seed: int, ups: list, params: dict, data: Any, engine: Any, ckpt_path: Path) -> tuple:
+    from paeng_ddqn_v2.agent_v2 import PaengAgentV2
+    from paeng_ddqn_v2.strategy_v2 import PaengStrategyV2
+    agent = PaengAgentV2.from_checkpoint(str(ckpt_path))
+    agent.epsilon = 0.0
+    strategy = PaengStrategyV2(agent, data, training=False, params=params)
+    return engine.run(strategy, list(ups))
+
+
+def run_dispatching(seed: int, ups: list, params: dict, data: Any, engine: Any) -> tuple:
+    from dispatch.dispatching_heuristic import DispatchingHeuristic
+    strategy = DispatchingHeuristic(params)
     return engine.run(strategy, list(ups))
 
 
@@ -419,7 +526,8 @@ def _stats(vals: list[float]) -> dict:
 
 
 def _render_summary_table(per_method_runs: dict[str, list[dict]],
-                          method_labels: dict[str, str]) -> str:
+                          method_labels: dict[str, str],
+                          cpsat_ref: dict | None = None) -> str:
     """Build the main comparison table across all methods."""
     metric_rows = [
         ("Net Profit ($)", "net_profit", _fmt_money),
@@ -449,13 +557,20 @@ def _render_summary_table(per_method_runs: dict[str, list[dict]],
                 f"<span class='muted'>σ={fmt(s['std'])} &middot; "
                 f"min={fmt(s['min'])} &middot; max={fmt(s['max'])}</span></td>"
             )
+        if cpsat_ref is not None:
+            val = cpsat_ref.get(field, 0)
+            cells.append(f"<td class='cpsat-ref'>{fmt(val)}<br>"
+                         f"<span class='muted'>{html.escape(cpsat_ref.get('note', ''))}</span></td>")
         rows_html.append("<tr>" + "".join(cells) + "</tr>")
 
     headers = "".join(
         f"<th>{html.escape(method_labels[tag])}</th>" for tag in per_method_runs
     )
+    if cpsat_ref is not None:
+        headers += "<th class='cpsat-ref-hdr'>CP-SAT (ceiling)</th>"
+
     return (
-        f"<table class='summary'>"
+        f"<table id='tbl-summary' class='summary'>"
         f"<thead><tr><th>Metric (avg across N runs)</th>{headers}</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table>"
     )
@@ -466,12 +581,18 @@ def _index_by_seed(per_method_runs: dict[str, list[dict]]) -> dict[str, dict[int
     return {t: {r["seed"]: r for r in runs} for t, runs in per_method_runs.items()}
 
 
+CPSAT_REF_SEED = 69
+
+
 def _render_per_seed_table(per_method_runs: dict[str, list[dict]],
                            method_labels: dict[str, str],
-                           seeds: list[int]) -> str:
+                           seeds: list[int],
+                           cpsat_ref: dict | None = None) -> str:
     """Per-seed net profit + winner. Resilient to methods that skipped a seed (e.g. CP-SAT timeout)."""
     by_seed = _index_by_seed(per_method_runs)
     headers = "".join(f"<th>{html.escape(method_labels[t])}</th>" for t in per_method_runs)
+    if cpsat_ref is not None:
+        headers += "<th class='cpsat-ref-hdr'>CP-SAT (ceiling)</th>"
     rows = []
     wins = {t: 0 for t in per_method_runs}
     for seed in seeds:
@@ -487,6 +608,11 @@ def _render_per_seed_table(per_method_runs: dict[str, list[dict]],
                 cells.append(f"<td class='{css}'>{_fmt_money(by_seed[t][seed]['net_profit'])}</td>")
             else:
                 cells.append("<td class='failed'>—</td>")
+        if cpsat_ref is not None:
+            if seed == CPSAT_REF_SEED:
+                cells.append(f"<td class='cpsat-ref'>{_fmt_money(cpsat_ref['net_profit'])}</td>")
+            else:
+                cells.append("<td class='cpsat-ref muted'>—</td>")
         winner_label = html.escape(method_labels[winner]) if winner else "—"
         cells.append(f"<td>{winner_label}</td>")
         rows.append("<tr>" + "".join(cells) + "</tr>")
@@ -494,15 +620,19 @@ def _render_per_seed_table(per_method_runs: dict[str, list[dict]],
     wins_row = "<tr class='wins-row'><td><strong>Wins</strong></td>"
     for t in per_method_runs:
         wins_row += f"<td><strong>{wins[t]}/{len(seeds)}</strong></td>"
+    if cpsat_ref is not None:
+        wins_row += "<td class='cpsat-ref'>—</td>"
     wins_row += "<td>—</td></tr>"
 
     coverage_row = "<tr class='coverage-row'><td><strong>Seeds completed</strong></td>"
     for t in per_method_runs:
         coverage_row += f"<td>{len(by_seed[t])}/{len(seeds)}</td>"
+    if cpsat_ref is not None:
+        coverage_row += f"<td class='cpsat-ref'>1/{len(seeds)}</td>"
     coverage_row += "<td>—</td></tr>"
 
     return (
-        f"<table class='per-seed'>"
+        f"<table id='tbl-per-seed' class='per-seed'>"
         f"<thead><tr><th>Seed</th>{headers}<th>Winner</th></tr></thead>"
         f"<tbody>{''.join(rows)}{coverage_row}{wins_row}</tbody></table>"
     )
@@ -589,6 +719,11 @@ def render_report(out_dir: Path, config: dict, metadata: dict,
                   hyperparams: dict[str, dict], input_csvs: dict[str, list[dict]],
                   seeds: list[int]) -> Path:
     """Compose the main comparison_report.html."""
+    # Resolve CP-SAT reference for current UPS condition
+    ups_key = (round(float(metadata.get("ups_lambda", 0)), 1),
+               round(float(metadata.get("ups_mu", 0)), 1))
+    cpsat_ref = CPSAT_REFERENCE.get(ups_key)
+
     css = """
       body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color: #222; }
       h1 { margin-bottom: 4px; }
@@ -615,7 +750,40 @@ def render_report(out_dir: Path, config: dict, metadata: dict,
       details.hp-block pre { background: #1e1e1e; color: #dcdcdc; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 0.86em; }
       iframe.plot-frame { width: 100%; height: 1200px; border: 1px solid #ccc; border-radius: 4px; }
       .winner-tag { display: inline-block; background: #4caf50; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 0.8em; }
+      th.cpsat-ref-hdr { background: #e8f0fe; border-left: 3px solid #4285f4; }
+      td.cpsat-ref { background: #f0f4ff; border-left: 3px solid #4285f4; }
+      .btn-export { font-size: 0.82em; padding: 3px 10px; margin-bottom: 6px; cursor: pointer;
+        background: #fff; border: 1px solid #888; border-radius: 4px; }
+      .btn-export:hover { background: #f0f0f0; }
     """
+
+    export_js = """
+<script>
+function dlCSV(tblId, fname) {
+    var tbl = document.getElementById(tblId);
+    if (!tbl) return;
+    var rows = [];
+    tbl.querySelectorAll('tr').forEach(function(tr) {
+        var cells = [];
+        tr.querySelectorAll('th, td').forEach(function(td) {
+            var muted = td.querySelector('.muted');
+            var val = muted
+                ? td.childNodes[0].textContent.trim() + ' | ' + muted.textContent.trim()
+                : td.textContent.trim();
+            val = val.replace(/\\s+/g, ' ');
+            cells.push('"' + val.replace(/"/g, '""') + '"');
+        });
+        rows.push(cells.join(','));
+    });
+    var blob = new Blob([rows.join('\\r\\n')], {type: 'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+</script>
+"""
 
     # Metadata header
     meta_lines = [
@@ -631,11 +799,17 @@ def render_report(out_dir: Path, config: dict, metadata: dict,
     meta_lines.append(f"<strong>Total wall time:</strong> {metadata['total_wall_sec']:.1f}s")
     meta_html = "<br>".join(meta_lines)
 
-    summary_table = _render_summary_table(per_method_runs, method_labels)
-    per_seed_table = _render_per_seed_table(per_method_runs, method_labels, seeds)
+    summary_table = _render_summary_table(per_method_runs, method_labels, cpsat_ref)
+    per_seed_table = _render_per_seed_table(per_method_runs, method_labels, seeds, cpsat_ref)
     hp_html = _render_hyperparams(hyperparams, method_labels)
     plots_html = _render_plot_sections(seeds, out_dir, list(per_method_runs.keys()), method_labels)
     inputs_html = _render_input_params(input_csvs)
+
+    cpsat_note = (
+        f"<p class='muted'>CP-SAT ceiling column: single-seed reference (seed {cpsat_ref['seed']}, "
+        f"UPS λ={ups_key[0]}, μ={ups_key[1]}).</p>"
+        if cpsat_ref else ""
+    )
 
     doc = f"""<!DOCTYPE html>
 <html lang='en'>
@@ -645,16 +819,20 @@ def render_report(out_dir: Path, config: dict, metadata: dict,
 <style>{css}</style>
 </head>
 <body>
+{export_js}
 <h1>{html.escape(config['report_title'])}</h1>
 <div class='meta'>{meta_html}</div>
 
 <h2>1. Aggregate Comparison</h2>
 <p>Averages and dispersion across <strong>{len(seeds)} runs</strong>. Each seed feeds the
 <strong>identical UPS realization</strong> to every method.</p>
+<button class='btn-export' onclick="dlCSV('tbl-summary','aggregate_comparison.csv')">&#8681; Export CSV</button>
 {summary_table}
+{cpsat_note}
 
 <h2>2. Per-Seed Breakdown (Net Profit)</h2>
 <p>Winner highlighted in green. Bottom row tallies wins.</p>
+<button class='btn-export' onclick="dlCSV('tbl-per-seed','per_seed_profits.csv')">&#8681; Export CSV</button>
 {per_seed_table}
 
 <h2>3. Method Hyperparameters</h2>
@@ -713,8 +891,10 @@ def rescue_render(run_dir: Path) -> None:
 
     method_labels = {
         "cpsat": "CP-SAT",
+        "dispatching": "Dispatching Heuristic",
         "ql": "Q-Learning",
         "rlhh": "RL-HH (Dueling DDQN)",
+        "paeng_v2": "Paeng DDQN v2",
         "ppo": "MaskedPPO",
     }
 
@@ -792,6 +972,8 @@ def rescue_render(run_dir: Path) -> None:
     if not hyperparams:
         if "cpsat" in per_method_runs:
             hyperparams["cpsat"] = get_cpsat_hyperparams(CONFIG["cpsat"])
+        if "dispatching" in per_method_runs:
+            hyperparams["dispatching"] = get_dispatching_hyperparams()
         if "ql" in per_method_runs:
             qp = model_paths.get("ql")
             if qp and Path(qp).exists():
@@ -800,6 +982,10 @@ def rescue_render(run_dir: Path) -> None:
             rp = model_paths.get("rlhh")
             if rp and Path(rp).exists():
                 hyperparams["rlhh"] = get_rlhh_hyperparams(Path(rp))
+        if "paeng_v2" in per_method_runs:
+            pp = model_paths.get("paeng_v2")
+            if pp and Path(pp).exists():
+                hyperparams["paeng_v2"] = get_paeng_v2_hyperparams(Path(pp))
         if "ppo" in per_method_runs:
             pp = model_paths.get("ppo")
             if pp and Path(pp).exists():
@@ -862,27 +1048,36 @@ def main() -> None:
     cfg["random_seeds"] = args.random
     cfg["meta_seed"] = args.meta_seed
     cfg["cpsat"]["time_limit_sec"] = args.cpsat_time
+    for enable in args.enable:
+        cfg["methods_enabled"][enable] = True
     for skip in args.skip:
         cfg["methods_enabled"][skip] = False
     if args.ppo_model:
         cfg["model_overrides"]["ppo_model"] = args.ppo_model
+        cfg["methods_enabled"]["ppo"] = True
     if args.ql_qtable:
         cfg["model_overrides"]["ql_qtable"] = args.ql_qtable
     if args.rlhh_ckpt:
         cfg["model_overrides"]["rlhh_ckpt"] = args.rlhh_ckpt
+    if args.paeng_v2_ckpt:
+        cfg["model_overrides"]["paeng_v2_ckpt"] = args.paeng_v2_ckpt
     if args.ups_lambda is not None:
         cfg["ups_overrides"]["lambda"] = args.ups_lambda
     if args.ups_mu is not None:
         cfg["ups_overrides"]["mu"] = args.ups_mu
     if args.no_plots:
         cfg["save_per_seed_html"] = False
+    cfg["plot_seeds_n"] = args.plot_seeds
+    if args.name:
+        cfg["report_title"] = args.name
 
     # Resolve output directory
     if args.output:
         out_dir = Path(args.output)
     else:
         stamp = time.strftime("%Y%m%d_%H%M%S")
-        out_dir = cfg["output_root"] / stamp
+        folder = f"{stamp}_{args.name}" if args.name else stamp
+        out_dir = cfg["output_root"] / folder
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Resolve model paths
@@ -895,16 +1090,22 @@ def main() -> None:
         model_paths["rlhh"] = (Path(cfg["model_overrides"]["rlhh_ckpt"])
                                if cfg["model_overrides"]["rlhh_ckpt"]
                                else find_latest_rlhh_ckpt(_ROOT))
+    if cfg["methods_enabled"]["paeng_v2"]:
+        model_paths["paeng_v2"] = (Path(cfg["model_overrides"]["paeng_v2_ckpt"])
+                                   if cfg["model_overrides"]["paeng_v2_ckpt"]
+                                   else find_latest_paeng_v2_ckpt(_ROOT))
     if cfg["methods_enabled"]["ppo"]:
         model_paths["ppo"] = (Path(cfg["model_overrides"]["ppo_model"])
                               if cfg["model_overrides"]["ppo_model"]
                               else find_latest_ppo_model(_ROOT))
     if cfg["methods_enabled"]["cpsat"]:
         model_paths["cpsat"] = None  # solver, no artifact
+    if cfg["methods_enabled"]["dispatching"]:
+        model_paths["dispatching"] = None  # heuristic, no artifact
 
     # Validate discovered artifacts
     for tag, p in model_paths.items():
-        if tag == "cpsat":
+        if tag in ("cpsat", "dispatching"):
             continue
         if p is None or not Path(p).exists():
             print(f"[WARN] {tag} model not found — disabling this method")
@@ -931,13 +1132,16 @@ def main() -> None:
 
     method_labels = {
         "cpsat": "CP-SAT",
+        "dispatching": "Dispatching Heuristic",
         "ql": "Q-Learning",
         "rlhh": "RL-HH (Dueling DDQN)",
+        "paeng_v2": "Paeng DDQN v2",
         "ppo": "MaskedPPO",
     }
 
     # Enabled methods in preferred display order
-    active_tags = [t for t in ("cpsat", "ql", "rlhh", "ppo") if cfg["methods_enabled"][t]]
+    active_tags = [t for t in ("cpsat", "dispatching", "ql", "rlhh", "paeng_v2", "ppo")
+                   if cfg["methods_enabled"][t]]
     per_method_runs: dict[str, list[dict]] = {t: [] for t in active_tags}
 
     if cfg["random_seeds"]:
@@ -949,8 +1153,24 @@ def main() -> None:
         seeds = list(range(cfg["seed_start"], cfg["seed_start"] + cfg["n_runs"]))
         print(f"  Sequential seeds: {seeds[0]}..{seeds[-1]}")
 
+    # Always include seed 69 (CP-SAT reference seed) so the ceiling is directly comparable
+    CPSAT_SEED = 69
+    if CPSAT_SEED not in seeds:
+        seeds = sorted(set(seeds) | {CPSAT_SEED})
+        print(f"  [+] Injected seed {CPSAT_SEED} (CP-SAT reference seed)")
+
+    # Determine which seeds get plot HTML generated
+    n_plot = cfg.get("plot_seeds_n", 5)
+    if not cfg["save_per_seed_html"] or n_plot == 0:
+        plot_seeds: set[int] = {CPSAT_SEED}  # seed 69 always gets plots
+    elif n_plot < 0:
+        plot_seeds = set(seeds)  # -1 = all seeds
+    else:
+        plot_seeds = set(seeds[:n_plot]) | {CPSAT_SEED}
+
     print(f"\n{'='*100}")
     print(f"Seeds {seeds[0]}..{seeds[-1]}  |  UPS λ={params['ups_lambda']} μ={params['ups_mu']}  |  Methods: {active_tags}")
+    print(f"Plot HTML: {sorted(plot_seeds)} ({len(plot_seeds)} seeds)")
     print(f"{'='*100}")
 
     for seed in seeds:
@@ -977,13 +1197,18 @@ def main() -> None:
                         kpi, state = run_ql(seed, ups_list, params, data, engine, model_paths[tag])
                     elif tag == "rlhh":
                         kpi, state = run_rlhh(seed, ups_list, params, data, engine, model_paths[tag])
+                    elif tag == "paeng_v2":
+                        kpi, state = run_paeng_v2(seed, ups_list, params, data, engine, model_paths[tag])
                     elif tag == "ppo":
                         kpi, state = run_ppo(seed, ups_list, params, data, engine, model_paths[tag])
+                    elif tag == "dispatching":
+                        kpi, state = run_dispatching(seed, ups_list, params, data, engine)
                     else:
                         raise RuntimeError(f"Unknown method tag: {tag}")
+                    mp_str = str(model_paths.get(tag) or "(no model)")
                     result = _build_sim_result(
                         method_labels[tag], tag, kpi, state, params, data, seed,
-                        str(model_paths[tag]),
+                        mp_str,
                     )
                     kpi_dict = kpi.to_dict()
             except Exception as exc:
@@ -998,7 +1223,7 @@ def main() -> None:
             per_method_runs[tag].append(summary)
 
             _save_json(result, seed_dir / f"{tag}_result.json")
-            if cfg["save_per_seed_html"]:
+            if seed in plot_seeds:
                 _save_plot_html(result, seed_dir / f"{tag}_report.html")
 
             print(f"    {tag:<6}  net=${summary['net_profit']:>10,.0f}  "
@@ -1012,10 +1237,14 @@ def main() -> None:
     hyperparams: dict[str, dict] = {}
     if cfg["methods_enabled"]["cpsat"]:
         hyperparams["cpsat"] = get_cpsat_hyperparams(cfg["cpsat"])
+    if cfg["methods_enabled"]["dispatching"]:
+        hyperparams["dispatching"] = get_dispatching_hyperparams()
     if cfg["methods_enabled"]["ql"]:
         hyperparams["ql"] = get_ql_hyperparams(Path(model_paths["ql"]))
     if cfg["methods_enabled"]["rlhh"]:
         hyperparams["rlhh"] = get_rlhh_hyperparams(Path(model_paths["rlhh"]))
+    if cfg["methods_enabled"]["paeng_v2"]:
+        hyperparams["paeng_v2"] = get_paeng_v2_hyperparams(Path(model_paths["paeng_v2"]))
     if cfg["methods_enabled"]["ppo"]:
         hyperparams["ppo"] = get_ppo_hyperparams(Path(model_paths["ppo"]))
 

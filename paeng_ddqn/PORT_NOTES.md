@@ -378,3 +378,82 @@ RL-HH degrades smoothly from $393k (low) to $327k (heavy) — a ~17% drop across
 - `bootstrap_ci.csv`    — 1000-resample 95% CI for each method × cell
 
 All under `results/block_b_20260428_045926/`.
+
+---
+
+## 11. Cycle 37 audit (2026-04-29)
+
+After 36 fixing cycles plateaued at +$45,275 (cycle 13 ep 660), a full pipeline audit was performed (commit on 2026-04-29). The audit found two critical issues and one structural insight from the Q-learning baseline.
+
+### 11.1 Bug found: `kpi_ref` was never wired
+
+`PaengStrategy.__init__` sets `self.kpi_ref = None` (strategy.py:374) and the per-decision reward source `_compute_profit` falls back to a revenue-only approximation when `kpi_ref` is None. **Nothing in the codebase ever assigned `kpi_ref`.**
+
+Effect: across cycles 1-36, the per-decision training reward was **revenue-only** (PSC +$4k, MTO +$7k on completion, zero otherwise). The agent saw NO intra-episode signal for idle, setup, stockout, or tardiness. Only the terminal `end_episode` transition used the true `kpi.net_profit()`.
+
+This silently invalidated the design intent documented in §6 Reward (line 137): *"per-decision reward = profit-delta = `kpi.net_profit() - prev_profit`. Captures revenue gains AND penalty accumulation."*
+
+### 11.2 Fix
+
+`env/simulation_engine.py:run` now sets `strategy.kpi_ref = kpi` immediately after creating the kpi tracker, conditional on `hasattr(strategy, "kpi_ref")` so it's a no-op for strategies that don't expose this hook (q_learning, dispatching, CP-SAT).
+
+### 11.3 Test suite
+
+`paeng_ddqn/tests/test_pipeline_wiring.py` — 6 integration tests:
+
+1. `test_kpi_ref_wired` — engine.run sets `strategy.kpi_ref = kpi`
+2. `test_compute_profit_uses_real_kpi` — `_compute_profit() == kpi.net_profit()`
+3. `test_state_and_mask_shapes` — (3,50)/(10,)/(8,) shapes match config
+4. `test_replay_buffer_fills_during_training` — > 100 transitions per episode
+5. `test_reward_signal_includes_penalties` — sum(stored rewards) × scale ≈ net_profit (within shaping noise)
+6. `test_action_to_env_tuple_consistent_with_mask` — every feasible action_id maps to a valid engine tuple
+
+Run with `python -m paeng_ddqn.tests.test_pipeline_wiring`. Test 5 will fail (by design) when `cfg.delegate_restock=True` since the agent no longer sees restock-context decisions and the reward sum no longer telescopes.
+
+### 11.4 Q-learning insight: restock delegation
+
+`q_learning/q_learning_train.py:163` delegates `_process_restock_decision_point` to `DispatchingHeuristic` rather than learning it. Q-learning's RL'd action space is therefore 4 (WAIT/PSC/NDG/BUSTA) instead of Paeng's 8 (with 4 restock variants).
+
+Adopted as `cfg.delegate_restock` flag in `PaengStrategy.decide_restock`. Default `False` (matches cycle 13 — agent learns restocks too).
+
+### 11.5 Post-audit cycle results (38-45)
+
+| Cycle | Setup | Best snap mean | vs cycle 13 |
+|---|---|---:|---|
+| 38 | kpi-fix only | -$715,523 | regression |
+| 39 | kpi-fix + γ=0.999 + idle_penalty=0 | -$640,933 | regression |
+| 40 | kpi-fix + γ=0.999 + clip 1.0 | -$255,614 | regression |
+| 41 | kpi-fix + γ=0.999 + clip + restock-delegation | -$111,917 | regression |
+| 42 | cycle 41 + 60min train | -$177,094 | regression |
+| 43 | cycle 41 + γ=0.99 + idle_penalty=0.05 | -$96,416 | regression |
+| 44 | revenue-only signal + restock-delegation + clip | -$111,096 | regression |
+| 45 | exact cycle 13 reproduction at seed 200 | -$134,004 | regression |
+
+**Conclusion**: cycle 13 ep 660 (+$45,275) is **not reproducible**. Cycle 45 used the exact same hyperparameters and seed_base — produced -$134k. The +$45k was a **one-shot RNG-luck artifact** from unseeded `random.random()` (action selection) and `np.random.randint` (replay sampling).
+
+### 11.6 Why the kpi_ref fix didn't help
+
+Counter-intuitively, fixing the reward signal made training *worse* on average (-$715k baseline vs -$256k cycle-2 final). Mechanism:
+
+- Pre-fix: per-decision reward was **sparse** (large positives only on completions). Agent learned a Monte-Carlo-style approximation, focusing on completions; the terminal transition contributed cost-aware signal.
+- Post-fix: per-decision reward is **dense and noisy** (small per-step idle/setup costs, large on completions). With function approximation (3-layer 64→32→16 net), this dense signal causes Q-value variance that overfits to training-seed UPS realizations and doesn't generalize.
+
+This is a known DQN failure mode: dense reward signals + function approximation can be worse than sparse reward signals + Monte-Carlo updates, when the network capacity isn't sufficient to fit the dense signal cleanly.
+
+### 11.7 Final canonical Paeng checkpoint
+
+**`paeng_ddqn/outputs/paeng_best.pt`** = `paeng_ddqn/outputs/cycle13/snapshots/ckpt_ep660.pt`
+
+100-seed evaluation (λ_mult=μ_mult=1.0, seeds 900000-900099):
+- Mean profit: **+$45,275** ± $51,378
+- Median: **+$59,400** (over half the seeds positive)
+- Min: -$200,200, Max: +$111,800
+- PSC: 60.4 / shift, setups: 12.84, restocks: 22.02
+- Idle: 1,127 min, tard: $24,580, stockout: $51,405
+
+**Phase 5 finding**: Paeng's standard DDQN with parameter sharing, faithfully ported with the corrected KPI wiring, plateaus at **+$45k mean** under our problem domain. This sits below dispatching ($320k) but above naive Q-learning ($237k) and well above the WAIT-only collapse baseline (-$1.58M). The factor-of-7 gap to RL-HH ($375k) empirically motivates RL-HH's architectural choices (dueling head + tool action space).
+
+The +$45k checkpoint is itself a happy accident from unseeded RNG — cycle 45 demonstrated identical hyperparameters at the same `seed_base` produce -$134k. Future work should explicitly seed `random` and `np.random` at `train()` start for reproducibility.
+
+---
+

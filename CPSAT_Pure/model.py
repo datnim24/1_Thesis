@@ -1,16 +1,19 @@
-"""CP_SAT_v2 deterministic model builder.
+"""CP_SAT_v2 model builder (soft-constraint, engine-consistent).
 
 This version keeps the interval-based backbone for assignment/capacity logic,
-but upgrades the deterministic objective to be exact with respect to:
+and uses a soft cost model that mirrors the simulation engine exactly:
 
 - PSC revenue
-- mandatory MTO revenue
-- tardiness cost
+- MTO revenue (conditional on activation)
+- tardiness cost (per minute past due)
+- per-event stockout cost (RC < 0 at consume event)
+- per-batch MTO skip cost (rolled into tard_cost in reporting)
 - exact setup-event cost
 - exact safety-idle cost
 - exact overflow-idle cost
 
-UPS / reactive re-solve is intentionally excluded.
+UPS is handled by pre-merging events into downtime_slots in runner.py
+(perfect-information mode).
 """
 
 from __future__ import annotations
@@ -261,6 +264,8 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         "full_both": 0,
         "idle": 0,
         "over": 0,
+        "skipped": 0,
+        "stockout": 0,
     }
     constraint_counts = {
         "C1_C2": 0,
@@ -338,9 +343,15 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         var_counts["roast_intervals"] += len(roast_interval[batch_id])
         var_counts["consume_intervals"] += len(consume_interval[batch_id])
 
+    skipped: dict[Any, Any] = {}
     for batch_id in mto_batches:
-        model.Add(sum(lit[batch_id][roaster] for roaster in sched_elig[batch_id]) == 1)
+        skipped_var = model.NewBoolVar(f"skipped_{safe_id(batch_id)}")
+        skipped[batch_id] = skipped_var
+        model.Add(
+            sum(lit[batch_id][roaster] for roaster in sched_elig[batch_id]) + skipped_var == 1
+        )
         constraint_counts["C1_C2"] += 1
+        var_counts["skipped"] += 1
 
     for batch_id in all_batches:
         earliest = _earliest_start(d, batch_id)
@@ -555,9 +566,12 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         line_id: set(d["consumption_events"][line_id])
         for line_id in lines
     }
+    events_per_line = {line_id: len(consumption_sets[line_id]) for line_id in lines}
+    stockout: dict[tuple[str, int], cp_model.IntVar] = {}
     for line_id in lines:
+        rc_lb = -events_per_line[line_id]
         for minute in range(SL):
-            rc_level[line_id][minute] = model.NewIntVar(0, MRC, f"rc_{line_id}_{minute}")
+            rc_level[line_id][minute] = model.NewIntVar(rc_lb, MRC, f"rc_{line_id}_{minute}")
             low[line_id][minute] = model.NewBoolVar(f"low_{line_id}_{minute}")
             full[line_id][minute] = model.NewBoolVar(f"full_{line_id}_{minute}")
             var_counts["rc_level"] += 1
@@ -583,6 +597,14 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
             model.Add(rc_level[line_id][minute] >= MRC).OnlyEnforceIf(full[line_id][minute])
             model.Add(rc_level[line_id][minute] <= MRC - 1).OnlyEnforceIf(full[line_id][minute].Not())
             constraint_counts["RC_STATE"] += 4
+
+    for line_id in lines:
+        for t in sorted(consumption_sets[line_id]):
+            so_var = model.NewBoolVar(f"stockout_{line_id}_{t}")
+            stockout[(line_id, t)] = so_var
+            model.Add(rc_level[line_id][t] >= 0).OnlyEnforceIf(so_var.Not())
+            model.Add(rc_level[line_id][t] <= -1).OnlyEnforceIf(so_var)
+            var_counts["stockout"] += 1
 
     for pair in feasible_gc_pairs:
         line_id, sku = pair
@@ -727,6 +749,9 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
                     )
                     model.add_hint(x_var, is_here)
 
+            if batch_id in skipped:
+                model.add_hint(skipped[batch_id], 0 if hinted_batch is not None else 1)
+
             if batch_id in z_l1:
                 if hinted_batch is None:
                     model.add_hint(z_l1[batch_id], 0)
@@ -846,6 +871,8 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
                 model.add_hint(rc_level[line_id][minute], level)
                 model.add_hint(low[line_id][minute], 1 if level < SS else 0)
                 model.add_hint(full[line_id][minute], 1 if level >= MRC else 0)
+            for t in consumption_sets[line_id]:
+                model.add_hint(stockout[(line_id, t)], 1 if rc_hint[line_id][t] < 0 else 0)
 
         if d["allow_r3_flex"]:
             for minute in range(SL):
@@ -879,13 +906,18 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
 
     revenue_psc = _as_int_coefficient(d["sku_revenue"]["PSC"], "sku_revenue.PSC")
     mto_revenue = sum(
-        _as_int_coefficient(d["sku_revenue"][batch_sku[batch_id]], f"sku_revenue.{batch_sku[batch_id]}")
+        _as_int_coefficient(
+            d["sku_revenue"][batch_sku[batch_id]], f"sku_revenue.{batch_sku[batch_id]}"
+        )
+        * sum(lit[batch_id][r] for r in sched_elig[batch_id])
         for batch_id in mto_batches
     )
     cost_tardiness = _as_int_coefficient(d["cost_tardiness"], "cost_tardiness")
     cost_setup = _as_int_coefficient(d["cost_setup"], "cost_setup")
     cost_idle = _as_int_coefficient(d["cost_idle"], "cost_idle")
     cost_overflow = _as_int_coefficient(d["cost_overflow"], "cost_overflow")
+    cost_stockout = _as_int_coefficient(d["cost_stockout"], "cost_stockout")
+    cost_skip_mto = _as_int_coefficient(d["cost_skip_mto"], "cost_skip_mto")
 
     psc_revenue_expr = sum(
         revenue_psc * lit[batch_id][sched_elig[batch_id][0]]
@@ -908,10 +940,14 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         for roaster in roasters
         for minute in range(SL)
     )
+    stockout_penalty = cost_stockout * sum(stockout.values())
+    skip_penalty = cost_skip_mto * sum(skipped.values())
     model.Maximize(
         psc_revenue_expr
         + mto_revenue
         - tard_penalty
+        - skip_penalty
+        - stockout_penalty
         - setup_penalty
         - idle_penalty
         - overflow_penalty
@@ -922,13 +958,14 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         "var_counts": var_counts,
         "constraint_counts": constraint_counts,
         "build_seconds": elapsed,
-        "formulation": "interval-based v4 (exact deterministic objective, RC timeline, GC reservoir)",
+        "formulation": "interval-based v4 (soft engine-consistent objective, RC timeline, GC reservoir)",
         "notes": [
-            "No UPS variables are included in CP_SAT_v2.",
+            "UPS is handled via downtime pre-merge in runner.py (perfect-information mode).",
             "SKU-specific roast durations are enforced.",
             "Setup cost is counted from realized exact roaster transitions.",
-            "Deterministic objective includes exact safety-idle and overflow-idle minutes.",
-            "RC inventory is tracked minute-by-minute for exact low/full objective logic.",
+            "Objective includes exact safety-idle and overflow-idle minutes.",
+            "RC inventory is tracked minute-by-minute; stockouts allowed at c_stock per consume event.",
+            "MTO activation is soft; unscheduled MTO penalised at c_skip_mto per batch.",
             "GC inventory remains hard-feasible via active reservoir constraints.",
             "Current C6 first-setup semantics are preserved unchanged.",
         ],
@@ -956,5 +993,7 @@ def build(d: dict[str, Any]) -> tuple[cp_model.CpModel, dict[str, Any]]:
         "full": full,
         "idle": idle,
         "over": over,
+        "skipped": skipped,
+        "stockout": stockout,
     }
     return model, vars_dict

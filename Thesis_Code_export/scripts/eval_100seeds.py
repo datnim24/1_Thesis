@@ -87,11 +87,17 @@ def _build_factory(method: str, data, params, checkpoint_path: str | Path | None
         return factory, extract_tool_counts
 
     if method == "paeng_ddqn_v2":
-        train_mod = importlib.import_module("paeng_ddqn_v2.train")  # currently a stub
-        raise NotImplementedError(
-            "paeng_ddqn_v2 100-seed eval depends on the v2 strategy/agent. Available "
-            "once paeng_ddqn_v2 is implemented."
-        )
+        train_mod = importlib.import_module("paeng_ddqn_v2.train")
+        agent = train_mod.PaengAgentV2.from_checkpoint(checkpoint_path)
+        agent.epsilon = 0.0
+
+        def factory(_seed: int):
+            return train_mod.PaengStrategyV2(agent, data, training=False, params=params)
+
+        def extract_tool_counts(_strategy) -> list[int]:
+            return [0] * 5  # paeng_v2 has no tool layer
+
+        return factory, extract_tool_counts
 
     raise ValueError(f"Unknown method: {method}; supported: {SUPPORTED_METHODS}")
 

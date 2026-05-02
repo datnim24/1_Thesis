@@ -1,0 +1,294 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-21 22:49:23",
+    "ups_lambda": 5.0,
+    "ups_mu": 20.0,
+    "shift_length": 480,
+    "input_dir": "C:\\Local Folder\\CODE\\1_Thesis\\Input_data",
+    "model_paths": {
+      "cpsat": "None",
+      "ql": "C:\\Local Folder\\CODE\\1_Thesis\\q_learning\\ql_results\\19_04_2026_1527_ep9738_a01000_g09900_master_profit249556\\q_table_master.pkl",
+      "rlhh": "C:\\Local Folder\\CODE\\1_Thesis\\rl_hh\\outputs\\rlhh_overall_best.pt",
+      "ppo": "C:\\Local Folder\\CODE\\1_Thesis\\PPOmask\\outputs\\20260421_104749_c27_mto_per_batch_bonus\\checkpoints\\best_training_profit_model.zip"
+    },
+    "total_wall_sec": 46.371176600048784
+  },
+  "config": {
+    "n_runs": 1,
+    "seed_start": 100,
+    "methods_enabled": {
+      "cpsat": true,
+      "ql": true,
+      "rlhh": true,
+      "ppo": true
+    },
+    "model_overrides": {
+      "ql_qtable": null,
+      "rlhh_ckpt": null,
+      "ppo_model": null
+    },
+    "ups_overrides": {
+      "lambda": null,
+      "mu": null
+    },
+    "cpsat": {
+      "time_limit_sec": 30,
+      "num_workers": 8,
+      "mip_gap": null
+    },
+    "save_per_seed_html": true,
+    "embed_plots_in_main": true,
+    "report_title": "Scheduling Method Comparison Report"
+  },
+  "seeds": [
+    100
+  ],
+  "aggregate": {
+    "cpsat": {
+      "solver_name": "CP-SAT",
+      "n_runs": 1,
+      "avg_net": 232000.0,
+      "std_net": 0.0,
+      "min_net": 232000.0,
+      "max_net": 232000.0,
+      "avg_revenue": 414000.0,
+      "avg_tard": 1000.0,
+      "avg_setup": 8800.0,
+      "avg_idle": 172200.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 86,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 17,
+      "per_seed": [
+        {
+          "net_profit": 232000.0,
+          "revenue": 414000.0,
+          "psc": 86,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 1000.0,
+          "setup_cost": 8800.0,
+          "setup_events": 11,
+          "idle_cost": 172200.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 17,
+          "j1_late": 1.0,
+          "j2_late": 0.0,
+          "seed": 100,
+          "elapsed_sec": 40.994325799983926
+        }
+      ]
+    },
+    "ql": {
+      "solver_name": "Q-Learning",
+      "n_runs": 1,
+      "avg_net": 26900.0,
+      "std_net": 0.0,
+      "min_net": 26900.0,
+      "max_net": 26900.0,
+      "avg_revenue": 430000.0,
+      "avg_tard": 160000.0,
+      "avg_setup": 32000.0,
+      "avg_idle": 164600.0,
+      "avg_stockout": 46500.0,
+      "avg_psc": 90,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 15,
+      "per_seed": [
+        {
+          "net_profit": 26900.0,
+          "revenue": 430000.0,
+          "psc": 90,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 160000.0,
+          "setup_cost": 32000.0,
+          "setup_events": 40,
+          "idle_cost": 164600.0,
+          "stockout_cost": 46500.0,
+          "over_cost": 0.0,
+          "restocks": 15,
+          "j1_late": 160.0,
+          "j2_late": 0.0,
+          "seed": 100,
+          "elapsed_sec": 0.026908400002866983
+        }
+      ]
+    },
+    "rlhh": {
+      "solver_name": "RL-HH (Dueling DDQN)",
+      "n_runs": 1,
+      "avg_net": 301800.0,
+      "std_net": 0.0,
+      "min_net": 301800.0,
+      "max_net": 301800.0,
+      "avg_revenue": 458000.0,
+      "avg_tard": 0.0,
+      "avg_setup": 6400.0,
+      "avg_idle": 149800.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 97,
+      "avg_ndg": 5,
+      "avg_busta": 5,
+      "avg_restocks": 25,
+      "per_seed": [
+        {
+          "net_profit": 301800.0,
+          "revenue": 458000.0,
+          "psc": 97,
+          "ndg": 5,
+          "busta": 5,
+          "tard_cost": 0.0,
+          "setup_cost": 6400.0,
+          "setup_events": 8,
+          "idle_cost": 149800.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 25,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 100,
+          "elapsed_sec": 1.8865993999643251
+        }
+      ]
+    },
+    "ppo": {
+      "solver_name": "MaskedPPO",
+      "n_runs": 1,
+      "avg_net": 364600.0,
+      "std_net": 0.0,
+      "min_net": 364600.0,
+      "max_net": 364600.0,
+      "avg_revenue": 511000.0,
+      "avg_tard": 100000.0,
+      "avg_setup": 4800.0,
+      "avg_idle": 41600.0,
+      "avg_stockout": 0.0,
+      "avg_psc": 112,
+      "avg_ndg": 5,
+      "avg_busta": 4,
+      "avg_restocks": 18,
+      "per_seed": [
+        {
+          "net_profit": 364600.0,
+          "revenue": 511000.0,
+          "psc": 112,
+          "ndg": 5,
+          "busta": 4,
+          "tard_cost": 100000.0,
+          "setup_cost": 4800.0,
+          "setup_events": 6,
+          "idle_cost": 41600.0,
+          "stockout_cost": 0.0,
+          "over_cost": 0.0,
+          "restocks": 18,
+          "j1_late": 0.0,
+          "j2_late": 0.0,
+          "seed": 100,
+          "elapsed_sec": 1.1208800000022165
+        }
+      ]
+    }
+  },
+  "hyperparameters": {
+    "cpsat": {
+      "solver": "OR-Tools CP-SAT (Pure v3)",
+      "time_limit_sec": 30,
+      "num_workers": 8,
+      "mip_gap": null,
+      "description": "Deterministic MILP/CP-SAT with UPS injected as planned downtime."
+    },
+    "ql": {
+      "name": "master",
+      "episodes": 9738,
+      "alpha": 0.1,
+      "gamma": 0.99,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_schedule": "linear (reaches eps_end at 70% of budget)",
+      "final_epsilon": 0.05,
+      "state_formulation": "roaster_tabular_with_heuristic_restock",
+      "ups_mode": "env_default",
+      "ups_lambda": 5.0,
+      "ups_mu": 20.0,
+      "elapsed_seconds": 180.0,
+      "stop_reason": "time limit (180s)",
+      "q_table_entries": 6187,
+      "final_avg_profit_1000": 249555.8,
+      "q_table_file": "q_table_master.pkl",
+      "training_log_file": "training_log_master.pkl",
+      "timestamp": "2026-04-19T15:27:18.117829"
+    },
+    "rlhh": {
+      "model_path": "C:\\Local Folder\\CODE\\1_Thesis\\rl_hh\\outputs\\rlhh_overall_best.pt",
+      "epsilon": 0.05,
+      "has_optimizer_state": true
+    },
+    "ppo": {
+      "timestamp": "2026-04-21T18:47:56.289101",
+      "run_dir": "C:\\Local Folder\\CODE\\1_Thesis\\PPOmask\\outputs\\20260421_104749_c27_mto_per_batch_bonus",
+      "seed": 42,
+      "timesteps_requested": 200000000,
+      "timesteps_actual": 114320008,
+      "elapsed_seconds": 28801.040699199977,
+      "n_envs": 8,
+      "learning_rate": 0.0005,
+      "gamma": 0.99,
+      "n_steps": 4096,
+      "batch_size": 128,
+      "n_epochs": 3,
+      "gae_lambda": 0.95,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "net_arch": {
+        "pi": [
+          256,
+          256
+        ],
+        "vf": [
+          256,
+          256
+        ]
+      },
+      "ent_coef": 0.05,
+      "clip_range": 0.3,
+      "ups_lambda": 5.0,
+      "ups_mu": 20.0,
+      "violation_penalty": 50000.0,
+      "episode_termination_on_violation": true,
+      "rc_maintenance_bonus": 50.0,
+      "completion_bonus": 100000.0,
+      "mto_completion_bonus": 30000.0,
+      "completed_episodes": 118796,
+      "best_profit": 901255.0,
+      "final_avg_reward_1000": 765652.325,
+      "violation_terminations": 5904,
+      "violation_rate_last100": 0.01,
+      "violation_counts": {
+        "rc_negative_L1": 4863,
+        "rc_negative_L2": 1041
+      },
+      "action_distribution": {
+        "13": 606337,
+        "6": 817797,
+        "8": 738584,
+        "2": 1164066,
+        "20": 97354149,
+        "4": 2729308,
+        "1": 2517616,
+        "5": 2621080,
+        "7": 43016,
+        "0": 2663656,
+        "14": 149547,
+        "3": 1644625,
+        "15": 11168,
+        "16": 1255601
+      },
+      "early_termination_rate": 0.01,
+      "stop_reason": "time budget (28800s)"
+    }
+  }
+}
