@@ -10,6 +10,9 @@ output/
 PPOmask/outputs/
 q_learning/ql_results/
 results/
+!results/method_comparison/20260502_065456_final_4method_UPS_lam5_mu20/
+!results/method_comparison/
+!results/
 
 # ──────────────────────────────────────────
 # Model weights & checkpoints
