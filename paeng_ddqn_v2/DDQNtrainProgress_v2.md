@@ -531,6 +531,110 @@ python -m paeng_ddqn_v2.train_v2 --time-sec 7200 --target-episodes 100000 \
 
 ---
 
+---
+
+### Cycle 11 — 1h warm-start from Cycle 10 best
+
+**Date**: 2026-05-02  
+**Status**: PLATEAU — essentially identical to Cycle 10 (+$354k mean, negligible delta)
+
+**Context**: Cycle 10 hit the stopping target ($353,994 mean). Cycle 11 probes whether additional training can push toward $370k.
+
+**Command**:
+```bash
+python -m paeng_ddqn_v2.train_v2 --time-sec 3600 \
+    --output-dir paeng_ddqn_v2/outputs/cycle11 \
+    --load-ckpt paeng_ddqn_v2/outputs/cycle10/paeng_v2_final.pt
+```
+
+**Training summary**:
+- Episodes: 10,039 / 3600s (2.8 ep/s — slightly slower than Cycle 10 due to full buffer)
+- Best peak: **$390,600 at ep 2572** (new single-ep high; previous best Cycle 10 was $389k)
+- Final epsilon: 0.175 (only ~11% decay schedule completed)
+- Buffer: 100k (full throughout)
+- Loss: stable
+- Rolling restore: not configured; 0 restores
+
+**100-seed eval** (`v2_100seed_best.json`):
+| Metric | Cycle 10 (final.pt) | Cycle 11 (best.pt) | Δ |
+|---|---|---|---|
+| Mean | $353,994 | **$353,788** | -$206 |
+| Std | $11,200 | $11,634 | +$434 |
+| Median | $354,200 | $354,100 | -$100 |
+| Min | $317,000 | $320,600 | +$3,600 |
+| Max | $374,600 | $374,600 | 0 |
+
+**Schedule analysis** (seed 42, $343,400 profit):
+- Tardiness $0, Idle $135,400 (677 min), Setup $3,200, Stockout $0
+- Batches: 103 PSC + 5 NDG + 5 BUSTA = 113 total
+- Revenue: $482,000 ($412k PSC + $35k NDG + $35k BUSTA)
+- Identical to Cycle 10 seed-42 output → policy fully stable, warm-start produced no new schedule behavior on this seed
+
+**Diagnosis — architectural plateau confirmed**:
+- Mean shifted by only -$206 (≈ 0.06%) vs Cycle 10 despite new single-ep peak at $390,600
+- Epsilon still high (0.175) → policy in exploration zone; the $390k spike was likely a lucky trajectory
+- (3,35) state with current hyperparams has reached its ceiling around $354k mean
+- **Research integrity flag**: state (3,35) is a non-paper feature; original Paeng 2021 uses (3,25) + only cost-delta reward. See Cycle 12.
+
+---
+
+### Cycle 12 — Revenue shaping removed (research integrity revert)
+
+**Date**: 2026-05-02  
+**Status**: EQUIVALENT TO CYCLE 11 — removing revenue shaping had negligible impact on mean
+
+**Motivation**: The implementation contained two features not in Paeng et al. (2021):
+1. State expansion (3,25) → (3,35) with 10 extra domain features (Cycle 5)
+2. Revenue reward shaping: r = -Δcost + 0.1·Δrevenue (Cycle 5)
+
+For thesis honesty, this cycle strips (2). Removing (1) would require full retraining from scratch and would likely regress to ~$175k mean (Cycle 8 level, where the broken Algorithm 1 was the bottleneck on the (3,35) state). Decision deferred.
+
+**Code change** (`paeng_ddqn_v2/strategy_v2.py` line 427):
+```python
+# BEFORE (Cycle 5 addition):
+REVENUE_WEIGHT = 0.1
+
+# AFTER (faithful Paeng cost-minimisation):
+REVENUE_WEIGHT = 0.0
+```
+
+**Command**:
+```bash
+python -m paeng_ddqn_v2.train_v2 --time-sec 3600 \
+    --output-dir paeng_ddqn_v2/outputs/cycle12_no_revenue_shaping \
+    --load-ckpt paeng_ddqn_v2/outputs/cycle11/paeng_v2_best.pt
+```
+
+**Training summary**:
+- Episodes: 12,350 / 3600s (3.4 ep/s)
+- Best peak: **$383,400 at ep 10,633**
+- Final epsilon: 0.169
+- Buffer: 100k (full)
+- 0 restores
+
+**100-seed eval** (`v2_100seed_best.json`):
+| Metric | Cycle 11 (w/ shaping) | Cycle 12 (no shaping) | Δ |
+|---|---|---|---|
+| Mean | $353,788 | **$353,390** | -$398 |
+| Std | $11,634 | $13,677 | +$2,043 |
+| Median | $354,100 | $354,200 | +$100 |
+| Min | $320,600 | $274,400 | **-$46,200** |
+| Max | $374,600 | $374,600 | 0 |
+
+**Schedule analysis** (seed 42, $343,400 profit):
+- Identical to Cycle 11: Tardiness $0, Idle $135,400 (677 min), Setup $3,200, Stockout $0
+- Batches: 103 PSC + 5 NDG + 5 BUSTA = 113 total, Revenue $482,000
+- Revenue shaping removal had zero visible effect on this deterministic seed-42 evaluation
+
+**Diagnosis**:
+- Mean loss: -$398 (negligible, 0.1%). The revenue signal (0.1·Δrevenue) was providing minimal gradient signal at this training stage — the policy was already learning from cost deltas alone.
+- Tail degraded: min dropped $320k → $274k (-$46k). Revenue shaping had provided marginal lower-tail stabilisation; without it, ~3-5 seeds land worse.
+- **Residual non-paper feature**: state (3,35) still in use. Original paper uses (3,25). This is the larger deviation from Paeng 2021 and the primary source of the $175k → $354k improvement (Cycles 5-10).
+- **Current status label**: "Modified Paeng (domain-adapted state, faithful cost-only reward)"
+- Checkpoint `paeng_v2_best.pt` in `cycle12_no_revenue_shaping/` is the recommended faithful-reward baseline.
+
+---
+
 ## Retrospective Template
 
 Every 5 cycles, conduct an in-depth analysis of failure modes and breakthroughs:

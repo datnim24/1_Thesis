@@ -418,13 +418,8 @@ class PaengStrategyV2:
         return float(self.kpi_ref.total_revenue)
 
     def _compute_reward(self, current_cost: float, current_revenue: float) -> float:
-        """Per-period reward = -Δcost + REVENUE_WEIGHT * Δrevenue.
-
-        REVENUE_WEIGHT=0.1 gives a small but non-zero positive signal when batches
-        complete, so the agent learns dispatching → completion → revenue is good
-        (not just "less idle is good", which biases toward always-PSC collapse).
-        """
-        REVENUE_WEIGHT = 0.1
+        """Per-period reward = -Δcost  (faithful Paeng — no revenue shaping)."""
+        REVENUE_WEIGHT = 0.0
         cost_delta = current_cost - getattr(self, "_prev_cost", 0.0)
         revenue_delta = current_revenue - getattr(self, "_prev_revenue", 0.0)
         return -cost_delta + REVENUE_WEIGHT * revenue_delta

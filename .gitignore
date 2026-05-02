@@ -44,6 +44,15 @@ debug.lp
 **/monitored_log.csv
 
 # ──────────────────────────────────────────
+# Temporary/experimental scripts
+# ──────────────────────────────────────────
+Experiment/make_fake_schedule.py
+Experiment/make_rolling_result.py
+scripts/gen_100seed_html.py
+scripts/run_cpsat_pure_seed69_30min.py
+scripts/run_cpsat_pure_seed69_45min.py
+
+# ──────────────────────────────────────────
 # Claude Code local config
 # ──────────────────────────────────────────
 .claude/
